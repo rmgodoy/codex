@@ -726,7 +726,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
                   <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
                   <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', target: '', range: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
                     <Plus className="h-4 w-4 mr-2" /> Create New
