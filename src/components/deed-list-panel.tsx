@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Search, Tag } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
+import { useSidebar } from './ui/sidebar';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
@@ -27,6 +28,7 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
   const [tagFilter, setTagFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => {
     const fetchDeeds = async () => {
@@ -46,6 +48,13 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
   
   const handleNewDeed = () => {
     onNewDeed();
+  };
+
+  const handleSelectDeed = (id: string) => {
+    onSelectDeed(id);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   const filteredAndSortedDeeds = useMemo(() => {
@@ -108,7 +117,7 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
               {filteredAndSortedDeeds.map(deed => (
                 <li key={deed.id}>
                   <button
-                    onClick={() => onSelectDeed(deed.id)}
+                    onClick={() => handleSelectDeed(deed.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedDeedId === deed.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
                     {deed.name} <span className="text-xs opacity-70">({deed.tier})</span>
