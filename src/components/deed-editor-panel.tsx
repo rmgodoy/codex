@@ -310,18 +310,6 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField name="actionType" control={form.control} render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Action Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select action type" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )} />
                 <FormField name="deedType" control={form.control} render={({ field }) => (
                     <FormItem>
                         <FormLabel>Deed Type</FormLabel>
@@ -329,6 +317,18 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                             <FormControl><SelectTrigger><SelectValue placeholder="Select deed type" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField name="actionType" control={form.control} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Action Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select action type" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <FormMessage />

@@ -785,18 +785,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             </div>
 
                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField name={`deeds.${index}.actionType`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Action Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
                                 <FormField name={`deeds.${index}.deedType`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Deed Type</FormLabel>
@@ -804,6 +792,18 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                             <FormControl><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                  {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.actionType`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Action Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />

@@ -22,7 +22,7 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
         return dmgReplacement ? text.replace(/\\dd/g, dmgReplacement) : text;
     };
 
-    const attackString = `${deed.deedType} ${deed.actionType} vs. ${deed.versus}`.toUpperCase();
+    const attackString = `${deed.deedType} ${deed.actionType} VS ${deed.versus}`.toUpperCase();
     const fullTargetString = `${attackString} | ${deed.target}`;
 
     return (
