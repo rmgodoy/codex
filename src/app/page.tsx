@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Creature } from "@/lib/types";
+import type { Creature, CreatureWithDeeds } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Skull } from "lucide-react";
@@ -11,12 +11,12 @@ import { Sidebar, SidebarProvider, SidebarInset, SidebarTrigger } from "@/compon
 export default function Home() {
   const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
-  const [templateData, setTemplateData] = useState<Partial<Creature> | null>(null);
+  const [templateData, setTemplateData] = useState<Partial<CreatureWithDeeds> | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
 
   const refreshList = () => setDataVersion(v => v + 1);
 
-  const handleSelectCreature = (id: string) => {
+  const handleSelectCreature = (id: string | null) => {
     setSelectedCreatureId(id);
     setIsCreatingNew(false);
     setTemplateData(null);
@@ -28,7 +28,7 @@ export default function Home() {
     setTemplateData(null);
   };
 
-  const handleUseAsTemplate = (creatureData: Creature) => {
+  const handleUseAsTemplate = (creatureData: CreatureWithDeeds) => {
     const template = { ...creatureData };
     template.name = `Copy of ${creatureData.name || 'creature'}`;
     delete template.id;
@@ -55,8 +55,8 @@ export default function Home() {
   const onEditCancel = () => {
     if (isCreatingNew) {
       setIsCreatingNew(false);
+      setSelectedCreatureId(null);
     }
-    // If just editing, the editor panel handles switching back to its own view mode internally.
   };
 
   return (
@@ -67,6 +67,7 @@ export default function Home() {
           onNewCreature={handleNewCreature}
           selectedCreatureId={selectedCreatureId}
           dataVersion={dataVersion}
+          onImportSuccess={refreshList}
         />
       </Sidebar>
       <SidebarInset>

@@ -13,15 +13,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Download, Upload, Search } from 'lucide-react';
+import { useSidebar } from '@/components/ui/sidebar';
 
 interface CreatureListPanelProps {
-  onSelectCreature: (id: string) => void;
+  onSelectCreature: (id: string | null) => void;
   onNewCreature: () => void;
   selectedCreatureId: string | null;
   dataVersion: number;
+  onImportSuccess: () => void;
 }
 
-export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId, dataVersion }: CreatureListPanelProps) {
+export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId, dataVersion, onImportSuccess }: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [minTR, setMinTR] = useState('');
@@ -31,6 +33,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => {
     const fetchCreatures = async () => {
@@ -105,15 +108,11 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
         if (typeof content !== 'string') {
           throw new Error("File content could not be read as text.");
         }
-        const importedCreatures: Partial<Creature>[] = JSON.parse(content);
-        if (!Array.isArray(importedCreatures)) throw new Error("JSON must be an array of creatures.");
-
-        await importCreatures(importedCreatures);
+        const importedData = JSON.parse(content);
         
-        onNewCreature(); // Force a refresh by triggering parent state change
-        onNewCreature(); // This is a bit of a hack. Let's use the dataVersion.
-        // The parent will handle refreshing. We can just call onNewCreature to reset view.
-        // A better way would be to call a dedicated refresh function. The parent now handles this.
+        await importCreatures(importedData);
+        onImportSuccess();
+        onSelectCreature(null);
         
         toast({ title: "Import Successful", description: "Bestiary has been overwritten with the imported data." });
       } catch (error: any) {
@@ -126,6 +125,13 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleSelectCreature = (id: string) => {
+    onSelectCreature(id);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
@@ -210,7 +216,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
               {filteredAndSortedCreatures.map(creature => (
                 <li key={creature.id}>
                   <button
-                    onClick={() => onSelectCreature(creature.id)}
+                    onClick={() => handleSelectCreature(creature.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
                     {creature.name} <span className="text-xs opacity-70">(TR {creature.TR})</span>

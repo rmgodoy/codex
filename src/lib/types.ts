@@ -1,4 +1,5 @@
 
+
 export interface CreatureAttributes {
   HP: number;
   Speed: number;
@@ -18,6 +19,7 @@ export interface DeedEffects {
 }
 
 export interface Deed {
+  id: string;
   name: string;
   tier: 'light' | 'heavy' | 'mighty';
   type: 'attack' | 'support';
@@ -26,15 +28,23 @@ export interface Deed {
   effects: DeedEffects;
 }
 
+export type DeedData = Omit<Deed, 'id'>;
+
+
 export interface Creature {
   id: string;
   name: string;
   TR: number;
   attributes: CreatureAttributes;
-  deeds: Deed[];
+  deeds: string[];
   abilities: string;
   description: string;
   tags: string[];
 }
 
 export type NewCreature = Omit<Creature, 'id'>;
+
+// Helper type for UI, with full deed objects
+export interface CreatureWithDeeds extends Omit<Creature, 'deeds'> {
+  deeds: Deed[];
+}

@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getCreatureById, addCreature, updateCreature, deleteCreature } from "@/lib/idb";
+import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Creature, Deed } from "@/lib/types";
+import type { Creature, Deed, DeedData, CreatureWithDeeds } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -19,9 +19,13 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5, Edit, ChevronsUpDown, Copy } from "lucide-react";
+import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5, Edit, ChevronsUpDown, Copy, X, Library } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -32,6 +36,7 @@ const deedEffectsSchema = z.object({
 });
 
 const deedSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Deed name is required"),
   tier: z.enum(['light', 'heavy', 'mighty']),
   type: z.enum(['attack', 'support']),
@@ -63,10 +68,10 @@ type CreatureFormData = z.infer<typeof creatureSchema>;
 interface CreatureEditorPanelProps {
   creatureId: string | null;
   isCreatingNew: boolean;
-  template: Partial<Creature> | null;
+  template: Partial<CreatureWithDeeds> | null;
   onCreatureSaveSuccess: (id: string) => void;
   onCreatureDeleteSuccess: () => void;
-  onUseAsTemplate: (creatureData: Creature) => void;
+  onUseAsTemplate: (creatureData: CreatureWithDeeds) => void;
   onEditCancel: () => void;
 }
 
@@ -115,37 +120,105 @@ const DeedDisplay = ({ deed }: { deed: Deed }) => {
     );
 };
 
+const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Deed[]) => void, allDeeds: Deed[] }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedDeedIds, setSelectedDeedIds] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredDeeds = useMemo(() => {
+    return allDeeds.filter(deed => deed.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [allDeeds, searchTerm]);
+
+  const handleAddClick = () => {
+    const deedsToAdd = allDeeds.filter(d => selectedDeedIds.has(d.id));
+    onAddDeeds(deedsToAdd);
+    setIsOpen(false);
+    setSelectedDeedIds(new Set());
+    setSearchTerm("");
+  }
+
+  const handleCheckboxChange = (deedId: string) => {
+    setSelectedDeedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(deedId)) {
+        newSet.delete(deedId);
+      } else {
+        newSet.add(deedId);
+      }
+      return newSet;
+    });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" size="sm" variant="outline"><Library className="h-4 w-4 mr-2" /> Add From Library</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl h-[70vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Select Deeds from Library</DialogTitle>
+          <DialogDescription>Select one or more deeds to add to the creature.</DialogDescription>
+        </DialogHeader>
+        <Input 
+          placeholder="Search deeds..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="mb-4"
+        />
+        <ScrollArea className="flex-1 border rounded-md p-4">
+          <div className="space-y-2">
+            {filteredDeeds.map(deed => (
+              <div key={deed.id} className="flex items-center gap-3">
+                <Checkbox 
+                  id={`deed-${deed.id}`} 
+                  onCheckedChange={() => handleCheckboxChange(deed.id)}
+                  checked={selectedDeedIds.has(deed.id)}
+                />
+                <label htmlFor={`deed-${deed.id}`} className="flex-1">
+                  <p className="font-semibold">{deed.name} <span className="text-xs text-muted-foreground">({deed.tier})</span></p>
+                  <p className="text-xs text-muted-foreground truncate">{deed.effects.hit}</p>
+                </label>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button onClick={handleAddClick} disabled={selectedDeedIds.size === 0}>Add Selected</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 
 export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureSaveSuccess, onCreatureDeleteSuccess, onUseAsTemplate, onEditCancel }: CreatureEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!creatureId);
-  const [fetchedCreatureData, setFetchedCreatureData] = useState<CreatureFormData | null>(null);
+  const [creatureData, setCreatureData] = useState<CreatureWithDeeds | null>(null);
+  const [allDeeds, setAllDeeds] = useState<Deed[]>([]);
   
   const form = useForm<CreatureFormData>({
     resolver: zodResolver(creatureSchema),
     defaultValues: template || defaultValues,
   });
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "deeds",
   });
 
   const watchedData = form.watch();
 
-  const prepareDataForSave = (data: CreatureFormData) => {
-    const tagsValue = data.tags || '';
-    return {
-      ...data,
-      tags: Array.isArray(tagsValue) ? tagsValue : tagsValue.split(',').map(t => t.trim()).filter(Boolean),
-    };
-  };
+  useEffect(() => {
+    getAllDeeds().then(setAllDeeds).catch(e => console.error("Could not fetch all deeds", e));
+  }, []);
 
   useEffect(() => {
     const fetchCreatureData = async () => {
       if (isCreatingNew) {
         form.reset(template || defaultValues);
-        setFetchedCreatureData(null);
+        setCreatureData(template ? (template as CreatureWithDeeds) : null);
         setIsEditing(true);
         setLoading(false);
         return;
@@ -154,20 +227,26 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       if (!creatureId) {
         setIsEditing(false);
         setLoading(false);
+        setCreatureData(null);
         return;
       }
 
       setLoading(true);
       setIsEditing(false);
       try {
-        const creatureData = await getCreatureById(creatureId);
-        if (creatureData) {
+        const creatureFromDb = await getCreatureById(creatureId);
+        if (creatureFromDb) {
+          const deedObjects = await getDeedsByIds(creatureFromDb.deeds);
+          const fullCreatureData: CreatureWithDeeds = {
+            ...creatureFromDb,
+            deeds: deedObjects
+          };
+          setCreatureData(fullCreatureData);
           const formData = {
-            ...creatureData,
-            tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
+            ...fullCreatureData,
+            tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
           };
           form.reset(formData);
-          setFetchedCreatureData(formData);
         }
       } catch (error) {
         console.error("Failed to fetch creature data:", error);
@@ -177,19 +256,35 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       }
     };
     fetchCreatureData();
-  }, [creatureId, form, toast, isCreatingNew, template]);
+  }, [creatureId, isCreatingNew, template, form, toast]);
 
 
   const onSubmit = async (data: CreatureFormData) => {
-    const dataToSave = prepareDataForSave(data);
-    
     try {
+      const deedPromises = data.deeds.map(deed => {
+        if (!deed.id) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...deedData } = deed;
+          return addDeed(deedData as DeedData);
+        }
+        return Promise.resolve(deed.id);
+      });
+
+      const deedIds = await Promise.all(deedPromises);
+      
+      const tagsValue = data.tags || '';
+      const creatureToSave: Omit<Creature, 'id'> | Creature = {
+        ...data,
+        tags: Array.isArray(tagsValue) ? tagsValue : tagsValue.split(',').map(t => t.trim()).filter(Boolean),
+        deeds: deedIds,
+      };
+
       if (isCreatingNew) {
-        const newId = await addCreature(dataToSave);
+        const newId = await addCreature(creatureToSave as Omit<Creature, 'id'>);
         toast({ title: "Creature Created!", description: `${data.name} has been added to the bestiary.` });
         onCreatureSaveSuccess(newId);
       } else if(creatureId) {
-        await updateCreature({ ...dataToSave, id: creatureId });
+        await updateCreature({ ...creatureToSave, id: creatureId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
         onCreatureSaveSuccess(creatureId);
       }
@@ -216,21 +311,29 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     if (isCreatingNew) {
       onEditCancel();
     } else {
-      if (fetchedCreatureData) {
-        form.reset(fetchedCreatureData);
+      if (creatureData) {
+        const formData = {
+          ...creatureData,
+          tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
+        };
+        form.reset(formData);
       }
       setIsEditing(false);
     }
   }
 
   const handleUseAsTemplate = () => {
-      const currentCreature = form.getValues();
-      if (creatureId) {
-        onUseAsTemplate({ ...currentCreature, id: creatureId, tags: (currentCreature.tags || '').split(',').map(t=> t.trim()) });
+      if (creatureData) {
+        onUseAsTemplate(creatureData);
       }
   };
+
+  const handleAddDeedsFromLibrary = (newDeeds: Deed[]) => {
+    const currentDeedIds = new Set(fields.map(f => f.id));
+    const deedsToAdd = newDeeds.filter(d => !currentDeedIds.has(d.id!));
+    append(deedsToAdd);
+  };
   
-  const creatureData = form.getValues();
   const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2 };
 
   if (loading && !isCreatingNew) {
@@ -277,7 +380,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     );
   }
   
-  if (!isEditing && creatureId) {
+  if (!isEditing && creatureId && creatureData) {
     const sortedDeeds = [...creatureData.deeds].sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
     return (
         <Card>
@@ -286,7 +389,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
                     <CardDescription className="mt-1">
                         TR {creatureData.TR}
-                        {creatureData.tags && ` • ${creatureData.tags}`}
+                        {creatureData.tags && creatureData.tags.length > 0 && ` • ${creatureData.tags.join(', ')}`}
                     </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -312,7 +415,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <div>
                     <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
                     {sortedDeeds.length > 0 ? (
-                        sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed as Deed} />)
+                        sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed} />)
                     ) : (
                         <p className="text-muted-foreground">No deeds defined.</p>
                     )}
@@ -362,13 +465,18 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <CardHeader>
-            <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${fetchedCreatureData?.name || "..."}`}</CardTitle>
-            <CardDescription>
-              {isCreatingNew ? "Fill out the details for your new creature." : "Make your changes and click Save."}
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${creatureData?.name || "..."}`}</CardTitle>
+              <CardDescription>
+                {isCreatingNew ? "Fill out the details for your new creature." : "Make your changes and click Save."}
+              </CardDescription>
+            </div>
+            <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
+              <X className="h-5 w-5" />
+            </Button>
           </CardHeader>
-          <CardContent className="space-y-8 pt-6">
+          <CardContent className="space-y-8 pt-0">
             <div className="grid md:grid-cols-3 gap-4">
               <FormField name="name" control={form.control} render={({ field }) => (
                 <FormItem className="md:col-span-2">
@@ -441,9 +549,12 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
-                <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', type: 'attack', range: '', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' } })}>
-                  <Plus className="h-4 w-4 mr-2" /> Add Deed
-                </Button>
+                <div className="flex gap-2">
+                  <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} />
+                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', type: 'attack', range: '', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' } })}>
+                    <Plus className="h-4 w-4 mr-2" /> Create New
+                  </Button>
+                </div>
               </div>
               <div className="space-y-4">
                 {fields.map((field, index) => (
@@ -455,6 +566,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                     <span className="text-lg font-semibold text-primary-foreground">
                                         {watchedData.deeds?.[index]?.name || "New Deed"}
                                     </span>
+                                    {watchedData.deeds?.[index]?.id && <span className="text-xs text-muted-foreground">(from library)</span>}
                                 </button>
                             </CollapsibleTrigger>
                              <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
@@ -466,14 +578,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                 <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Deed Name</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Inferno" {...field} /></FormControl>
+                                        <FormControl><Input placeholder="e.g., Inferno" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
                                 <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Tier</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="light">Light</SelectItem>
@@ -487,7 +599,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                 <FormField name={`deeds.${index}.type`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="attack">Attack</SelectItem>
@@ -502,14 +614,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                 <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Target</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} /></FormControl>
+                                        <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
                                 <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Range</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Blast 4" {...field} /></FormControl>
+                                        <FormControl><Input placeholder="e.g., Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
@@ -520,33 +632,33 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} /></FormControl>
+                                    <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                 </FormItem>
                             )} />
                             <FormField name={`deeds.${index}.effects.base`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} /></FormControl>
+                                    <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                 </FormItem>
                             )} />
                                 <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Hit <span className="text-destructive">*</span></FormLabel>
-                                    <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} /></FormControl>
+                                    <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )} />
                                 <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Shadow (Critical) <span className="text-destructive">*</span></FormLabel>
-                                    <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} /></FormControl>
+                                    <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )} />
                                 <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} /></FormControl>
+                                    <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                 </FormItem>
                                 )} />
                             </div>
