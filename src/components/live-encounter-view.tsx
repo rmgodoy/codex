@@ -92,15 +92,19 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   };
 
   const prevTurn = () => {
-    const newIndex = turnIndex - 1;
-    if (newIndex < 0) {
-      if (round > 1) {
-        setRound(r => r - 1);
-        setTurnIndex(turnOrder.length - 1);
+    setTurnIndex(prevIndex => {
+      const newIndex = prevIndex - 1;
+      if (newIndex < 0) {
+        if (round > 1) {
+          const newRound = round - 1;
+          setRound(newRound);
+          // This logic might need refinement depending on desired behavior for turn order length changes
+          return turnOrder.length -1; 
+        }
+        return 0; // Stay at the first turn if it's round 1
       }
-    } else {
-      setTurnIndex(newIndex);
-    }
+      return newIndex;
+    });
   };
   
   const currentPeril = useMemo(() => {
@@ -126,7 +130,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             </div>
             <Button variant="destructive" onClick={onEndEncounter}>End Encounter</Button>
          </header>
-         <main className="flex-1 flex overflow-hidden">
+         <main className="flex-1 flex min-h-0">
             <Sidebar style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
                 <InitiativeTracker 
                     combatantsInTurnOrder={turnOrder}
