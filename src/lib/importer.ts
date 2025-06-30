@@ -24,7 +24,9 @@ interface LegacyCreature {
 }
 
 function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
-    if (!deedBlock?.trim()) return [];
+    if (typeof deedBlock !== 'string' || !deedBlock.trim()) {
+        return [];
+    }
 
     const deedStrings = deedBlock.trim().split(/\n(?=[A-Z\s'-]+$)/m);
     
