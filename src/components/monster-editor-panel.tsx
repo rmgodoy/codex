@@ -8,7 +8,7 @@ import { doc, getDoc, setDoc, addDoc, deleteDoc, collection } from "firebase/fir
 import { db } from "@/lib/firebase";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
-import type { Monster } from "@/lib/types";
+import type { Creature } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,10 +18,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { BrainCircuit, Plus, Sparkles, Sword, Trash2, Wind, X } from "lucide-react";
+import { BrainCircuit, Plus, Sparkles, Sword, Tag, Trash2, Wind, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const monsterSchema = z.object({
+const creatureSchema = z.object({
   name: z.string().min(1, "Name is required"),
   level: z.coerce.number().int().min(0),
   attributes: z.object({
@@ -36,30 +36,32 @@ const monsterSchema = z.object({
   })),
   abilities: z.string().optional(),
   description: z.string().optional(),
+  tags: z.string().optional(),
 });
 
-type MonsterFormData = z.infer<typeof monsterSchema>;
+type CreatureFormData = z.infer<typeof creatureSchema>;
 
-interface MonsterEditorPanelProps {
-  monsterId: string | null;
+interface CreatureEditorPanelProps {
+  creatureId: string | null;
   isCreatingNew: boolean;
-  onMonsterCreated: (id: string) => void;
-  onMonsterDeleted: () => void;
+  onCreatureCreated: (id: string) => void;
+  onCreatureDeleted: () => void;
 }
 
-const defaultValues: MonsterFormData = {
+const defaultValues: CreatureFormData = {
   name: "",
   level: 1,
   attributes: { strength: 1, agility: 1, mind: 1, charm: 1 },
   skills: [],
   abilities: "",
   description: "",
+  tags: "",
 };
 
-export default function MonsterEditorPanel({ monsterId, isCreatingNew, onMonsterCreated, onMonsterDeleted }: MonsterEditorPanelProps) {
+export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreatureCreated, onCreatureDeleted }: CreatureEditorPanelProps) {
   const { toast } = useToast();
-  const form = useForm<MonsterFormData>({
-    resolver: zodResolver(monsterSchema),
+  const form = useForm<CreatureFormData>({
+    resolver: zodResolver(creatureSchema),
     defaultValues: defaultValues,
   });
   const { fields, append, remove } = useFieldArray({
@@ -70,73 +72,86 @@ export default function MonsterEditorPanel({ monsterId, isCreatingNew, onMonster
   const watchedData = form.watch();
   const debouncedData = useDebounce(watchedData, 1000);
 
-  const handleUpdateMonster = useCallback(async (data: MonsterFormData) => {
-    if (!monsterId || isCreatingNew) return;
+  const prepareDataForSave = (data: CreatureFormData) => {
+    return {
+      ...data,
+      tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+    };
+  };
+
+  const handleUpdateCreature = useCallback(async (data: CreatureFormData) => {
+    if (!creatureId || isCreatingNew) return;
     try {
-      await setDoc(doc(db, "monsters", monsterId), data);
+      const dataToSave = prepareDataForSave(data);
+      await setDoc(doc(db, "creatures", creatureId), dataToSave);
       toast({ title: "Auto-saved!", description: `${data.name} has been updated.` });
     } catch (error) {
-      console.error("Failed to update monster:", error);
+      console.error("Failed to update creature:", error);
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes for ${data.name}.` });
     }
-  }, [monsterId, isCreatingNew, toast]);
+  }, [creatureId, isCreatingNew, toast]);
   
   useEffect(() => {
-    if (!monsterId || isCreatingNew || !form.formState.isDirty || !form.formState.isValid) return;
-    handleUpdateMonster(debouncedData);
-  }, [debouncedData, monsterId, isCreatingNew, form.formState.isDirty, form.formState.isValid, handleUpdateMonster]);
+    if (!creatureId || isCreatingNew || !form.formState.isDirty || !form.formState.isValid) return;
+    handleUpdateCreature(debouncedData);
+  }, [debouncedData, creatureId, isCreatingNew, form.formState.isDirty, form.formState.isValid, handleUpdateCreature]);
 
 
   useEffect(() => {
-    const fetchMonsterData = async () => {
-      if (!monsterId) {
+    const fetchCreatureData = async () => {
+      if (!creatureId) {
         form.reset(defaultValues);
         return;
       }
       form.reset(undefined, { keepValues: false }); // Reset to show loading state
       try {
-        const monsterDoc = await getDoc(doc(db, "monsters", monsterId));
-        if (monsterDoc.exists()) {
-          const data = monsterDoc.data() as Omit<Monster, 'id'>;
-          form.reset(data);
+        const creatureDoc = await getDoc(doc(db, "creatures", creatureId));
+        if (creatureDoc.exists()) {
+          const data = creatureDoc.data() as Omit<Creature, 'id'>;
+          const formData = {
+            ...data,
+            tags: data.tags ? data.tags.join(', ') : '',
+          };
+          form.reset(formData);
         }
       } catch (error) {
-        console.error("Failed to fetch monster data:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not load monster data." });
+        console.error("Failed to fetch creature data:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not load creature data." });
       }
     };
-    fetchMonsterData();
-  }, [monsterId, form, toast]);
+    fetchCreatureData();
+  }, [creatureId, form, toast]);
 
 
-  const handleCreateMonster = async (data: MonsterFormData) => {
+  const handleCreateCreature = async (data: CreatureFormData) => {
     try {
-      const newDocRef = await addDoc(collection(db, "monsters"), data);
-      toast({ title: "Monster Created!", description: `${data.name} has been added to the bestiary.` });
-      onMonsterCreated(newDocRef.id);
+      const dataToSave = prepareDataForSave(data);
+      const newDocRef = await addDoc(collection(db, "creatures"), dataToSave);
+      toast({ title: "Creature Created!", description: `${data.name} has been added to the bestiary.` });
+      onCreatureCreated(newDocRef.id);
     } catch (error) {
-      console.error("Failed to create monster:", error);
-      toast({ variant: "destructive", title: "Creation Failed", description: "Could not create the new monster." });
+      console.error("Failed to create creature:", error);
+      toast({ variant: "destructive", title: "Creation Failed", description: "Could not create the new creature." });
     }
   };
 
-  const handleDeleteMonster = async () => {
-    if (!monsterId) return;
+  const handleDeleteCreature = async () => {
+    if (!creatureId) return;
     try {
-      await deleteDoc(doc(db, "monsters", monsterId));
-      toast({ title: "Monster Deleted", description: "The monster has been removed from the bestiary." });
-      onMonsterDeleted();
+      await deleteDoc(doc(db, "creatures", creatureId));
+      toast({ title: "Creature Deleted", description: "The creature has been removed from the bestiary." });
+      onCreatureDeleted();
     } catch (error) {
-      console.error("Failed to delete monster:", error);
-      toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the monster." });
+      console.error("Failed to delete creature:", error);
+      toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the creature." });
     }
   };
 
-  if (!isCreatingNew && !monsterId) {
+  if (!isCreatingNew && !creatureId) {
     return (
       <Card className="h-full flex items-center justify-center">
         <CardContent className="text-center">
-            <p className="text-xl text-muted-foreground">Select a monster to edit</p>
+            <p className="text-xl text-muted-foreground">Select a creature to edit</p>
             <p className="text-muted-foreground">or create a new one.</p>
         </CardContent>
       </Card>
@@ -161,14 +176,14 @@ export default function MonsterEditorPanel({ monsterId, isCreatingNew, onMonster
   return (
     <Card className="h-full overflow-hidden">
       <CardHeader>
-        <CardTitle>{isCreatingNew ? "Create a New Monster" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+        <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
         <CardDescription>
           {isCreatingNew ? "Fill out the details for your new creature." : "Changes are saved automatically."}
         </CardDescription>
       </CardHeader>
       <CardContent className="h-[calc(100%-100px)] overflow-y-auto pr-3">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleCreateMonster)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(handleCreateCreature)} className="space-y-8">
             <div className="grid md:grid-cols-3 gap-4">
               <FormField name="name" control={form.control} render={({ field }) => (
                 <FormItem className="md:col-span-2">
@@ -259,16 +274,23 @@ export default function MonsterEditorPanel({ monsterId, isCreatingNew, onMonster
             <FormField name="description" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
-                  <FormControl><Textarea placeholder="A short description of the monster..." rows={5} {...field} /></FormControl>
+                  <FormControl><Textarea placeholder="A short description of the creature..." rows={5} {...field} /></FormControl>
                 </FormItem>
               )} />
+            <FormField name="tags" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                <FormControl><Input placeholder="e.g. undead, magical, small" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
             
             <div className="flex justify-end gap-2 pt-4">
               {!isCreatingNew && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button type="button" variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete Monster
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete Creature
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -280,14 +302,14 @@ export default function MonsterEditorPanel({ monsterId, isCreatingNew, onMonster
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteMonster} className="bg-destructive hover:bg-destructive/90">
+                      <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
                         Delete
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              {isCreatingNew && <Button type="submit">Save New Monster</Button>}
+              {isCreatingNew && <Button type="submit">Save New Creature</Button>}
             </div>
           </form>
         </Form>

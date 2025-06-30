@@ -1,31 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import MonsterListPanel from "@/components/monster-list-panel";
-import MonsterEditorPanel from "@/components/monster-editor-panel";
+import CreatureListPanel from "@/components/monster-list-panel";
+import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Skull } from "lucide-react";
 
 export default function Home() {
-  const [selectedMonsterId, setSelectedMonsterId] = useState<string | null>(null);
+  const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(true);
 
-  const handleSelectMonster = (id: string) => {
-    setSelectedMonsterId(id);
+  const handleSelectCreature = (id: string) => {
+    setSelectedCreatureId(id);
     setIsCreatingNew(false);
   };
 
-  const handleNewMonster = () => {
-    setSelectedMonsterId(null);
+  const handleNewCreature = () => {
+    setSelectedCreatureId(null);
     setIsCreatingNew(true);
   };
 
-  const handleMonsterCreated = (id: string) => {
-    setSelectedMonsterId(id);
+  const handleCreatureCreated = (id: string) => {
+    setSelectedCreatureId(id);
     setIsCreatingNew(false);
   }
 
-  const handleMonsterDeleted = () => {
-    setSelectedMonsterId(null);
+  const handleCreatureDeleted = () => {
+    setSelectedCreatureId(null);
     setIsCreatingNew(true);
   }
 
@@ -38,18 +38,18 @@ export default function Home() {
         </div>
       </header>
       <main className="grid md:grid-cols-[380px_1fr] min-h-[calc(100vh-81px)]">
-        <MonsterListPanel
-          onSelectMonster={handleSelectMonster}
-          onNewMonster={handleNewMonster}
-          selectedMonsterId={selectedMonsterId}
+        <CreatureListPanel
+          onSelectCreature={handleSelectCreature}
+          onNewCreature={handleNewCreature}
+          selectedCreatureId={selectedCreatureId}
         />
         <div className="bg-background/50 p-4 sm:p-6 md:p-8">
-          <MonsterEditorPanel
-            key={selectedMonsterId ?? 'new'} 
-            monsterId={selectedMonsterId}
+          <CreatureEditorPanel
+            key={selectedCreatureId ?? 'new'} 
+            creatureId={selectedCreatureId}
             isCreatingNew={isCreatingNew}
-            onMonsterCreated={handleMonsterCreated}
-            onMonsterDeleted={handleMonsterDeleted}
+            onCreatureCreated={handleCreatureCreated}
+            onCreatureDeleted={handleCreatureDeleted}
           />
         </div>
       </main>

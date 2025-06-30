@@ -1,23 +1,24 @@
-export interface MonsterAttributes {
+export interface CreatureAttributes {
   strength: number;
   agility: number;
   mind: number;
   charm: number;
 }
 
-export interface MonsterSkill {
+export interface CreatureSkill {
   name: string;
   rating: number;
 }
 
-export interface Monster {
+export interface Creature {
   id: string;
   name: string;
   level: number;
-  attributes: MonsterAttributes;
-  skills: MonsterSkill[];
+  attributes: CreatureAttributes;
+  skills: CreatureSkill[];
   abilities: string;
   description: string;
+  tags: string[];
 }
 
-export type NewMonster = Omit<Monster, 'id'>;
+export type NewCreature = Omit<Creature, 'id'>;

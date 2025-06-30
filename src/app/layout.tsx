@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: 'Tresspasser Bestiary',
-  description: 'Manage monsters for the Tresspasser RPG.',
+  description: 'Manage creatures for the Tresspasser RPG.',
 };
 
 export default function RootLayout({

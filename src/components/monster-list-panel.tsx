@@ -3,56 +3,86 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, onSnapshot, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Monster } from '@/lib/types';
+import type { Creature } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Download, Upload, Search } from 'lucide-react';
 
-interface MonsterListPanelProps {
-  onSelectMonster: (id: string) => void;
-  onNewMonster: () => void;
-  selectedMonsterId: string | null;
+interface CreatureListPanelProps {
+  onSelectCreature: (id: string) => void;
+  onNewCreature: () => void;
+  selectedCreatureId: string | null;
 }
 
-export default function MonsterListPanel({ onSelectMonster, onNewMonster, selectedMonsterId }: MonsterListPanelProps) {
-  const [monsters, setMonsters] = useState<Monster[]>([]);
+export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId }: CreatureListPanelProps) {
+  const [creatures, setCreatures] = useState<Creature[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [minLevel, setMinLevel] = useState('');
+  const [maxLevel, setMaxLevel] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'level'>('name');
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const monstersCollection = collection(db, 'monsters');
-    const unsubscribe = onSnapshot(monstersCollection, (snapshot) => {
-      const monstersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Monster));
-      setMonsters(monstersData.sort((a, b) => a.name.localeCompare(b.name)));
+    const creaturesCollection = collection(db, 'creatures');
+    const unsubscribe = onSnapshot(creaturesCollection, (snapshot) => {
+      const creaturesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Creature));
+      setCreatures(creaturesData);
       setIsLoading(false);
     }, (error) => {
-      console.error("Error fetching monsters:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch monsters from database." });
+      console.error("Error fetching creatures:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch creatures from database." });
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, [toast]);
 
-  const filteredMonsters = useMemo(() => {
-    return monsters.filter(monster => monster.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [monsters, searchTerm]);
+  const filteredAndSortedCreatures = useMemo(() => {
+    let filtered = creatures.filter(creature => 
+      creature.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (minLevel && !isNaN(parseInt(minLevel))) {
+      filtered = filtered.filter(c => c.level >= parseInt(minLevel, 10));
+    }
+    if (maxLevel && !isNaN(parseInt(maxLevel))) {
+      filtered = filtered.filter(c => c.level <= parseInt(maxLevel, 10));
+    }
+
+    if (tagFilter) {
+      const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+      if (tags.length > 0) {
+        filtered = filtered.filter(c => c.tags && c.tags.length > 0 && tags.every(tag => c.tags.some(ct => ct.toLowerCase().includes(tag))));
+      }
+    }
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'level') {
+        const levelDiff = a.level - b.level;
+        if (levelDiff !== 0) return levelDiff;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [creatures, searchTerm, minLevel, maxLevel, tagFilter, sortBy]);
+
 
   const handleExport = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'monsters'));
-      const monstersData = querySnapshot.docs.map(doc => {
+      const querySnapshot = await getDocs(collection(db, 'creatures'));
+      const creaturesData = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        // The ID is not part of the document data, so we manually add it for export consistency
         return { id: doc.id, ...data };
       });
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(monstersData, null, 2))}`;
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(creaturesData, null, 2))}`;
       const link = document.createElement("a");
       link.href = jsonString;
       link.download = "tresspasser_bestiary.json";
@@ -77,16 +107,16 @@ export default function MonsterListPanel({ onSelectMonster, onNewMonster, select
         if (typeof content !== 'string') {
           throw new Error("File content could not be read as text.");
         }
-        const importedMonsters: Partial<Monster>[] = JSON.parse(content);
-        if (!Array.isArray(importedMonsters)) throw new Error("JSON must be an array of monsters.");
+        const importedCreatures: Partial<Creature>[] = JSON.parse(content);
+        if (!Array.isArray(importedCreatures)) throw new Error("JSON must be an array of creatures.");
 
         const batch = writeBatch(db);
-        const existingDocs = await getDocs(collection(db, 'monsters'));
+        const existingDocs = await getDocs(collection(db, 'creatures'));
         existingDocs.forEach(doc => batch.delete(doc.ref));
 
-        importedMonsters.forEach(monster => {
-          const { id, ...data } = monster;
-          const newDocRef = id ? doc(db, 'monsters', id) : doc(collection(db, 'monsters'));
+        importedCreatures.forEach(creature => {
+          const { id, ...data } = creature;
+          const newDocRef = id ? doc(db, 'creatures', id) : doc(collection(db, 'creatures'));
           batch.set(newDocRef, data);
         });
 
@@ -96,7 +126,6 @@ export default function MonsterListPanel({ onSelectMonster, onNewMonster, select
         console.error("Import failed:", error);
         toast({ variant: "destructive", title: "Import Failed", description: error.message || "Please check the file format and content." });
       } finally {
-        // Reset file input
         if(fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -108,8 +137,8 @@ export default function MonsterListPanel({ onSelectMonster, onNewMonster, select
   return (
     <div className="border-r border-border bg-card flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={onNewMonster} className="w-full">
-          <PlusCircle /> New Monster
+        <Button onClick={onNewCreature} className="w-full">
+          <PlusCircle /> New Creature
         </Button>
         <div className="flex gap-2">
             <AlertDialog>
@@ -147,33 +176,56 @@ export default function MonsterListPanel({ onSelectMonster, onNewMonster, select
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search monsters..."
+            placeholder="Search creatures..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
           />
         </div>
+
+        <div className="space-y-2">
+            <Label>Filter</Label>
+            <div className="flex gap-2">
+                <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+            </div>
+            <Input placeholder="Tags (e.g. undead, goblin)" value={tagFilter} onChange={e => setTagFilter(e.target.value)} />
+        </div>
+
+        <div>
+            <Label>Sort by</Label>
+            <Select value={sortBy} onValueChange={(value: 'name' | 'level') => setSortBy(value)}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="level">Level</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+
       </div>
       <Separator />
       <ScrollArea className="flex-1">
         <div className="p-4">
           {isLoading ? (
-            <p className="text-muted-foreground text-center">Loading monsters...</p>
-          ) : filteredMonsters.length > 0 ? (
+            <p className="text-muted-foreground text-center">Loading creatures...</p>
+          ) : filteredAndSortedCreatures.length > 0 ? (
             <ul className="space-y-1">
-              {filteredMonsters.map(monster => (
-                <li key={monster.id}>
+              {filteredAndSortedCreatures.map(creature => (
+                <li key={creature.id}>
                   <button
-                    onClick={() => onSelectMonster(monster.id)}
-                    className={`w-full text-left p-2 rounded-md transition-colors ${selectedMonsterId === monster.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
+                    onClick={() => onSelectCreature(creature.id)}
+                    className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
-                    {monster.name}
+                    {creature.name} <span className="text-xs opacity-70">(Lvl {creature.level})</span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground text-center">No monsters found.</p>
+            <p className="text-muted-foreground text-center">No creatures found.</p>
           )}
         </div>
       </ScrollArea>
