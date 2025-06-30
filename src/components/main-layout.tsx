@@ -14,9 +14,23 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useMemo } from 'react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  const pageTitle = useMemo(() => {
+    switch (pathname) {
+      case '/':
+        return 'Tresspasser Bestiary';
+      case '/deeds':
+        return 'Tresspasser Deeds';
+      case '/encounters':
+        return 'Tresspasser Encounters';
+      default:
+        return 'Tresspasser Bestiary';
+    }
+  }, [pathname]);
 
   const navLinks = [
     { href: '/deeds', label: 'Creature Deeds', group: 'Compendium' },
@@ -85,7 +99,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           {(pathname === '/' || pathname === '/deeds') && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground">Tresspasser Bestiary</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground">{pageTitle}</h1>
           </Link>
           <Separator orientation="vertical" className="h-6 mx-2 hidden md:block" />
           <nav className="hidden md:flex items-center gap-1">

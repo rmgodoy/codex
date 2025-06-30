@@ -73,7 +73,7 @@ export default function Home() {
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
-            <div className="bg-background/50 p-4 sm:p-6 md:p-8 h-full">
+            <div className="bg-background/50 p-4 sm:p-6 md:p-8 h-full w-full">
               <CreatureEditorPanel
                 key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
                 creatureId={selectedCreatureId}
