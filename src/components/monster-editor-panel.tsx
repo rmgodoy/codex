@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,9 +9,10 @@ import { doc, getDoc, setDoc, addDoc, deleteDoc, collection } from "firebase/fir
 import { db } from "@/lib/firebase";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
-import type { Creature } from "@/lib/types";
+import type { Creature, Deed } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,10 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5 } from "lucide-react";
+import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5, Edit, ChevronsUpDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -77,8 +80,43 @@ const defaultValues: CreatureFormData = {
   tags: "",
 };
 
+const DeedDisplay = ({ deed }: { deed: Deed }) => {
+    const tierColors = {
+        light: 'bg-sky-200/10 text-sky-200 border-sky-200/20',
+        heavy: 'bg-amber-200/10 text-amber-200 border-amber-200/20',
+        mighty: 'bg-fuchsia-300/10 text-fuchsia-300 border-fuchsia-300/20',
+    };
+    
+    return (
+        <Card className="bg-card-foreground/5 mb-4 shadow-md">
+            <CardHeader className="flex-row items-start justify-between">
+                <CardTitle className="text-xl">{deed.name}</CardTitle>
+                <Badge variant="outline" className={cn("capitalize", tierColors[deed.tier])}>{deed.tier}</Badge>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground mb-4 border-b border-border pb-4">
+                    <div><Label className="text-xs">Type</Label><p className="font-semibold text-foreground capitalize">{deed.type}</p></div>
+                    <div><Label className="text-xs">Range</Label><p className="font-semibold text-foreground">{deed.range}</p></div>
+                    <div><Label className="text-xs">Target</Label><p className="font-semibold text-foreground">{deed.target}</p></div>
+                </div>
+                
+                <div className="space-y-4 text-sm">
+                    {deed.effects.start && <div><Label className="text-primary-foreground font-semibold">Start</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.start}</p></div>}
+                    {deed.effects.base && <div><Label className="text-primary-foreground font-semibold">Base</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.base}</p></div>}
+                    {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold">Hit</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.hit}</p></div>}
+                    {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.shadow}</p></div>}
+                    {deed.effects.end && <div><Label className="text-primary-foreground font-semibold">End</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.end}</p></div>}
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreatureCreated, onCreatureDeleted }: CreatureEditorPanelProps) {
   const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(isCreatingNew);
+  
   const form = useForm<CreatureFormData>({
     resolver: zodResolver(creatureSchema),
     defaultValues: defaultValues,
@@ -111,17 +149,19 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
   }, [creatureId, isCreatingNew, toast]);
   
   useEffect(() => {
-    if (!creatureId || isCreatingNew || !form.formState.isDirty || !form.formState.isValid) return;
+    if (!creatureId || isCreatingNew || !form.formState.isDirty || !form.formState.isValid || !isEditing) return;
     handleUpdateCreature(debouncedData);
-  }, [debouncedData, creatureId, isCreatingNew, form.formState.isDirty, form.formState.isValid, handleUpdateCreature]);
+  }, [debouncedData, creatureId, isCreatingNew, form.formState.isDirty, form.formState.isValid, handleUpdateCreature, isEditing]);
 
 
   useEffect(() => {
     const fetchCreatureData = async () => {
       if (!creatureId) {
         form.reset(defaultValues);
+        setIsEditing(true);
         return;
       }
+      setIsEditing(isCreatingNew);
       form.reset(undefined, { keepValues: false }); 
       try {
         const creatureDoc = await getDoc(doc(db, "creatures", creatureId));
@@ -139,7 +179,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
       }
     };
     fetchCreatureData();
-  }, [creatureId, form, toast]);
+  }, [creatureId, form, toast, isCreatingNew]);
 
 
   const handleCreateCreature = async (data: CreatureFormData) => {
@@ -165,31 +205,110 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
       toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the creature." });
     }
   };
+  
+  const creatureData = form.getValues();
 
   if (!isCreatingNew && !creatureId) {
     return (
       <Card className="h-full flex items-center justify-center">
-        <CardContent className="text-center">
-            <p className="text-xl text-muted-foreground">Select a creature to edit</p>
+        <CardContent className="text-center pt-6">
+            <p className="text-xl text-muted-foreground">Select a creature to view</p>
             <p className="text-muted-foreground">or create a new one.</p>
         </CardContent>
       </Card>
     );
   }
   
-  if (!isCreatingNew && form.formState.isSubmitting) {
+  if (!isCreatingNew && !creatureId && form.formState.isLoading) {
      return (
        <Card>
         <CardHeader>
           <Skeleton className="h-8 w-3/4" />
           <Skeleton className="h-4 w-1/4" />
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-20 w-full" />
         </CardContent>
        </Card>
      )
+  }
+
+  if (!isEditing && creatureId) {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
+                    <CardDescription className="mt-1">
+                        TR {creatureData.TR}
+                        {creatureData.tags && ` • ${creatureData.tags}`}
+                    </CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => setIsEditing(true)}><Edit/> Edit</Button>
+            </CardHeader>
+            <CardContent>
+                <Separator className="my-6"/>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
+                    <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
+                    <div className="flex items-center gap-2"><Zap className="h-5 w-5 text-accent"/><div><Label>Initiative</Label><p className="text-lg font-bold">{creatureData.attributes.Initiative}</p></div></div>
+                    <div className="flex items-center gap-2"><Crosshair className="h-5 w-5 text-accent"/><div><Label>Accuracy</Label><p className="text-lg font-bold">{creatureData.attributes.Accuracy}</p></div></div>
+                    <div className="flex items-center gap-2"><Shield className="h-5 w-5 text-accent"/><div><Label>Guard</Label><p className="text-lg font-bold">{creatureData.attributes.Guard}</p></div></div>
+                    <div className="flex items-center gap-2"><ShieldHalf className="h-5 w-5 text-accent"/><div><Label>Resist</Label><p className="text-lg font-bold">{creatureData.attributes.Resist}</p></div></div>
+                    <div className="flex items-center gap-2"><Dice5 className="h-5 w-5 text-accent"/><div><Label>Roll Bonus</Label><p className="text-lg font-bold">{creatureData.attributes.rollBonus}</p></div></div>
+                  </div>
+                </div>
+                <Separator className="my-6"/>
+                <div>
+                    <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
+                    {creatureData.deeds.length > 0 ? (
+                        creatureData.deeds.map((deed, i) => <DeedDisplay key={i} deed={deed as Deed} />)
+                    ) : (
+                        <p className="text-muted-foreground">No deeds defined.</p>
+                    )}
+                </div>
+                {(creatureData.abilities || creatureData.description) && <Separator className="my-6"/>}
+                {creatureData.abilities && (
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Abilities</h3>
+                        <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.abilities}</p>
+                    </div>
+                )}
+                {creatureData.description && (
+                    <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Description</h3>
+                        <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.description}</p>
+                    </div>
+                )}
+            </CardContent>
+            <CardFooter className="justify-end">
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive">
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete Creature
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
+        </Card>
+    );
   }
 
   return (
@@ -279,102 +398,113 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
                   <Plus className="h-4 w-4 mr-2" /> Add Deed
                 </Button>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {fields.map((field, index) => (
-                  <Card key={field.id} className="p-4 relative bg-card-foreground/5">
-                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="absolute top-2 right-2 text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Deed Name</FormLabel>
-                                <FormControl><Input placeholder="e.g., Inferno" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Tier</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="heavy">Heavy</SelectItem>
-                                        <SelectItem value="mighty">Mighty</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField name={`deeds.${index}.type`} control={form.control} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="attack">Attack</SelectItem>
-                                        <SelectItem value="support">Support</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Target</FormLabel>
-                                <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} /></FormControl>
-                                 <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Range</FormLabel>
-                                <FormControl><Input placeholder="e.g., Blast 4" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                    </div>
+                    <Collapsible key={field.id} defaultOpen={!form.getValues(`deeds.${index}.name`)} className="border bg-card-foreground/5 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                            <CollapsibleTrigger asChild>
+                                <button type="button" className="flex items-center gap-3 text-left w-full">
+                                    <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
+                                    <span className="text-lg font-semibold text-primary-foreground">
+                                        {watchedData.deeds?.[index]?.name || "New Deed"}
+                                    </span>
+                                </button>
+                            </CollapsibleTrigger>
+                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <CollapsibleContent className="mt-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Deed Name</FormLabel>
+                                        <FormControl><Input placeholder="e.g., Inferno" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Tier</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="light">Light</SelectItem>
+                                                <SelectItem value="heavy">Heavy</SelectItem>
+                                                <SelectItem value="mighty">Mighty</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.type`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="attack">Attack</SelectItem>
+                                                <SelectItem value="support">Support</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Target</FormLabel>
+                                        <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Range</FormLabel>
+                                        <FormControl><Input placeholder="e.g., Blast 4" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
 
-                    <div className="mt-4 space-y-4">
-                      <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>
-                       <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                            <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} /></FormControl>
-                          </FormItem>
-                        )} />
-                       <FormField name={`deeds.${index}.effects.base`} control={form.control} render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                            <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} /></FormControl>
-                          </FormItem>
-                        )} />
-                        <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Hit <span className="text-destructive">*</span></FormLabel>
-                            <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                         <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Shadow (Critical) <span className="text-destructive">*</span></FormLabel>
-                            <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                            <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} /></FormControl>
-                          </FormItem>
-                        )} />
-                    </div>
-
-                  </Card>
+                            <div className="mt-4 space-y-4">
+                            <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>
+                            <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                    <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} /></FormControl>
+                                </FormItem>
+                            )} />
+                            <FormField name={`deeds.${index}.effects.base`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                    <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} /></FormControl>
+                                </FormItem>
+                            )} />
+                                <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Hit <span className="text-destructive">*</span></FormLabel>
+                                    <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Shadow (Critical) <span className="text-destructive">*</span></FormLabel>
+                                    <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                    <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} /></FormControl>
+                                </FormItem>
+                                )} />
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
                 ))}
               </div>
             </div>
@@ -403,27 +533,30 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
             
             <div className="flex justify-end gap-2 pt-4">
               {!isCreatingNew && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete Creature
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete "{form.getValues("name")}". This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <>
+                    <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive">
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </>
               )}
               {isCreatingNew && <Button type="submit">Save New Creature</Button>}
             </div>
