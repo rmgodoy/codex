@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Heart, Plus, Swords, Trash2, Zap, Rabbit, Crosshair, Shield, ShieldHalf, Dice5 } from "lucide-react";
+import { Heart, Plus, Swords, Trash2, Zap, Rabbit, Crosshair, Shield, ShieldHalf, Dice5, ChevronsUpDown, Check } from "lucide-react";
 import { DeedDisplay } from "./deed-display";
 import { Separator } from "./ui/separator";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "./ui/badge";
-import { COMMON_STATES, CommonState } from "@/lib/states";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { COMMON_STATES } from "@/lib/states";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { ScrollArea } from "./ui/scroll-area";
 
 
 const StatDisplay = ({ label, modified, original, isBonus }: { label: string, modified: number | string, original: number | string, isBonus?: boolean }) => {
@@ -53,6 +53,8 @@ interface CombatantDashboardProps {
 export default function CombatantDashboard({ combatant, onUpdate }: CombatantDashboardProps) {
   const [hpChange, setHpChange] = useState("");
   const [selectedCommonState, setSelectedCommonState] = useState("");
+  const [stateSearch, setStateSearch] = useState("");
+  const [isStatePopoverOpen, setIsStatePopoverOpen] = useState(false);
   
   const { modifiedAttributes, originalAttributes } = useMemo(() => {
     if (combatant.type === 'player' || !combatant.states) return { modifiedAttributes: null, originalAttributes: null };
@@ -73,6 +75,9 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
     return { modifiedAttributes: modified, originalAttributes: original };
   }, [combatant]);
 
+  const filteredCommonStates = useMemo(() => {
+    return COMMON_STATES.filter(s => s.name.toLowerCase().includes(stateSearch.toLowerCase()));
+  }, [stateSearch]);
 
   if (combatant.type === 'player') {
     return (
@@ -229,12 +234,55 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                 <h3 className="text-xl font-semibold text-primary-foreground">States</h3>
             </div>
              <div className="flex flex-wrap items-center gap-2 mb-4">
-              <Select value={selectedCommonState} onValueChange={setSelectedCommonState}>
-                <SelectTrigger className="flex-1 min-w-[180px]"><SelectValue placeholder="Select a common state..." /></SelectTrigger>
-                <SelectContent>
-                  {COMMON_STATES.map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+                <Popover open={isStatePopoverOpen} onOpenChange={setIsStatePopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isStatePopoverOpen}
+                            className="flex-1 min-w-[180px] justify-between"
+                        >
+                            {selectedCommonState || "Select a common state..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <div className="p-2 border-b">
+                            <Input
+                                placeholder="Search states..."
+                                value={stateSearch}
+                                onChange={e => setStateSearch(e.target.value)}
+                                className="h-9"
+                                autoFocus
+                            />
+                        </div>
+                        <ScrollArea className="h-[200px]">
+                            <div className="p-1">
+                                {filteredCommonStates.length > 0 ? filteredCommonStates.map(state => (
+                                    <Button
+                                        key={state.name}
+                                        variant="ghost"
+                                        className={cn(
+                                          "w-full justify-start font-normal h-auto py-2",
+                                          selectedCommonState === state.name && "bg-accent"
+                                        )}
+                                        onClick={() => {
+                                            setSelectedCommonState(state.name);
+                                            setIsStatePopoverOpen(false);
+                                            setStateSearch("");
+                                        }}
+                                    >
+                                        <Check className={cn("mr-2 h-4 w-4", selectedCommonState === state.name ? "opacity-100" : "opacity-0")} />
+                                        {state.name}
+                                    </Button>
+                                )) : (
+                                    <p className="text-center text-sm text-muted-foreground p-4">No state found.</p>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </PopoverContent>
+                </Popover>
+
               <div className="flex items-center gap-2">
                 <Button onClick={addSelectedCommonState} disabled={!selectedCommonState}>
                     <span className="sm:hidden">Add</span>

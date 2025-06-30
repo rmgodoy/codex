@@ -331,8 +331,12 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                       </button>
                     </CardDescription>
                 </div>
-                 <div className="flex gap-2">
-                    <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}><Swords className="h-4 w-4 mr-1"/> Run Encounter</Button>
+                 <div className="flex flex-wrap justify-end gap-2">
+                    <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
+                        <Swords className="h-4 w-4 mr-1"/>
+                        <span className="hidden sm:inline">Run Encounter</span>
+                        <span className="inline sm:hidden">Run</span>
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-1"/> Edit</Button>
                 </div>
             </CardHeader>
