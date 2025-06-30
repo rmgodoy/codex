@@ -18,22 +18,26 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const [combatants, setCombatants] = useState<Combatant[]>([]);
   const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
-  const [perilRoll, setPerilRoll] = useState(0);
-  const [perilDeeds, setPerilDeeds] = useState({ heavy: 0, mighty: 0 });
+  const [perilHistory, setPerilHistory] = useState<Record<number, { roll: number; deeds: { heavy: number; mighty: number } }>>({});
 
-  const rollPeril = useCallback(() => {
+  const rollPerilForRound = useCallback((targetRound: number) => {
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const roll = d1 + d2;
-    setPerilRoll(roll);
-
+    
+    let deeds = { heavy: 0, mighty: 0 };
     if (roll <= 6) {
-      setPerilDeeds({ heavy: 1, mighty: 0 });
+      deeds = { heavy: 1, mighty: 0 };
     } else if (roll <= 9) { // 7-9
-      setPerilDeeds({ heavy: 1, mighty: 1 });
+      deeds = { heavy: 1, mighty: 1 };
     } else { // 10+
-      setPerilDeeds({ heavy: 2, mighty: 1 });
+      deeds = { heavy: 2, mighty: 1 };
     }
+
+    setPerilHistory(prev => ({
+      ...prev,
+      [targetRound]: { roll, deeds }
+    }));
   }, []);
 
   const { turnOrder, activeTurn } = useMemo(() => {
@@ -42,18 +46,15 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     
     const sortByInitiative = (a: Combatant, b: Combatant) => b.initiative - a.initiative;
     
-    // Nat 20 logic
     const nat20Players = players.filter(p => p.nat20).sort(sortByInitiative);
     const otherPlayers = players.filter(p => !p.nat20);
 
-    // Standard player initiative groups
     const maxMonsterInitiative = monsters.length > 0 ? Math.max(...monsters.map(m => m.initiative)) : -Infinity;
     const highInitiativePlayers = otherPlayers.filter(p => p.initiative > maxMonsterInitiative).sort(sortByInitiative);
     const lowInitiativePlayers = otherPlayers.filter(p => p.initiative <= maxMonsterInitiative).sort(sortByInitiative);
     
     const sortedMonsters = [...monsters].sort(sortByInitiative);
 
-    // Construct turn order with unique turn IDs for Nat 20 players
     const finalTurnOrder = [
       ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-start` })),
       ...highInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
@@ -67,22 +68,21 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn };
   }, [combatants, turnIndex]);
 
-
   useEffect(() => {
-    // Initialize combatants from encounter data
     const initialCombatants = encounter.combatants.map(c => ({ ...c }));
     setCombatants(initialCombatants);
-  }, [encounter]);
-  
-  useEffect(() => {
-    rollPeril();
-  }, [round, rollPeril]);
+    rollPerilForRound(1);
+  }, [encounter, rollPerilForRound]);
 
   const nextTurn = () => {
     const newIndex = turnIndex + 1;
     if (newIndex >= turnOrder.length) {
-      setRound(r => r + 1);
+      const newRound = round + 1;
+      setRound(newRound);
       setTurnIndex(0);
+      if (!perilHistory[newRound]) {
+        rollPerilForRound(newRound);
+      }
     } else {
       setTurnIndex(newIndex);
     }
@@ -95,11 +95,14 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         setRound(r => r - 1);
         setTurnIndex(turnOrder.length - 1);
       }
-      // Can't go back before round 1, turn 0
     } else {
       setTurnIndex(newIndex);
     }
   };
+  
+  const currentPeril = useMemo(() => {
+    return perilHistory[round] || { roll: 0, deeds: { heavy: 0, mighty: 0 } };
+  }, [perilHistory, round]);
 
   const updateCombatant = (updatedCombatant: Combatant) => {
     setCombatants(prevCombatants => 
@@ -130,8 +133,8 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     onNextTurn={nextTurn}
                     onPrevTurn={prevTurn}
                     onCombatantUpdate={updateCombatant}
-                    perilRoll={perilRoll}
-                    perilDeeds={perilDeeds}
+                    perilRoll={currentPeril.roll}
+                    perilDeeds={currentPeril.deeds}
                  />
               </Sidebar>
               <SidebarInset className="flex-1 overflow-y-auto">

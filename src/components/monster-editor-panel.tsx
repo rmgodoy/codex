@@ -207,7 +207,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   
   const form = useForm<CreatureFormData>({
     resolver: zodResolver(creatureSchema),
-    defaultValues: template || defaultValues,
+    defaultValues: defaultValues,
   });
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -242,11 +242,35 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   useEffect(() => {
     const fetchCreatureData = async () => {
       if (isCreatingNew) {
-        const initialStats = getStatsForRoleAndLevel(defaultValues.role, defaultValues.level);
+        let initialData = template ? { ...template } : { ...defaultValues };
+
+        const formData = {
+          ...defaultValues,
+          ...initialData,
+          name: template ? `Copy of ${template.name || 'creature'}` : defaultValues.name,
+          abilities: initialData.abilities || '',
+          description: initialData.description || '',
+          tags: Array.isArray(initialData.tags) ? initialData.tags.join(', ') : '',
+          deeds: (initialData.deeds || []).map(deed => ({
+            ...deed,
+            effects: {
+              start: deed.effects?.start || '',
+              base: deed.effects?.base || '',
+              hit: deed.effects?.hit || '',
+              shadow: deed.effects?.shadow || '',
+              end: deed.effects?.end || '',
+            },
+            tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
+          }))
+        };
+        if (template) delete (formData as any).id;
+
+        const initialStats = getStatsForRoleAndLevel(formData.role, formData.level);
         form.reset({
-            ...(template || defaultValues),
-            attributes: initialStats || defaultValues.attributes,
+            ...formData,
+            attributes: initialStats || formData.attributes,
         });
+
         setCreatureData(template ? (template as CreatureWithDeeds) : null);
         setIsEditing(true);
         setLoading(false);
@@ -271,13 +295,24 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             deeds: deedObjects
           };
           setCreatureData(fullCreatureData);
+
           const formData = {
+            ...defaultValues,
             ...fullCreatureData,
+            abilities: fullCreatureData.abilities || '',
+            description: fullCreatureData.description || '',
+            tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
             deeds: deedObjects.map(deed => ({
               ...deed,
+              effects: {
+                start: deed.effects?.start || '',
+                base: deed.effects?.base || '',
+                hit: deed.effects?.hit || '',
+                shadow: deed.effects?.shadow || '',
+                end: deed.effects?.end || '',
+              },
               tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
             })),
-            tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
           };
           form.reset(formData);
         }
@@ -349,12 +384,22 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     } else {
       if (creatureData) {
         const formData = {
+          ...defaultValues,
           ...creatureData,
+          abilities: creatureData.abilities || '',
+          description: creatureData.description || '',
+          tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
           deeds: creatureData.deeds.map(deed => ({
             ...deed,
+            effects: {
+              start: deed.effects?.start || '',
+              base: deed.effects?.base || '',
+              hit: deed.effects?.hit || '',
+              shadow: deed.effects?.shadow || '',
+              end: deed.effects?.end || '',
+            },
             tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
           })),
-          tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
         };
         form.reset(formData);
       }
