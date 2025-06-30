@@ -23,7 +23,7 @@ export interface Deed {
   id: string;
   name: string;
   tier: 'light' | 'heavy' | 'mighty';
-  type: 'attack' | 'support';
+  target: string;
   range: string;
   effects: DeedEffects;
   tags?: string[];

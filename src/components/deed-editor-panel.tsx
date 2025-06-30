@@ -32,7 +32,7 @@ const deedEffectsSchema = z.object({
 const deedSchema = z.object({
   name: z.string().min(1, "Deed name is required"),
   tier: z.enum(['light', 'heavy', 'mighty']),
-  type: z.enum(['attack', 'support']),
+  target: z.string().min(1, "Target is required"),
   range: z.string().min(1, "Range is required"),
   effects: deedEffectsSchema,
   tags: z.string().optional(),
@@ -54,7 +54,7 @@ interface DeedEditorPanelProps {
 const defaultValues: DeedFormData = {
   name: "",
   tier: 'light',
-  type: 'attack',
+  target: "",
   range: "",
   effects: { start: '', base: '', hit: '', shadow: '', end: '' },
   tags: '',
@@ -205,7 +205,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                 <div>
                     <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
                     <CardDescription className="mt-1 capitalize">
-                       {deedData.tier} {deedData.type}
+                       {deedData.tier}
                     </CardDescription>
                 </div>
                  <div className="flex gap-2">
@@ -281,16 +281,10 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField name="type" control={form.control} render={({ field }) => (
+                <FormField name="target" control={form.control} render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value="attack">Attack</SelectItem>
-                                <SelectItem value="support">Support</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <FormLabel>Target</FormLabel>
+                        <FormControl><Input placeholder="e.g., 1 Creature" {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />

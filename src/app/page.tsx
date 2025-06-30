@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CreatureWithDeeds } from "@/lib/types";
+import type { CreatureWithDeeds, Role } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -50,13 +50,35 @@ export default function Home() {
     setSortOrder
   };
 
-  const handleFilterByClick = (updates: Partial<typeof filters>) => {
-    if (updates.roleFilter) setRoleFilter(updates.roleFilter);
-    if (updates.minLevel) setMinLevel(String(updates.minLevel));
-    if (updates.maxLevel) setMaxLevel(String(updates.maxLevel));
-    if (updates.minTR) setMinTR(String(updates.minTR));
-    if (updates.maxTR) setMaxTR(String(updates.maxTR));
-    if (updates.tagFilter) setTagFilter(updates.tagFilter);
+  const handleFilterByClick = (updates: Partial<Omit<typeof filters, 'searchTerm' | 'sortBy' | 'sortOrder'>>, e: React.MouseEvent) => {
+    const isAdditive = e.shiftKey;
+
+    if (!isAdditive) {
+      // Clear filters and apply the new one
+      setRoleFilter(updates.roleFilter || 'all');
+      setMinLevel(updates.minLevel !== undefined ? String(updates.minLevel) : '');
+      setMaxLevel(updates.maxLevel !== undefined ? String(updates.maxLevel) : '');
+      setMinTR(updates.minTR !== undefined ? String(updates.minTR) : '');
+      setMaxTR(updates.maxTR !== undefined ? String(updates.maxTR) : '');
+      setTagFilter(updates.tagFilter || '');
+    } else {
+      // Additive filtering
+      if (updates.roleFilter) setRoleFilter(updates.roleFilter);
+      if (updates.minLevel !== undefined) setMinLevel(String(updates.minLevel));
+      if (updates.maxLevel !== undefined) setMaxLevel(String(updates.maxLevel));
+      if (updates.minTR !== undefined) setMinTR(String(updates.minTR));
+      if (updates.maxTR !== undefined) setMaxTR(String(updates.maxTR));
+      if (updates.tagFilter) {
+        setTagFilter(prev => {
+          if (!prev) return updates.tagFilter!;
+          const existingTags = prev.split(',').map(t => t.trim());
+          if (!existingTags.includes(updates.tagFilter!)) {
+            return `${prev}, ${updates.tagFilter}`;
+          }
+          return prev;
+        });
+      }
+    }
   };
   
 

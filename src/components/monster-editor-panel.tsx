@@ -42,7 +42,7 @@ const deedSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Deed name is required"),
   tier: z.enum(['light', 'heavy', 'mighty']),
-  type: z.enum(['attack', 'support']),
+  target: z.string().min(1, "Target is required"),
   range: z.string().min(1, "Range is required"),
   effects: deedEffectsSchema,
   tags: z.string().optional(),
@@ -80,7 +80,7 @@ interface CreatureEditorPanelProps {
   onUseAsTemplate: (creatureData: CreatureWithDeeds) => void;
   onEditCancel: () => void;
   dataVersion: number;
-  onFilterByClick: (updates: { roleFilter?: Role, minLevel?: number, maxLevel?: number, minTR?: number, maxTR?: number, tagFilter?: string }) => void;
+  onFilterByClick: (updates: { roleFilter?: Role, minLevel?: number, maxLevel?: number, minTR?: number, maxTR?: number, tagFilter?: string }, e: React.MouseEvent) => void;
 }
 
 const defaultValues: CreatureFormData = {
@@ -428,11 +428,11 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
                     <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <button onClick={() => onFilterByClick({ roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level })} className="hover:underline p-0 bg-transparent text-inherit">
+                        <button onClick={(e) => onFilterByClick({ roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
                             <span>Lvl {creatureData.level} {creatureData.role}</span>
                         </button>
                         •
-                        <button onClick={() => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR })} className="hover:underline p-0 bg-transparent text-inherit">
+                        <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
                             <span>TR {creatureData.TR}</span>
                         </button>
                         {creatureData.tags && creatureData.tags.length > 0 && (
@@ -440,7 +440,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                 <span className="font-bold text-base mx-1">•</span>
                                 <div className="flex flex-wrap items-center gap-1">
                                     {creatureData.tags.map(tag => (
-                                        <button key={tag} onClick={() => onFilterByClick({ tagFilter: tag })} className="bg-transparent border-none p-0 m-0">
+                                        <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
                                         <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
                                         </button>
                                     ))}
@@ -634,7 +634,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                 <div className="flex gap-2">
                   <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} />
-                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', type: 'attack', range: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', target: '', range: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
                     <Plus className="h-4 w-4 mr-2" /> Create New
                   </Button>
                 </div>
@@ -657,7 +657,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             </Button>
                         </div>
                         <CollapsibleContent className="mt-6 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Deed Name</FormLabel>
@@ -679,20 +679,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField name={`deeds.${index}.type`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="attack">Attack</SelectItem>
-                                                <SelectItem value="support">Support</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
                             </div>
+                            <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Target</FormLabel>
+                                    <FormControl><Input placeholder="e.g., 1 Creature" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                             <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Range</FormLabel>

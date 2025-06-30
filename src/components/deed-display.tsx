@@ -31,7 +31,7 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
             </div>
             <div className="text-sm text-muted-foreground mb-3 border-b border-t border-border py-2">
                 <p className="text-foreground/90">
-                    <span className="capitalize">{deed.type}</span>
+                    <span>{deed.target}</span>
                     <span className="text-muted-foreground mx-2">|</span>
                     <span>{deed.range}</span>
                 </p>
