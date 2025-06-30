@@ -142,6 +142,7 @@ interface EncounterEditorPanelProps {
   onEncounterDeleteSuccess: () => void;
   onEditCancel: () => void;
   onRunEncounter: (id: string) => void;
+  onFilterByClick: (updates: Partial<{ minTR: number; maxTR: number; tagFilter: string }>, e: React.MouseEvent) => void;
 }
 
 const defaultValues: EncounterFormData = {
@@ -154,7 +155,7 @@ const defaultValues: EncounterFormData = {
   totalTR: 0,
 };
 
-export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter }: EncounterEditorPanelProps) {
+export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter, onFilterByClick }: EncounterEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!encounterId);
@@ -324,7 +325,11 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
-                    <CardDescription>Total Threat Rating (TR): {encounterData.totalTR || 0}</CardDescription>
+                    <CardDescription>
+                      <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
+                          Total Threat Rating (TR): {encounterData.totalTR || 0}
+                      </button>
+                    </CardDescription>
                 </div>
                  <div className="flex gap-2">
                     <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}><Swords className="h-4 w-4 mr-1"/> Run Encounter</Button>
@@ -374,7 +379,9 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                         <div className="mt-4 pt-3 border-t border-border/50">
                             <div className="flex flex-wrap gap-2">
                                 {encounterData.tags.map(tag => (
-                                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                                    <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                        <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                    </button>
                                 ))}
                             </div>
                         </div>
