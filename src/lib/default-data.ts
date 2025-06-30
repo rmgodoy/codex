@@ -7,7 +7,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: "Coward's Cut",
     tier: 'light',
     target: 'Melee Attack vs Guard',
-    range: 'Range: 1',
+    range: '1 Creature',
     effects: {
       hit: 'Deal 3 damage (1d6). Move 3.',
       shadow: 'Deal 3 damage (1d6). Move 3.',
@@ -19,7 +19,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: 'Crude Bow',
     tier: 'light',
     target: 'Missile Attack vs Guard',
-    range: 'Range: 8',
+    range: 'Range 8',
     effects: {
       hit: 'Deal 3 damage (1d6).',
       shadow: 'Deal 3 damage (1d6).',
@@ -31,7 +31,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: 'Cut & Run',
     tier: 'light',
     target: 'Melee Attack vs Guard',
-    range: 'Range: 1',
+    range: '1 Creature',
     effects: {
       hit: 'Deal 7 damage (2d6). Move 2.',
       shadow: 'Confer bleeding 2.',
@@ -43,7 +43,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: 'Sharp Rock',
     tier: 'light',
     target: 'Missile Attack vs Guard',
-    range: 'Range: 8',
+    range: 'Range 8',
     effects: {
       hit: 'Deal 3 damage (1d6).',
       shadow: 'Confer bleeding 2.',
@@ -55,7 +55,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: 'Blood-Spiller',
     tier: 'heavy',
     target: 'Melee Attack vs Guard',
-    range: 'Range: 1',
+    range: '1 Creature',
     effects: {
       base: 'Deal 7 damage (2d6).',
       hit: 'Shove 2. The target suffers double damage from bleeding on this forced movement.',
@@ -68,7 +68,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: 'Barbed Arrow',
     tier: 'light',
     target: 'Missile Attack vs Guard',
-    range: 'Range: 8',
+    range: 'Range 8',
     effects: {
       hit: 'Deal 7 damage (2d6).',
       shadow: 'Confer bleeding 2.',
@@ -80,7 +80,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     name: 'Poison Arrow',
     tier: 'heavy',
     target: 'Missile Attack vs Guard',
-    range: 'Range: 8',
+    range: 'Range 8',
     effects: {
       base: 'Deal 3 damage (1d6).',
       hit: 'Confer poisoned 2.',

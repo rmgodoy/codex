@@ -314,7 +314,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             <FormField name="range" control={form.control} render={({ field }) => (
                 <FormItem>
                     <FormLabel>Range</FormLabel>
-                    <FormControl><Input placeholder="e.g., Range: 1" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g., 1 Creature | Blast 4" {...field} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )} />
