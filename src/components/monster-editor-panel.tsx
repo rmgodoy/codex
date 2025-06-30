@@ -507,25 +507,25 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
-                    <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                            <span>Lvl {creatureData.level} {creatureData.template} {creatureData.role}</span>
-                        </button>
-                        •
-                        <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                            <span>TR {creatureData.TR}</span>
-                        </button>
+                    <div className="mt-2 text-sm text-muted-foreground space-y-1">
+                        <p>
+                            <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                Lvl {creatureData.level} {creatureData.template} {creatureData.role}
+                            </button>
+                        </p>
+                        <p>
+                            <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                TR {creatureData.TR}
+                            </button>
+                        </p>
                         {creatureData.tags && creatureData.tags.length > 0 && (
-                            <>
-                                <span className="font-bold text-base mx-1">•</span>
-                                <div className="flex flex-wrap items-center gap-1">
-                                    {creatureData.tags.map(tag => (
-                                        <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                                {creatureData.tags.map(tag => (
+                                    <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
                                         <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
+                                    </button>
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>
