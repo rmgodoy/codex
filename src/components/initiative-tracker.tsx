@@ -1,15 +1,19 @@
 
 "use client";
 
-import type { Combatant } from "@/lib/types";
+import type { Combatant, PlayerCombatant } from "@/lib/types";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
 import { ChevronUp, ChevronDown, User, Bot } from "lucide-react";
 import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
+
+type Turn = Combatant & { turnId: string };
 
 interface InitiativeTrackerProps {
-  combatants: Combatant[];
-  activeCombatantId: string;
+  combatantsInTurnOrder: Turn[];
+  activeTurnId: string;
   round: number;
   onNextTurn: () => void;
   onPrevTurn: () => void;
@@ -17,8 +21,8 @@ interface InitiativeTrackerProps {
 }
 
 export default function InitiativeTracker({
-  combatants,
-  activeCombatantId,
+  combatantsInTurnOrder,
+  activeTurnId,
   round,
   onNextTurn,
   onPrevTurn,
@@ -27,6 +31,10 @@ export default function InitiativeTracker({
     
   const handleInitiativeChange = (combatant: Combatant, newInitiative: number) => {
     onCombatantUpdate({ ...combatant, initiative: newInitiative });
+  };
+  
+  const handleNat20Change = (combatant: PlayerCombatant, checked: boolean) => {
+    onCombatantUpdate({ ...combatant, nat20: checked });
   };
 
   return (
@@ -46,11 +54,11 @@ export default function InitiativeTracker({
       <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Initiative Order</h3>
       <ScrollArea className="flex-1">
         <ul className="space-y-2 pr-4">
-          {combatants.map((c) => (
+          {combatantsInTurnOrder.map((c) => (
             <li
-              key={c.id}
+              key={c.turnId}
               className={`p-3 rounded-lg border-l-4 transition-all ${
-                c.id === activeCombatantId
+                c.turnId === activeTurnId
                   ? "bg-primary/20 border-primary shadow-md"
                   : "bg-background border-transparent"
               }`}
@@ -75,6 +83,16 @@ export default function InitiativeTracker({
                   <span className="font-bold text-lg">{c.initiative}</span>
                 )}
               </div>
+              {c.type === 'player' && (
+                 <div className="flex items-center gap-2 mt-2 pl-8">
+                    <Checkbox
+                      id={`nat20-${c.id}`}
+                      checked={c.nat20}
+                      onCheckedChange={(checked) => handleNat20Change(c, !!checked)}
+                    />
+                    <Label htmlFor={`nat20-${c.id}`}>Nat 20</Label>
+                </div>
+              )}
             </li>
           ))}
         </ul>

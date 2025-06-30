@@ -71,6 +71,7 @@ interface BaseCombatant {
 
 export interface PlayerCombatant extends BaseCombatant {
   type: 'player';
+  nat20?: boolean;
 }
 
 export interface MonsterCombatant extends BaseCombatant {

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { Encounter, Combatant, MonsterCombatant } from "@/lib/types";
+import type { Encounter, Combatant, MonsterCombatant, PlayerCombatant } from "@/lib/types";
 import InitiativeTracker from "./initiative-tracker";
 import CombatantDashboard from "./combatant-dashboard";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "./ui/sidebar";
@@ -19,45 +19,54 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
 
-  const sortedCombatants = useMemo(() => {
-    const monsters = combatants.filter(c => c.type === 'monster');
-    const players = combatants.filter(c => c.type === 'player');
+  const { turnOrder, activeTurn } = useMemo(() => {
+    const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
+    const monsters = combatants.filter((c): c is MonsterCombatant => c.type === 'monster');
     
+    const sortByInitiative = (a: Combatant, b: Combatant) => b.initiative - a.initiative;
+    
+    // Nat 20 logic
+    const nat20Players = players.filter(p => p.nat20).sort(sortByInitiative);
+    const otherPlayers = players.filter(p => !p.nat20);
+
+    // Standard player initiative groups
     const maxMonsterInitiative = monsters.length > 0 ? Math.max(...monsters.map(m => m.initiative)) : -Infinity;
-
-    const highInitiativePlayers = players.filter(p => p.initiative > maxMonsterInitiative);
-    const lowInitiativePlayers = players.filter(p => p.initiative <= maxMonsterInitiative);
+    const highInitiativePlayers = otherPlayers.filter(p => p.initiative > maxMonsterInitiative).sort(sortByInitiative);
+    const lowInitiativePlayers = otherPlayers.filter(p => p.initiative <= maxMonsterInitiative).sort(sortByInitiative);
     
-    const sortedMonsters = [...monsters].sort((a, b) => b.initiative - a.initiative);
-    const sortedHighPlayers = [...highInitiativePlayers].sort((a,b) => b.initiative - a.initiative);
-    const sortedLowPlayers = [...lowInitiativePlayers].sort((a,b) => b.initiative - a.initiative);
+    const sortedMonsters = [...monsters].sort(sortByInitiative);
 
-    return [...sortedHighPlayers, ...sortedMonsters, ...sortedLowPlayers];
-  }, [combatants]);
+    // Construct turn order with unique turn IDs for Nat 20 players
+    const finalTurnOrder = [
+      ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-start` })),
+      ...highInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
+      ...sortedMonsters.map(c => ({ ...c, turnId: c.id })),
+      ...lowInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
+      ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-end` })),
+    ];
+    
+    const currentActiveTurn = finalTurnOrder[turnIndex];
+
+    return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn };
+  }, [combatants, turnIndex]);
+
 
   useEffect(() => {
-    // Initialize combatants with current HP set to max HP for monsters
-    const initialCombatants = encounter.combatants.map(c => {
-      if (c.type === 'monster') {
-        return { ...c, currentHp: c.maxHp };
-      }
-      return c;
-    });
+    // Initialize combatants from encounter data
+    const initialCombatants = encounter.combatants.map(c => ({ ...c }));
     setCombatants(initialCombatants);
   }, [encounter]);
   
-  const activeCombatant = useMemo(() => sortedCombatants[turnIndex], [sortedCombatants, turnIndex]);
-
   const nextTurn = useCallback(() => {
     setTurnIndex(prevIndex => {
       const newIndex = prevIndex + 1;
-      if (newIndex >= sortedCombatants.length) {
+      if (newIndex >= turnOrder.length) {
         setRound(r => r + 1);
         return 0;
       }
       return newIndex;
     });
-  }, [sortedCombatants.length]);
+  }, [turnOrder.length]);
 
   const prevTurn = useCallback(() => {
     setTurnIndex(prevIndex => {
@@ -65,13 +74,13 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
       if (newIndex < 0) {
         if (round > 1) {
           setRound(r => r - 1);
-          return sortedCombatants.length - 1;
+          return turnOrder.length - 1;
         }
         return 0; // Can't go back before round 1, turn 0
       }
       return newIndex;
     });
-  }, [round, sortedCombatants.length]);
+  }, [round, turnOrder.length]);
 
   const updateCombatant = (updatedCombatant: Combatant) => {
     setCombatants(prevCombatants => 
@@ -96,8 +105,8 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             <div className="flex w-full h-full overflow-hidden">
               <Sidebar style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
                  <InitiativeTracker 
-                    combatants={sortedCombatants}
-                    activeCombatantId={activeCombatant?.id}
+                    combatantsInTurnOrder={turnOrder}
+                    activeTurnId={activeTurn?.turnId}
                     round={round}
                     onNextTurn={nextTurn}
                     onPrevTurn={prevTurn}
@@ -105,10 +114,10 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                  />
               </Sidebar>
               <SidebarInset className="flex-1 overflow-y-auto">
-                 {activeCombatant && (
+                 {activeTurn && (
                    <CombatantDashboard
-                      key={activeCombatant.id} 
-                      combatant={activeCombatant}
+                      key={activeTurn.turnId} 
+                      combatant={activeTurn}
                       onUpdate={updateCombatant}
                    />
                  )}

@@ -39,6 +39,7 @@ const playerCombatantSchema = z.object({
   initiative: z.coerce.number(),
   currentHp: z.coerce.number(),
   states: z.array(combatantStateSchema),
+  nat20: z.boolean().optional(),
 });
 
 const monsterCombatantSchema = z.object({
@@ -231,17 +232,25 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   const onSubmit = async (data: EncounterFormData) => {
     try {
+      let savedEncounterId: string;
       if (isCreatingNew) {
-        const newId = await addEncounter(data);
+        savedEncounterId = await addEncounter(data);
         toast({ title: "Encounter Created!", description: `${data.name} has been saved.` });
-        onEncounterSaveSuccess(newId);
+        onEncounterSaveSuccess(savedEncounterId);
       } else if (encounterId) {
         await updateEncounter({ ...data, id: encounterId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
         onEncounterSaveSuccess(encounterId);
+        savedEncounterId = encounterId;
+      } else {
+        return; // Should not happen
       }
-      const reloadedData = await getEncounterById(encounterId || (await addEncounter(data)));
-      if (reloadedData) setEncounterData(reloadedData);
+      
+      const reloadedData = await getEncounterById(savedEncounterId);
+      if (reloadedData) {
+        form.reset(reloadedData);
+        setEncounterData(reloadedData);
+      }
       setIsEditing(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
@@ -267,6 +276,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
       initiative: 0,
       currentHp: 20,
       states: [],
+      nat20: false,
     };
     append(newPlayer);
   };
@@ -393,11 +403,19 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                            {field.type === 'player' ? (
                             <FormField name={`combatants.${index}.name`} control={form.control} render={({ field }) => (<FormItem><FormLabel>Player Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                            ) : (
-                             <p className="font-semibold text-lg">{field.name}</p>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-semibold text-lg">{field.name}</p>
+                                    <p className="text-sm text-muted-foreground">Lvl {field.level} {field.role}</p>
+                                </div>
+                                <div className="text-right">
+                                    <Label>Initiative</Label>
+                                    <p className="font-bold text-lg">{field.initiative}</p>
+                                </div>
+                            </div>
                            )}
-                           <FormField name={`combatants.${index}.initiative`} control={form.control} render={({ field }) => (<FormItem className="w-32"><FormLabel>Initiative</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>)} />
                         </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="ml-4 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                      </div>
                   </div>
                 ))}
