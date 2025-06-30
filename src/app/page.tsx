@@ -61,36 +61,40 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-      <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
-        <CreatureListPanel
-          onSelectCreature={handleSelectCreature}
-          onNewCreature={handleNewCreature}
-          selectedCreatureId={selectedCreatureId}
-          dataVersion={dataVersion}
-          onImportSuccess={refreshList}
-        />
-      </Sidebar>
-      <SidebarInset>
-        <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
+      <div className="flex flex-col h-screen">
+        <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground">Tresspasser Bestiary</h1>
           </div>
         </header>
-        <div className="bg-background/50 p-4 sm:p-6 md:p-8">
-          <CreatureEditorPanel
-            key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
-            creatureId={selectedCreatureId}
-            isCreatingNew={isCreatingNew}
-            template={templateData}
-            onCreatureSaveSuccess={onCreatureSaveSuccess}
-            onCreatureDeleteSuccess={onCreatureDeleteSuccess}
-            onUseAsTemplate={handleUseAsTemplate}
-            onEditCancel={onEditCancel}
-          />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
+            <CreatureListPanel
+              onSelectCreature={handleSelectCreature}
+              onNewCreature={handleNewCreature}
+              selectedCreatureId={selectedCreatureId}
+              dataVersion={dataVersion}
+              onImportSuccess={refreshList}
+            />
+          </Sidebar>
+          <SidebarInset className="flex-1 overflow-y-auto">
+            <div className="bg-background/50 p-4 sm:p-6 md:p-8 h-full">
+              <CreatureEditorPanel
+                key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                creatureId={selectedCreatureId}
+                isCreatingNew={isCreatingNew}
+                template={templateData}
+                onCreatureSaveSuccess={onCreatureSaveSuccess}
+                onCreatureDeleteSuccess={onCreatureDeleteSuccess}
+                onUseAsTemplate={handleUseAsTemplate}
+                onEditCancel={onEditCancel}
+              />
+            </div>
+          </SidebarInset>
         </div>
-      </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

@@ -124,10 +124,16 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDeedIds, setSelectedDeedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [tierFilter, setTierFilter] = useState<string>('all');
 
   const filteredDeeds = useMemo(() => {
-    return allDeeds.filter(deed => deed.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [allDeeds, searchTerm]);
+    return allDeeds.filter(deed => {
+        const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
+        return matchesSearch && matchesTier;
+    });
+  }, [allDeeds, searchTerm, tierFilter]);
+
 
   const handleAddClick = () => {
     const deedsToAdd = allDeeds.filter(d => selectedDeedIds.has(d.id));
@@ -135,6 +141,7 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
     setIsOpen(false);
     setSelectedDeedIds(new Set());
     setSearchTerm("");
+    setTierFilter("all");
   }
 
   const handleCheckboxChange = (deedId: string) => {
@@ -159,12 +166,25 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
           <DialogTitle>Select Deeds from Library</DialogTitle>
           <DialogDescription>Select one or more deeds to add to the creature.</DialogDescription>
         </DialogHeader>
-        <Input 
-          placeholder="Search deeds..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="mb-4"
-        />
+        <div className="flex gap-2 mb-4">
+          <Input 
+            placeholder="Search deeds..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <Select value={tierFilter} onValueChange={setTierFilter}>
+            <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Filter tier" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Tiers</SelectItem>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="heavy">Heavy</SelectItem>
+                <SelectItem value="mighty">Mighty</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <ScrollArea className="flex-1 border rounded-md p-4">
           <div className="space-y-2">
             {filteredDeeds.map(deed => (

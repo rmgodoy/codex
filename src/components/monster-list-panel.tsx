@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { getAllCreatures, importCreatures } from '@/lib/idb';
+import { getAllCreatures, importCreatures, exportAllData } from '@/lib/idb';
 import type { Creature } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -82,8 +82,8 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
 
   const handleExport = async () => {
     try {
-      const creaturesData = await getAllCreatures();
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(creaturesData, null, 2))}`;
+      const dataToExport = await exportAllData();
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
       const link = document.createElement("a");
       link.href = jsonString;
       link.download = "tresspasser_bestiary.json";

@@ -93,67 +93,59 @@ export const deleteCreature = async (id: string): Promise<void> => {
     });
 };
 
-export const importCreatures = async (importedData: any[]): Promise<void> => {
+export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[] }> => {
     const db = await getDb();
-    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME], 'readwrite');
+    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME], 'readonly');
     const creatureStore = transaction.objectStore(CREATURES_STORE_NAME);
     const deedStore = transaction.objectStore(DEEDS_STORE_NAME);
-    
-    await new Promise<void>((resolve, reject) => {
-        const req = creatureStore.clear();
-        req.onsuccess = () => resolve();
+
+    const creaturesPromise = new Promise<Creature[]>((resolve, reject) => {
+        const req = creatureStore.getAll();
+        req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
     });
 
-    const deedsToCreate: Deed[] = [];
-
-    const creaturesToImport = importedData.map(c => {
-        const creatureWithId = { ...c, id: c.id || generateId() };
-        
-        if (creatureWithId.deeds && creatureWithId.deeds.length > 0 && typeof creatureWithId.deeds[0] === 'object') {
-            const deedIds = creatureWithId.deeds.map((deedObj: any) => {
-                const newDeedId = deedObj.id || generateId();
-                const newDeed: Deed = { ...deedObj, id: newDeedId };
-                deedsToCreate.push(newDeed);
-                return newDeedId;
-            });
-            return { ...creatureWithId, deeds: deedIds };
-        }
-        return creatureWithId;
+    const deedsPromise = new Promise<Deed[]>((resolve, reject) => {
+        const req = deedStore.getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
     });
 
-    return new Promise<void>((resolve, reject) => {
-        let creatureCount = 0;
-        let deedCount = 0;
-
-        creaturesToImport.forEach(creature => {
-            creatureStore.put(creature).onsuccess = () => {
-                creatureCount++;
-                if (creatureCount === creaturesToImport.length && deedCount === deedsToCreate.length) {
-                    resolve();
-                }
-            };
-        });
-
-        if (deedsToCreate.length === 0 && creaturesToImport.length === 0) {
-            resolve();
-            return;
-        }
-
-        deedsToCreate.forEach(deed => {
-            deedStore.put(deed).onsuccess = () => {
-                deedCount++;
-                if (creatureCount === creaturesToImport.length && deedCount === deedsToCreate.length) {
-                    resolve();
-                }
-            };
-        });
-
-        transaction.onerror = () => reject(transaction.error);
-        transaction.oncomplete = () => resolve();
-    });
+    const [creatures, deeds] = await Promise.all([creaturesPromise, deedsPromise]);
+    return { creatures, deeds };
 };
 
+export const importCreatures = async (data: any): Promise<void> => {
+    const db = await getDb();
+
+    if (typeof data !== 'object' || data === null || (!Array.isArray(data.creatures) && !Array.isArray(data.deeds))) {
+        return Promise.reject(new Error("Invalid import file format. Expected an object with 'creatures' and/or 'deeds' arrays."));
+    }
+
+    const tx = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME], 'readwrite');
+    const creatureStore = tx.objectStore(CREATURES_STORE_NAME);
+    const deedStore = tx.objectStore(DEEDS_STORE_NAME);
+
+    creatureStore.clear();
+    deedStore.clear();
+
+    if (data.creatures && Array.isArray(data.creatures)) {
+        data.creatures.forEach(creature => {
+            creatureStore.put(creature);
+        });
+    }
+
+    if (data.deeds && Array.isArray(data.deeds)) {
+        data.deeds.forEach(deed => {
+            deedStore.put(deed);
+        });
+    }
+    
+    return new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+};
 
 // Deed Functions
 export const getAllDeeds = async (): Promise<Deed[]> => {
