@@ -2,7 +2,6 @@
 "use client";
 
 import type { Creature, Deed, DeedData, Encounter, NewCreature } from '@/lib/types';
-import { defaultCreatures, defaultDeeds } from './default-data';
 
 const DB_NAME = 'TresspasserBestiaryDB';
 const DB_VERSION = 3;
@@ -309,63 +308,4 @@ export const importData = async (data: any): Promise<void> => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
     });
-};
-
-// Data Seeding
-const SEED_FLAG = 'tresspasser_db_seeded_v1';
-
-export const seedInitialData = async (force: boolean = false): Promise<void> => {
-    if (!force) {
-        if (typeof window === 'undefined' || localStorage.getItem(SEED_FLAG)) {
-            return;
-        }
-
-        try {
-            const db = await getDb();
-            const creatureStore = db.transaction(CREATURES_STORE_NAME, 'readonly').objectStore(CREATURES_STORE_NAME);
-            const countRequest = creatureStore.count();
-            
-            const count = await new Promise<number>((resolve, reject) => {
-                countRequest.onsuccess = () => resolve(countRequest.result);
-                countRequest.onerror = () => reject(countRequest.error);
-            });
-
-            if (count > 0) {
-                // Data already exists, so don't seed. Just set the flag.
-                localStorage.setItem(SEED_FLAG, 'true');
-                return;
-            }
-        } catch (error) {
-            console.error("Failed to check for existing data:", error);
-            // Don't seed if we can't even check, to be safe.
-            return;
-        }
-    }
-
-    try {
-        console.log(force ? "Force importing default data..." : "Seeding database with default goblin data...");
-
-        const deedNameIdMap = new Map<string, string>();
-        for (const deedData of defaultDeeds) {
-            const { deedName, ...data } = deedData;
-            const newId = await addDeed(data);
-            deedNameIdMap.set(deedName, newId);
-        }
-
-        for (const creatureData of defaultCreatures) {
-            const { deedNames, ...restOfCreature } = creatureData;
-            const deedIds = deedNames.map(name => deedNameIdMap.get(name)).filter((id): id is string => !!id);
-            await addCreature({ ...restOfCreature, deeds: deedIds });
-        }
-
-        if (!force) {
-            localStorage.setItem(SEED_FLAG, 'true');
-        }
-        console.log("Data seeding/import complete.");
-
-    } catch (error) {
-        console.error("Failed to seed/import database:", error);
-        // Don't set the flag if it fails, so it can try again next time.
-        throw error;
-    }
 };

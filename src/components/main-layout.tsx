@@ -17,7 +17,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useMemo, useRef, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { importData, exportAllData, seedInitialData } from '@/lib/idb';
+import { importData, exportAllData } from '@/lib/idb';
 import { importLegacyData } from '@/lib/importer';
 
 
@@ -26,10 +26,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const legacyFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    seedInitialData();
-  }, []);
 
   const handleExport = async () => {
     try {
@@ -112,22 +108,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     };
     reader.readAsText(file);
   };
-
-  const handleImportDefaults = async () => {
-    try {
-      await seedInitialData(true); // Force seeding
-      toast({ title: "Import Successful", description: "Default data has been added. The page will now reload." });
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-
-    } catch (error: any) {
-      console.error("Import default data failed:", error);
-      toast({ variant: "destructive", title: "Import Failed", description: "Could not import the default data." });
-    }
-  };
-
 
   const pageTitle = useMemo(() => {
     switch (pathname) {
@@ -223,28 +203,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </div>
         <div className="flex items-center gap-1">
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Import Default Data">
-                        <BookCopy className="h-5 w-5" />
-                        <span className="sr-only">Import Default Data</span>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Import Default Data?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will add the default sample creatures and deeds. This may create duplicates if you already have them. Are you sure you want to proceed?
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleImportDefaults}>
-                        Proceed
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
             <input
                 type="file"
                 ref={legacyFileInputRef}
