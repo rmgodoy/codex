@@ -20,16 +20,27 @@ export interface DeedEffects {
   start?: string;
   base?: string;
   hit: string;
-  shadow: string;
+  shadow?: string;
   end?: string;
 }
+
+export const DEED_ACTION_TYPES = ['attack', 'support'] as const;
+export type DeedActionType = (typeof DEED_ACTION_TYPES)[number];
+
+export const DEED_TYPES = ['melee', 'missile', 'innate', 'unarmed', 'spell', 'item', 'versatile'] as const;
+export type DeedType = (typeof DEED_TYPES)[number];
+
+export const DEED_VERSUS = ['guard', 'resist', '10', 'special'] as const;
+export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export interface Deed {
   id: string;
   name: string;
   tier: 'light' | 'heavy' | 'mighty';
+  actionType: DeedActionType;
+  deedType: DeedType;
+  versus: DeedVersus;
   target: string;
-  range: string;
   effects: DeedEffects;
   tags?: string[];
 }

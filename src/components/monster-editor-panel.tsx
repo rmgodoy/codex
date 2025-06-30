@@ -9,6 +9,7 @@ import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, 
 import { ROLES, getStatsForRoleAndLevel, getTR, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
 import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate } from "@/lib/types";
+import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -35,7 +36,7 @@ const deedEffectsSchema = z.object({
   start: z.string().optional(),
   base: z.string().optional(),
   hit: z.string().min(1, "Hit effect is required"),
-  shadow: z.string().min(1, "Shadow effect is required"),
+  shadow: z.string().optional(),
   end: z.string().optional(),
 });
 
@@ -43,8 +44,10 @@ const deedSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Deed name is required"),
   tier: z.enum(['light', 'heavy', 'mighty']),
+  actionType: z.enum(DEED_ACTION_TYPES),
+  deedType: z.enum(DEED_TYPES),
+  versus: z.enum(DEED_VERSUS),
   target: z.string().min(1, "Target is required"),
-  range: z.string().min(1, "Range is required"),
   effects: deedEffectsSchema,
   tags: z.string().optional(),
 });
@@ -507,7 +510,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
-                    <div className="mt-2 text-sm text-muted-foreground space-y-1">
+                    <div className="mt-2 text-sm text-muted-foreground flex flex-col items-start gap-1">
                         <p>
                             <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
                                 Lvl {creatureData.level} {creatureData.template} {creatureData.role}
@@ -734,7 +737,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                 <div className="flex flex-wrap justify-end gap-2">
                   <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
-                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', target: '', range: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
                     <Plus className="h-4 w-4 mr-2" /> Create New
                   </Button>
                 </div>
@@ -780,17 +783,50 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                     </FormItem>
                                 )} />
                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField name={`deeds.${index}.actionType`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Action Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.deedType`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Deed Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                 {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField name={`deeds.${index}.versus`} control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Versus</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Versus" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                 {DEED_VERSUS.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+
                             <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Target</FormLabel>
-                                    <FormControl><Input placeholder="e.g., 1 Creature" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Range</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                    <FormControl><Input placeholder="e.g., 1 Creature | Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -818,7 +854,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                 )} />
                                 <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Shadow (Critical) <span className="text-destructive">*</span></FormLabel>
+                                    <FormLabel>Shadow (Critical) <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                                     <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                     <FormMessage />
                                 </FormItem>

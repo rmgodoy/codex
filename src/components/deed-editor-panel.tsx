@@ -8,6 +8,7 @@ import { z } from "zod";
 import { getDeedById, addDeed, updateDeed, deleteDeed } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { Deed, DeedData } from "@/lib/types";
+import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,15 +27,17 @@ const deedEffectsSchema = z.object({
   start: z.string().optional(),
   base: z.string().optional(),
   hit: z.string().min(1, "Hit effect is required"),
-  shadow: z.string().min(1, "Shadow effect is required"),
+  shadow: z.string().optional(),
   end: z.string().optional(),
 });
 
 const deedSchema = z.object({
   name: z.string().min(1, "Deed name is required"),
   tier: z.enum(['light', 'heavy', 'mighty']),
+  actionType: z.enum(DEED_ACTION_TYPES),
+  deedType: z.enum(DEED_TYPES),
+  versus: z.enum(DEED_VERSUS),
   target: z.string().min(1, "Target is required"),
-  range: z.string().min(1, "Range is required"),
   effects: deedEffectsSchema,
   tags: z.string().optional(),
 });
@@ -56,8 +59,10 @@ interface DeedEditorPanelProps {
 const defaultValues: DeedFormData = {
   name: "",
   tier: 'light',
+  actionType: 'attack',
+  deedType: 'melee',
+  versus: 'guard',
   target: "",
-  range: "",
   effects: { start: '', base: '', hit: '', shadow: '', end: '' },
   tags: '',
 };
@@ -280,40 +285,72 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             </Button>
           </CardHeader>
           <CardContent className="space-y-6">
-            <FormField name="name" control={form.control} render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Deed Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., Inferno" {...field} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-            )} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField name="tier" control={form.control} render={({ field }) => (
+              <FormField name="name" control={form.control} render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Deed Name</FormLabel>
+                      <FormControl><Input placeholder="e.g., Inferno" {...field} /></FormControl>
+                      <FormMessage />
+                  </FormItem>
+              )} />
+              <FormField name="tier" control={form.control} render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Tier</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              <SelectItem value="light">Light</SelectItem>
+                              <SelectItem value="heavy">Heavy</SelectItem>
+                              <SelectItem value="mighty">Mighty</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+              )} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField name="actionType" control={form.control} render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Tier</FormLabel>
+                        <FormLabel>Action Type</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select action type" /></SelectTrigger></FormControl>
                             <SelectContent>
-                                <SelectItem value="light">Light</SelectItem>
-                                <SelectItem value="heavy">Heavy</SelectItem>
-                                <SelectItem value="mighty">Mighty</SelectItem>
+                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField name="target" control={form.control} render={({ field }) => (
+                <FormField name="deedType" control={form.control} render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Target</FormLabel>
-                        <FormControl><Input placeholder="e.g., Melee Attack vs Guard" {...field} /></FormControl>
+                        <FormLabel>Deed Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select deed type" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField name="versus" control={form.control} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Versus</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select versus" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {DEED_VERSUS.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )} />
             </div>
             
-            <FormField name="range" control={form.control} render={({ field }) => (
+            <FormField name="target" control={form.control} render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Range</FormLabel>
+                    <FormLabel>Target</FormLabel>
                     <FormControl><Input placeholder="e.g., 1 Creature | Blast 4" {...field} /></FormControl>
                     <FormMessage />
                 </FormItem>
@@ -350,7 +387,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             )} />
             <FormField name="effects.shadow" control={form.control} render={({ field }) => (
             <FormItem>
-                <FormLabel>Shadow (Critical) <span className="text-destructive">*</span></FormLabel>
+                <FormLabel>Shadow (Critical) <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                 <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} /></FormControl>
                 <FormMessage />
             </FormItem>
