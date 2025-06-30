@@ -538,7 +538,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <Separator className="my-6"/>
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-x-6 gap-y-4">
                     <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
                     <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
                     <div className="flex items-center gap-2"><Zap className="h-5 w-5 text-accent"/><div><Label>Initiative</Label><p className="text-lg font-bold">{creatureData.attributes.Initiative}</p></div></div>
@@ -669,7 +669,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             
             <div>
               <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 <FormField name="attributes.HP" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2"><Heart className="h-4 w-4 text-accent" />HP</FormLabel>
