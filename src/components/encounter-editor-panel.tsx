@@ -327,7 +327,9 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                     <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
                     <CardDescription>
                       <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
-                          Total Threat Rating (TR): {encounterData.totalTR || 0}
+                          <span className="hidden sm:inline">Total Threat Rating (TR): </span>
+                          <span className="inline sm:hidden">TR: </span>
+                          {encounterData.totalTR || 0}
                       </button>
                     </CardDescription>
                 </div>

@@ -186,29 +186,29 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const nextTurn = () => {
     if (!allPlayersReady) return;
 
-    if (turnIndex + 1 >= turnOrder.length) {
+    const isLastTurnOfRound = turnIndex + 1 >= turnOrder.length;
+
+    if (isLastTurnOfRound) {
         // End of round, start new one
         const newRound = round + 1;
-        const prevPlayerInits = getPlayerInitiativesForRound(round);
         
-        const newCombatantsForRound: Combatant[] = JSON.parse(JSON.stringify(combatants));
-        newCombatantsForRound.forEach((c: Combatant) => {
-            if (c.type === 'player') {
-                c.initiative = 0;
-                c.nat20 = false;
-            }
-        });
+        // If the state for the next round doesn't exist yet, create it.
+        if (!combatantsByRound[newRound]) {
+            const newCombatantsForRound: Combatant[] = JSON.parse(JSON.stringify(combatants));
+            
+            // Reset initiative and nat20 for all players for the new round.
+            newCombatantsForRound.forEach((c: Combatant) => {
+                if (c.type === 'player') {
+                    c.initiative = 0;
+                    c.nat20 = false;
+                }
+            });
+    
+            setCombatantsByRound(prev => ({ ...prev, [newRound]: newCombatantsForRound }));
+            rollPerilForRound(newRound, newCombatantsForRound);
+        }
 
-        const newCombatantsWithOldInits = newCombatantsForRound.map(c => {
-          if (c.type === 'player' && prevPlayerInits[c.id]) {
-            return { ...c, ...prevPlayerInits[c.id] };
-          }
-          return c;
-        });
-
-        setCombatantsByRound(prev => ({ ...prev, [newRound]: newCombatantsWithOldInits }));
         setRound(newRound);
-        rollPerilForRound(newRound, newCombatantsWithOldInits);
         setTurnIndex(0);
     } else {
         setTurnIndex(prevIndex => prevIndex + 1);
