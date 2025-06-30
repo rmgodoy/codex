@@ -55,7 +55,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
   const [selectedCommonState, setSelectedCommonState] = useState("");
   
   const { modifiedAttributes, originalAttributes } = useMemo(() => {
-    if (combatant.type === 'player') return { modifiedAttributes: null, originalAttributes: null };
+    if (combatant.type === 'player' || !combatant.states) return { modifiedAttributes: null, originalAttributes: null };
     
     const original = { ...combatant.attributes };
     const modified = { ...combatant.attributes };
@@ -101,7 +101,11 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
     }
     
     if (!isNaN(change)) {
-      onUpdate({ ...combatant, currentHp: combatant.currentHp + change });
+      let newHp = combatant.currentHp + change;
+      if (combatant.template === 'Underling') {
+        newHp = Math.min(1, Math.max(0, newHp));
+      }
+      onUpdate({ ...combatant, currentHp: newHp });
     }
     setHpChange("");
   };
@@ -157,9 +161,20 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-4xl font-bold">{combatant.name}</CardTitle>
-              {combatant.type === 'monster' && <CardDescription>Lvl {combatant.level} {combatant.role} • TR {combatant.TR}</CardDescription>}
+              {combatant.type === 'monster' && <CardDescription>Lvl {combatant.level} {combatant.template} {combatant.role} • TR {combatant.TR}</CardDescription>}
             </div>
           </div>
+           {(combatant.template === 'Paragon' || combatant.template === 'Tyrant') && (
+            <div className="text-sm text-amber-300 bg-amber-900/50 p-2 rounded-md mt-2">
+              <p><strong>Extra Turn:</strong> This creature takes an additional turn at the end of the round.</p>
+              <p>Immune to effects that delay its turn (loses an action point on its next turn instead).</p>
+            </div>
+          )}
+          {combatant.template === 'Tyrant' && (
+             <div className="text-sm text-amber-300 bg-amber-900/50 p-2 rounded-md mt-2">
+              <p><strong>Unstoppable:</strong> Can make a free prevail check against one state at the end of each round.</p>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
@@ -168,7 +183,13 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                 id="hp" 
                 type="number" 
                 value={combatant.currentHp} 
-                onChange={(e) => onUpdate({ ...combatant, currentHp: parseInt(e.target.value, 10) || 0 })}
+                onChange={(e) => {
+                  let newHp = parseInt(e.target.value, 10) || 0;
+                  if (combatant.template === 'Underling') {
+                    newHp = Math.min(1, Math.max(0, newHp));
+                  }
+                  onUpdate({ ...combatant, currentHp: newHp })
+                }}
                 className="w-24 text-lg font-bold"
             />
             {combatant.type === 'monster' && <span className="text-muted-foreground text-lg">/ {combatant.maxHp}</span>}

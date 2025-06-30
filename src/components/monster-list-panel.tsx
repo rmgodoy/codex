@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getAllCreatures } from '@/lib/idb';
-import type { Creature } from '@/lib/types';
+import type { Creature, CreatureTemplate } from '@/lib/types';
 import { ROLES, type Role } from '@/lib/roles';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import { useSidebar } from '@/components/ui/sidebar';
 
 type SortByType = 'name' | 'TR' | 'level';
 
+const TEMPLATES: CreatureTemplate[] = ['Normal', 'Underling', 'Paragon', 'Tyrant'];
+
 interface CreatureListPanelProps {
   onSelectCreature: (id: string | null) => void;
   onNewCreature: () => void;
@@ -25,6 +27,7 @@ interface CreatureListPanelProps {
   filters: {
     searchTerm: string;
     roleFilter: string;
+    templateFilter: string;
     minLevel: string;
     maxLevel: string;
     minTR: string;
@@ -36,6 +39,7 @@ interface CreatureListPanelProps {
   setFilters: {
     setSearchTerm: (value: string) => void;
     setRoleFilter: (value: string) => void;
+    setTemplateFilter: (value: string) => void;
     setMinLevel: (value: string) => void;
     setMaxLevel: (value: string) => void;
     setMinTR: (value: string) => void;
@@ -81,6 +85,7 @@ export default function CreatureListPanel({
     let filtered = creatures.filter(creature => {
       const matchesSearch = creature.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
       const matchesRole = filters.roleFilter === 'all' || creature.role === filters.roleFilter;
+      const matchesTemplate = filters.templateFilter === 'all' || creature.template === filters.templateFilter;
 
       let matchesLevel = true;
       if (filters.minLevel && !isNaN(parseInt(filters.minLevel))) {
@@ -106,7 +111,7 @@ export default function CreatureListPanel({
         }
       }
       
-      return matchesSearch && matchesRole && matchesLevel && matchesTR && matchesTags;
+      return matchesSearch && matchesRole && matchesTemplate && matchesLevel && matchesTR && matchesTags;
     });
 
     const sorted = filtered.sort((a, b) => {
@@ -157,6 +162,15 @@ export default function CreatureListPanel({
               <Label>Filter</Label>
               <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
             </div>
+             <Select value={filters.templateFilter} onValueChange={setFilters.setTemplateFilter}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Filter by template" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Templates</SelectItem>
+                    {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+            </Select>
             <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
                 <SelectTrigger>
                     <SelectValue placeholder="Filter by role" />

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CreatureWithDeeds, Role } from "@/lib/types";
+import type { CreatureWithDeeds, Role, CreatureTemplate } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -18,6 +18,7 @@ export default function Home() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [templateFilter, setTemplateFilter] = useState('all');
   const [minLevel, setMinLevel] = useState('');
   const [maxLevel, setMaxLevel] = useState('');
   const [minTR, setMinTR] = useState('');
@@ -29,6 +30,7 @@ export default function Home() {
   const filters = {
     searchTerm,
     roleFilter,
+    templateFilter,
     minLevel,
     maxLevel,
     minTR,
@@ -41,6 +43,7 @@ export default function Home() {
   const setFilters = {
     setSearchTerm,
     setRoleFilter,
+    setTemplateFilter,
     setMinLevel,
     setMaxLevel,
     setMinTR,
@@ -56,6 +59,7 @@ export default function Home() {
     if (!isAdditive) {
       // Clear filters and apply the new one
       setRoleFilter(updates.roleFilter || 'all');
+      setTemplateFilter(updates.templateFilter || 'all');
       setMinLevel(updates.minLevel !== undefined ? String(updates.minLevel) : '');
       setMaxLevel(updates.maxLevel !== undefined ? String(updates.maxLevel) : '');
       setMinTR(updates.minTR !== undefined ? String(updates.minTR) : '');
@@ -64,6 +68,7 @@ export default function Home() {
     } else {
       // Additive filtering
       if (updates.roleFilter) setRoleFilter(updates.roleFilter);
+      if (updates.templateFilter) setTemplateFilter(updates.templateFilter);
       if (updates.minLevel !== undefined) setMinLevel(String(updates.minLevel));
       if (updates.maxLevel !== undefined) setMaxLevel(String(updates.maxLevel));
       if (updates.minTR !== undefined) setMinTR(String(updates.minTR));
@@ -84,6 +89,7 @@ export default function Home() {
   const clearFilters = () => {
     setSearchTerm('');
     setRoleFilter('all');
+    setTemplateFilter('all');
     setMinLevel('');
     setMaxLevel('');
     setMinTR('');

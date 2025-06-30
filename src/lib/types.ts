@@ -3,6 +3,8 @@
 import type { Role } from './roles';
 import type { StateEffect } from './states';
 
+export type CreatureTemplate = 'Normal' | 'Underling' | 'Paragon' | 'Tyrant';
+
 export interface CreatureAttributes {
   HP: number;
   Speed: number;
@@ -40,6 +42,7 @@ export interface Creature {
   name: string;
   level: number;
   role: Role;
+  template: CreatureTemplate;
   TR: number;
   attributes: CreatureAttributes;
   deeds: string[];
@@ -68,7 +71,6 @@ interface BaseCombatant {
   id: string;
   name: string;
   initiative: number;
-  currentHp: number;
   states: CombatantState[];
 }
 
@@ -83,7 +85,9 @@ export interface PlayerCombatant {
 export interface MonsterCombatant extends BaseCombatant {
   type: 'monster';
   monsterId: string; // Original creature ID from bestiary
+  template: CreatureTemplate;
   maxHp: number;
+  currentHp: number;
   attributes: CreatureAttributes;
   deeds: Deed[];
   abilities: string;

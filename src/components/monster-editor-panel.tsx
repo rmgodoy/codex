@@ -8,7 +8,7 @@ import { z } from "zod";
 import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds } from "@/lib/idb";
 import { ROLES, getStatsForRoleAndLevel, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
-import type { Creature, Deed, DeedData, CreatureWithDeeds } from "@/lib/types";
+import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DeedDisplay } from "./deed-display";
 import { Badge } from "@/components/ui/badge";
 
+const TEMPLATES: CreatureTemplate[] = ['Normal', 'Underling', 'Paragon', 'Tyrant'];
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -52,6 +53,7 @@ const creatureSchema = z.object({
   name: z.string().min(1, "Name is required"),
   level: z.coerce.number().int().min(1).max(10),
   role: z.enum(ROLES),
+  template: z.enum(TEMPLATES),
   TR: z.coerce.number().int().min(0),
   attributes: z.object({
     HP: z.coerce.number().int().min(0),
@@ -80,13 +82,14 @@ interface CreatureEditorPanelProps {
   onUseAsTemplate: (creatureData: CreatureWithDeeds) => void;
   onEditCancel: () => void;
   dataVersion: number;
-  onFilterByClick: (updates: { roleFilter?: Role, minLevel?: number, maxLevel?: number, minTR?: number, maxTR?: number, tagFilter?: string }, e: React.MouseEvent) => void;
+  onFilterByClick: (updates: { roleFilter?: Role, templateFilter?: CreatureTemplate, minLevel?: number, maxLevel?: number, minTR?: number, maxTR?: number, tagFilter?: string }, e: React.MouseEvent) => void;
 }
 
 const defaultValues: CreatureFormData = {
   name: "",
   level: 1,
   role: 'Archer',
+  template: 'Normal',
   TR: 1,
   attributes: { HP: 10, Speed: 6, Initiative: 1, Accuracy: 0, Guard: 10, Resist: 10, rollBonus: 0, DMG: 'd6' },
   deeds: [],
@@ -210,31 +213,48 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     resolver: zodResolver(creatureSchema),
     defaultValues: defaultValues,
   });
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "deeds",
   });
 
-  const { watch, setValue } = form;
+  const { watch, setValue, getValues } = form;
   const watchedRole = watch("role");
   const watchedLevel = watch("level");
+  const watchedTemplate = watch("template");
   const watchedData = watch();
 
   useEffect(() => {
-    if (isEditing && watchedRole && watchedLevel) {
+    if (isEditing) {
         const stats = getStatsForRoleAndLevel(watchedRole, watchedLevel);
         if (stats) {
-            setValue('attributes.HP', stats.HP);
-            setValue('attributes.Speed', stats.Speed);
-            setValue('attributes.Initiative', stats.Initiative);
-            setValue('attributes.Accuracy', stats.Accuracy);
-            setValue('attributes.Guard', stats.Guard);
-            setValue('attributes.Resist', stats.Resist);
-            setValue('attributes.rollBonus', stats.rollBonus);
-            setValue('attributes.DMG', stats.DMG);
+            const levelTRMap: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 7, 7: 8, 8: 9, 9: 11, 10: 12 };
+            const baseTR = levelTRMap[watchedLevel] || 1;
+            
+            let finalHp = stats.HP;
+            let finalTr = baseTR;
+
+            switch(watchedTemplate) {
+                case 'Underling':
+                    finalHp = 1;
+                    finalTr = Math.max(1, Math.round(baseTR / 4));
+                    const currentDeeds = getValues('deeds');
+                    replace(currentDeeds.filter(d => d.tier === 'light'));
+                    break;
+                case 'Paragon':
+                    finalHp = stats.HP * 2;
+                    finalTr = baseTR * 2;
+                    break;
+                case 'Tyrant':
+                    finalHp = stats.HP * 4;
+                    break;
+            }
+
+            setValue('attributes', { ...stats, HP: finalHp });
+            setValue('TR', finalTr);
         }
     }
-  }, [watchedRole, watchedLevel, setValue, isEditing]);
+  }, [watchedRole, watchedLevel, watchedTemplate, setValue, isEditing, getValues, replace]);
 
   useEffect(() => {
     getAllDeeds().then(setAllDeeds).catch(e => console.error("Could not fetch all deeds", e));
@@ -251,6 +271,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           name: template ? `Copy of ${template.name || 'creature'}` : defaultValues.name,
           abilities: initialData.abilities || '',
           description: initialData.description || '',
+          template: initialData.template || 'Normal',
           tags: Array.isArray(initialData.tags) ? initialData.tags.join(', ') : '',
           deeds: (initialData.deeds || []).map(deed => ({
             ...deed,
@@ -302,6 +323,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             ...fullCreatureData,
             abilities: fullCreatureData.abilities || '',
             description: fullCreatureData.description || '',
+            template: fullCreatureData.template || 'Normal',
             tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
             deeds: deedObjects.map(deed => ({
               ...deed,
@@ -330,6 +352,10 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
   const onSubmit = async (data: CreatureFormData) => {
     try {
+      if (data.template === 'Underling') {
+        data.deeds = data.deeds.filter(d => d.tier === 'light');
+      }
+
       const deedPromises = data.deeds.map(deed => {
         if (!deed.id) {
           const { id, ...deedDataWithTagString } = deed;
@@ -389,6 +415,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           ...creatureData,
           abilities: creatureData.abilities || '',
           description: creatureData.description || '',
+          template: creatureData.template || 'Normal',
           tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
           deeds: creatureData.deeds.map(deed => ({
             ...deed,
@@ -415,9 +442,17 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   };
 
   const handleAddDeedsFromLibrary = (newDeeds: Deed[]) => {
-    const currentDeedIds = new Set(fields.map(f => f.id));
-    const deedsToAdd = newDeeds.filter(d => !currentDeedIds.has(d.id!));
-    append(deedsToAdd.map(d => ({...d, tags: Array.isArray(d.tags) ? d.tags.join(', ') : ''})));
+    const deedsToAdd = newDeeds.map(d => ({...d, tags: Array.isArray(d.tags) ? d.tags.join(', ') : ''}));
+    
+    if (getValues('template') === 'Underling') {
+      const lightDeeds = deedsToAdd.filter(d => d.tier === 'light');
+      if (lightDeeds.length < deedsToAdd.length) {
+        toast({ variant: "destructive", title: "Warning", description: "Only Light deeds can be added to Underlings."});
+      }
+      append(lightDeeds);
+    } else {
+      append(deedsToAdd);
+    }
   };
   
   const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2 };
@@ -477,8 +512,8 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
                     <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <button onClick={(e) => onFilterByClick({ roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                            <span>Lvl {creatureData.level} {creatureData.role}</span>
+                        <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                            <span>Lvl {creatureData.level} {creatureData.template} {creatureData.role}</span>
                         </button>
                         •
                         <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
@@ -586,7 +621,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           <CardContent className="space-y-8 pt-0">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <FormField name="name" control={form.control} render={({ field }) => (
-                <FormItem className="md:col-span-2">
+                <FormItem className="lg:col-span-2">
                   <FormLabel>Name</FormLabel>
                   <FormControl><Input placeholder="e.g., Gloomfang Serpent" {...field} /></FormControl>
                   <FormMessage />
@@ -607,18 +642,32 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 </FormItem>
               )} />
             </div>
-             <FormField name="role" control={form.control} render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-            )} />
+            <div className="grid md:grid-cols-2 gap-4">
+              <FormField name="template" control={form.control} render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Template</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+              )} />
+              <FormField name="role" control={form.control} render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+              )} />
+            </div>
             
             <Separator />
             
@@ -717,7 +766,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                 <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Tier</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id || watchedTemplate === 'Underling'}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="light">Light</SelectItem>

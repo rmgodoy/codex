@@ -22,7 +22,7 @@ interface InitiativeTrackerProps {
   onPrevTurn: () => void;
   onCombatantUpdate: (combatant: Combatant) => void;
   perilRoll: number;
-  perilDeeds: { heavy: number; mighty: number };
+  perilText: string;
   allPlayersReady: boolean;
   turnIndex: number;
 }
@@ -36,7 +36,7 @@ export default function InitiativeTracker({
   onPrevTurn,
   onCombatantUpdate,
   perilRoll,
-  perilDeeds,
+  perilText,
   allPlayersReady,
   turnIndex,
 }: InitiativeTrackerProps) {
@@ -50,7 +50,9 @@ export default function InitiativeTracker({
   useEffect(() => {
     const newInits: Record<string, string> = {};
     allPlayers.forEach(p => {
-        newInits[p.id] = p.initiative > 0 ? String(p.initiative) : '';
+        if(p.initiative !== undefined && p.initiative !== null) {
+          newInits[p.id] = p.initiative > 0 ? String(p.initiative) : '';
+        }
     });
     setLocalInitiatives(newInits);
   }, [allPlayers, round]); 
@@ -62,8 +64,9 @@ export default function InitiativeTracker({
   
   const handleInitiativeBlur = (playerId: string) => {
     const player = allPlayers.find(p => p.id === playerId);
+    if (!player) return;
     const newInitiative = parseInt(localInitiatives[playerId], 10) || 0;
-    if (player && player.initiative !== newInitiative) {
+    if (player && (player.initiative === undefined || player.initiative !== newInitiative)) {
       onCombatantUpdate({ ...player, initiative: newInitiative });
     }
   };
@@ -113,14 +116,7 @@ export default function InitiativeTracker({
         <p className="text-sm text-muted-foreground">Peril</p>
         <p className="text-4xl font-bold">{perilRoll}</p>
         <div className="flex justify-center gap-6 mt-2 text-sm">
-          <div>
-            <p className="text-muted-foreground">Heavy Deeds</p>
-            <p className="font-bold text-lg">{perilDeeds.heavy}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Mighty Deeds</p>
-            <p className="font-bold text-lg">{perilDeeds.mighty}</p>
-          </div>
+          <p className="font-bold text-lg">{perilText}</p>
         </div>
       </div>
 
