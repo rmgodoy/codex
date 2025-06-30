@@ -57,30 +57,28 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     setCombatants(initialCombatants);
   }, [encounter]);
   
-  const nextTurn = useCallback(() => {
-    setTurnIndex(prevIndex => {
-      const newIndex = prevIndex + 1;
-      if (newIndex >= turnOrder.length) {
-        setRound(r => r + 1);
-        return 0;
-      }
-      return newIndex;
-    });
-  }, [turnOrder.length]);
+  const nextTurn = () => {
+    const newIndex = turnIndex + 1;
+    if (newIndex >= turnOrder.length) {
+      setRound(r => r + 1);
+      setTurnIndex(0);
+    } else {
+      setTurnIndex(newIndex);
+    }
+  };
 
-  const prevTurn = useCallback(() => {
-    setTurnIndex(prevIndex => {
-      const newIndex = prevIndex - 1;
-      if (newIndex < 0) {
-        if (round > 1) {
-          setRound(r => r - 1);
-          return turnOrder.length - 1;
-        }
-        return 0; // Can't go back before round 1, turn 0
+  const prevTurn = () => {
+    const newIndex = turnIndex - 1;
+    if (newIndex < 0) {
+      if (round > 1) {
+        setRound(r => r - 1);
+        setTurnIndex(turnOrder.length - 1);
       }
-      return newIndex;
-    });
-  }, [round, turnOrder.length]);
+      // Can't go back before round 1, turn 0
+    } else {
+      setTurnIndex(newIndex);
+    }
+  };
 
   const updateCombatant = (updatedCombatant: Combatant) => {
     setCombatants(prevCombatants => 

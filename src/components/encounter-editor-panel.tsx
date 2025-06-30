@@ -29,7 +29,8 @@ const combatantStateSchema = z.object({
   id: z.string(),
   name: z.string(),
   intensity: z.number(),
-  duration: z.number(),
+  description: z.string().optional(),
+  effect: z.any().optional(),
 });
 
 const playerCombatantSchema = z.object({
@@ -37,8 +38,6 @@ const playerCombatantSchema = z.object({
   type: z.literal('player'),
   name: z.string().min(1, "Player name is required"),
   initiative: z.coerce.number(),
-  currentHp: z.coerce.number(),
-  states: z.array(combatantStateSchema),
   nat20: z.boolean().optional(),
 });
 
@@ -232,26 +231,15 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   const onSubmit = async (data: EncounterFormData) => {
     try {
-      let savedEncounterId: string;
       if (isCreatingNew) {
-        savedEncounterId = await addEncounter(data);
+        const newId = await addEncounter(data);
         toast({ title: "Encounter Created!", description: `${data.name} has been saved.` });
-        onEncounterSaveSuccess(savedEncounterId);
+        onEncounterSaveSuccess(newId);
       } else if (encounterId) {
         await updateEncounter({ ...data, id: encounterId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
         onEncounterSaveSuccess(encounterId);
-        savedEncounterId = encounterId;
-      } else {
-        return; // Should not happen
       }
-      
-      const reloadedData = await getEncounterById(savedEncounterId);
-      if (reloadedData) {
-        form.reset(reloadedData);
-        setEncounterData(reloadedData);
-      }
-      setIsEditing(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
@@ -274,8 +262,6 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
       type: 'player',
       name: `Player ${fields.filter(f => f.type === 'player').length + 1}`,
       initiative: 0,
-      currentHp: 20,
-      states: [],
       nat20: false,
     };
     append(newPlayer);
@@ -350,7 +336,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                             {c.type === 'player' ? <User className="h-5 w-5 text-accent" /> : <Bot className="h-5 w-5 text-accent" />}
                             <span className="font-semibold flex-1">{c.name}</span>
                             {c.type === 'monster' && <span className="text-sm text-muted-foreground">Lvl {c.level} {c.role}</span>}
-                            <span className="text-sm text-muted-foreground">HP: {c.currentHp}{c.type ==='monster' && `/${c.maxHp}`}</span>
+                            {c.type === 'monster' && <span className="text-sm text-muted-foreground">HP: {c.currentHp}/{c.maxHp}</span>}
                           </li>
                         ))}
                       </ul>

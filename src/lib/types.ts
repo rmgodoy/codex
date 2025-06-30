@@ -1,5 +1,7 @@
 
+
 import type { Role } from './roles';
+import type { StateEffect } from './states';
 
 export interface CreatureAttributes {
   HP: number;
@@ -58,7 +60,8 @@ export interface CombatantState {
   id: string;
   name: string;
   intensity: number;
-  duration: number; // in rounds
+  description?: string;
+  effect?: StateEffect;
 }
 
 interface BaseCombatant {
@@ -69,8 +72,11 @@ interface BaseCombatant {
   states: CombatantState[];
 }
 
-export interface PlayerCombatant extends BaseCombatant {
+export interface PlayerCombatant {
+  id: string;
   type: 'player';
+  name: string;
+  initiative: number;
   nat20?: boolean;
 }
 
