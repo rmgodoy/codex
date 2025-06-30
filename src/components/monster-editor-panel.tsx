@@ -1,11 +1,11 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { doc, getDoc, setDoc, addDoc, deleteDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getCreatureById, addCreature, updateCreature, deleteCreature } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { Creature, Deed } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -64,9 +64,10 @@ interface CreatureEditorPanelProps {
   creatureId: string | null;
   isCreatingNew: boolean;
   template: Partial<Creature> | null;
-  onCreatureCreated: (id: string) => void;
-  onCreatureDeleted: () => void;
+  onCreatureSaveSuccess: (id: string) => void;
+  onCreatureDeleteSuccess: () => void;
   onUseAsTemplate: (creatureData: Creature) => void;
+  onEditCancel: () => void;
 }
 
 const defaultValues: CreatureFormData = {
@@ -115,7 +116,7 @@ const DeedDisplay = ({ deed }: { deed: Deed }) => {
 };
 
 
-export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureCreated, onCreatureDeleted, onUseAsTemplate }: CreatureEditorPanelProps) {
+export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureSaveSuccess, onCreatureDeleteSuccess, onUseAsTemplate, onEditCancel }: CreatureEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!creatureId);
@@ -151,20 +152,19 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       }
 
       if (!creatureId) {
-        form.reset(defaultValues);
-        setIsEditing(true);
+        setIsEditing(false);
         setLoading(false);
         return;
       }
+
       setLoading(true);
       setIsEditing(false);
       try {
-        const creatureDoc = await getDoc(doc(db, "creatures", creatureId));
-        if (creatureDoc.exists()) {
-          const data = creatureDoc.data() as Omit<Creature, 'id'>;
+        const creatureData = await getCreatureById(creatureId);
+        if (creatureData) {
           const formData = {
-            ...data,
-            tags: data.tags ? data.tags.join(', ') : '',
+            ...creatureData,
+            tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
           };
           form.reset(formData);
           setFetchedCreatureData(formData);
@@ -183,37 +183,29 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   const onSubmit = async (data: CreatureFormData) => {
     const dataToSave = prepareDataForSave(data);
     
-    if (isCreatingNew) {
-      try {
-        const newDocRef = await addDoc(collection(db, "creatures"), dataToSave);
+    try {
+      if (isCreatingNew) {
+        const newId = await addCreature(dataToSave);
         toast({ title: "Creature Created!", description: `${data.name} has been added to the bestiary.` });
-        onCreatureCreated(newDocRef.id);
-        setIsEditing(false);
-      } catch (error) {
-        console.error("Failed to create creature:", error);
-        toast({ variant: "destructive", title: "Creation Failed", description: "Could not create the new creature." });
-      }
-    } else if(creatureId) {
-      try {
-        await setDoc(doc(db, "creatures", creatureId), dataToSave);
+        onCreatureSaveSuccess(newId);
+      } else if(creatureId) {
+        await updateCreature({ ...dataToSave, id: creatureId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
-        const updatedFormData = { ...data, tags: Array.isArray(dataToSave.tags) ? dataToSave.tags.join(', ') : dataToSave.tags };
-        setFetchedCreatureData(updatedFormData);
-        form.reset(updatedFormData);
-        setIsEditing(false);
-      } catch (error) {
-        console.error("Failed to update creature:", error);
-        toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes for ${data.name}.` });
+        onCreatureSaveSuccess(creatureId);
       }
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to save creature:", error);
+      toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
   };
 
   const handleDeleteCreature = async () => {
     if (!creatureId) return;
     try {
-      await deleteDoc(doc(db, "creatures", creatureId));
+      await deleteCreature(creatureId);
       toast({ title: "Creature Deleted", description: "The creature has been removed from the bestiary." });
-      onCreatureDeleted();
+      onCreatureDeleteSuccess();
     } catch (error) {
       console.error("Failed to delete creature:", error);
       toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the creature." });
@@ -221,10 +213,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   };
 
   const handleCancel = () => {
-    if (fetchedCreatureData) {
-      form.reset(fetchedCreatureData);
+    if (isCreatingNew) {
+      onEditCancel();
+    } else {
+      if (fetchedCreatureData) {
+        form.reset(fetchedCreatureData);
+      }
+      setIsEditing(false);
     }
-    setIsEditing(false);
   }
 
   const handleUseAsTemplate = () => {
@@ -272,7 +268,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
   if (!isCreatingNew && !creatureId && !loading) {
     return (
-      <Card className="h-full flex items-center justify-center">
+      <Card className="h-full flex items-center justify-center min-h-[300px]">
         <CardContent className="text-center pt-6">
             <p className="text-xl text-muted-foreground">Select a creature to view</p>
             <p className="text-muted-foreground">or create a new one.</p>
@@ -294,15 +290,15 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleUseAsTemplate}><Copy/> Template</Button>
-                  <Button variant="outline" onClick={() => setIsEditing(true)}><Edit/> Edit</Button>
+                  <Button variant="outline" size="sm" onClick={handleUseAsTemplate}><Copy className="h-4 w-4 mr-1"/> Template</Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-1"/> Edit</Button>
                 </div>
             </CardHeader>
             <CardContent>
                 <Separator className="my-6"/>
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex flex-wrap gap-x-6 gap-y-4">
                     <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
                     <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
                     <div className="flex items-center gap-2"><Zap className="h-5 w-5 text-accent"/><div><Label>Initiative</Label><p className="text-lg font-bold">{creatureData.attributes.Initiative}</p></div></div>
@@ -335,11 +331,11 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="justify-end">
+            <CardFooter>
                  <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete Creature
+                    <Button type="button" variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -583,36 +579,33 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             )} />
             
           </CardContent>
-          <CardFooter className="justify-end gap-2">
-              {isCreatingNew ? (
-                <Button type="submit">Create Creature</Button>
-              ) : (
-                <>
-                  <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button type="button" variant="destructive">
-                        <Trash2 className="h-4 w-4 mr-2" /> Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete "{form.getValues("name")}". This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <Button type="submit">Save Changes</Button>
-                </>
-              )}
+          <CardFooter className="flex items-center gap-2">
+            {!isCreatingNew && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <div className="flex-grow" />
+            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+            <Button type="submit">{isCreatingNew ? "Create Creature" : "Save Changes"}</Button>
           </CardFooter>
         </form>
       </Form>

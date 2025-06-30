@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -8,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogTitle } from "@radix-ui/react-dialog"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -136,6 +138,8 @@ export const Sidebar = React.forwardRef<
           style={{ "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
         >
           <SheetHeader className="p-4 border-b">
+            {/* The DialogTitle is visually hidden but read by screen readers */}
+            <DialogTitle className="sr-only">Menu</DialogTitle>
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto">
@@ -150,7 +154,7 @@ export const Sidebar = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "hidden md:flex flex-col h-screen bg-card text-card-foreground border-r border-border transition-all duration-300",
+        "hidden md:flex flex-col bg-card text-card-foreground border-r border-border transition-all duration-300",
         state === "expanded" ? "w-[var(--sidebar-width)]" : "w-0",
         "overflow-hidden",
         className

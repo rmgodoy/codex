@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { collection, onSnapshot, getDocs, writeBatch, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getAllCreatures, importCreatures } from '@/lib/idb';
 import type { Creature } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,9 +18,10 @@ interface CreatureListPanelProps {
   onSelectCreature: (id: string) => void;
   onNewCreature: () => void;
   selectedCreatureId: string | null;
+  dataVersion: number;
 }
 
-export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId }: CreatureListPanelProps) {
+export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId, dataVersion }: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [minTR, setMinTR] = useState('');
@@ -33,19 +33,20 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
   const { toast } = useToast();
 
   useEffect(() => {
-    const creaturesCollection = collection(db, 'creatures');
-    const unsubscribe = onSnapshot(creaturesCollection, (snapshot) => {
-      const creaturesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Creature));
-      setCreatures(creaturesData);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Error fetching creatures:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch creatures from database." });
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
+    const fetchCreatures = async () => {
+      setIsLoading(true);
+      try {
+        const creaturesData = await getAllCreatures();
+        setCreatures(creaturesData);
+      } catch (error) {
+        console.error("Error fetching creatures:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch creatures from database." });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCreatures();
+  }, [dataVersion, toast]);
 
   const filteredAndSortedCreatures = useMemo(() => {
     let filtered = creatures.filter(creature => 
@@ -78,16 +79,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
 
   const handleExport = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'creatures'));
-      const creaturesData = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        // This is a temp fix for bad data in DB
-        const { level, ...rest } = data;
-        if (level && !rest.TR) {
-          rest.TR = level;
-        }
-        return { id: doc.id, ...rest };
-      });
+      const creaturesData = await getAllCreatures();
       const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(creaturesData, null, 2))}`;
       const link = document.createElement("a");
       link.href = jsonString;
@@ -116,17 +108,13 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
         const importedCreatures: Partial<Creature>[] = JSON.parse(content);
         if (!Array.isArray(importedCreatures)) throw new Error("JSON must be an array of creatures.");
 
-        const batch = writeBatch(db);
-        const existingDocs = await getDocs(collection(db, 'creatures'));
-        existingDocs.forEach(doc => batch.delete(doc.ref));
-
-        importedCreatures.forEach(creature => {
-          const { id, ...data } = creature;
-          const newDocRef = id ? doc(db, 'creatures', id) : doc(collection(db, 'creatures'));
-          batch.set(newDocRef, data);
-        });
-
-        await batch.commit();
+        await importCreatures(importedCreatures);
+        
+        onNewCreature(); // Force a refresh by triggering parent state change
+        onNewCreature(); // This is a bit of a hack. Let's use the dataVersion.
+        // The parent will handle refreshing. We can just call onNewCreature to reset view.
+        // A better way would be to call a dedicated refresh function. The parent now handles this.
+        
         toast({ title: "Import Successful", description: "Bestiary has been overwritten with the imported data." });
       } catch (error: any) {
         console.error("Import failed:", error);

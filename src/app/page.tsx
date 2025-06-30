@@ -1,16 +1,20 @@
+
 "use client";
 
 import { useState } from "react";
 import type { Creature } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
-import { Skull, Copy } from "lucide-react";
+import { Skull } from "lucide-react";
 import { Sidebar, SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function Home() {
   const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
-  const [isCreatingNew, setIsCreatingNew] = useState<boolean>(true);
+  const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<Creature> | null>(null);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  const refreshList = () => setDataVersion(v => v + 1);
 
   const handleSelectCreature = (id: string) => {
     setSelectedCreatureId(id);
@@ -34,17 +38,26 @@ export default function Home() {
     setTemplateData(template);
   };
 
-  const handleCreatureCreated = (id: string) => {
+  const onCreatureSaveSuccess = (id: string) => {
+    refreshList();
     setSelectedCreatureId(id);
     setIsCreatingNew(false);
     setTemplateData(null);
-  }
+  };
 
-  const handleCreatureDeleted = () => {
+  const onCreatureDeleteSuccess = () => {
+    refreshList();
     setSelectedCreatureId(null);
-    setIsCreatingNew(true);
+    setIsCreatingNew(false); 
     setTemplateData(null);
-  }
+  };
+  
+  const onEditCancel = () => {
+    if (isCreatingNew) {
+      setIsCreatingNew(false);
+    }
+    // If just editing, the editor panel handles switching back to its own view mode internally.
+  };
 
   return (
     <SidebarProvider>
@@ -53,6 +66,7 @@ export default function Home() {
           onSelectCreature={handleSelectCreature}
           onNewCreature={handleNewCreature}
           selectedCreatureId={selectedCreatureId}
+          dataVersion={dataVersion}
         />
       </Sidebar>
       <SidebarInset>
@@ -65,13 +79,14 @@ export default function Home() {
         </header>
         <div className="bg-background/50 p-4 sm:p-6 md:p-8">
           <CreatureEditorPanel
-            key={selectedCreatureId ?? 'new'} 
+            key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
             creatureId={selectedCreatureId}
             isCreatingNew={isCreatingNew}
             template={templateData}
-            onCreatureCreated={handleCreatureCreated}
-            onCreatureDeleted={handleCreatureDeleted}
+            onCreatureSaveSuccess={onCreatureSaveSuccess}
+            onCreatureDeleteSuccess={onCreatureDeleteSuccess}
             onUseAsTemplate={handleUseAsTemplate}
+            onEditCancel={onEditCancel}
           />
         </div>
       </SidebarInset>
