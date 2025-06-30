@@ -81,6 +81,17 @@ export default function Home() {
     }
   };
   
+  const clearFilters = () => {
+    setSearchTerm('');
+    setRoleFilter('all');
+    setMinLevel('');
+    setMaxLevel('');
+    setMinTR('');
+    setMaxTR('');
+    setTagFilter('');
+    setSortBy('name');
+    setSortOrder('asc');
+  };
 
   const refreshList = () => setDataVersion(v => v + 1);
 
@@ -140,6 +151,7 @@ export default function Home() {
               onImportSuccess={refreshList}
               filters={filters}
               setFilters={setFilters}
+              onClearFilters={clearFilters}
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">

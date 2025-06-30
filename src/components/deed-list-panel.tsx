@@ -19,15 +19,33 @@ interface DeedListPanelProps {
   onNewDeed: () => void;
   selectedDeedId: string | null;
   dataVersion: number;
+  filters: {
+    searchTerm: string;
+    tierFilter: string;
+    tagFilter: string;
+    sortBy: 'name' | 'tier';
+    sortOrder: 'asc' | 'desc';
+  };
+  setFilters: {
+    setSearchTerm: (value: string) => void;
+    setTierFilter: (value: string) => void;
+    setTagFilter: (value: string) => void;
+    setSortBy: (value: 'name' | 'tier') => void;
+    setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
+  };
+  onClearFilters: () => void;
 }
 
-export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId, dataVersion }: DeedListPanelProps) {
+export default function DeedListPanel({ 
+  onSelectDeed, 
+  onNewDeed, 
+  selectedDeedId, 
+  dataVersion,
+  filters,
+  setFilters,
+  onClearFilters
+}: DeedListPanelProps) {
   const [deeds, setDeeds] = useState<Deed[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [tierFilter, setTierFilter] = useState('all');
-  const [tagFilter, setTagFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'tier'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -61,11 +79,11 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
 
   const filteredAndSortedDeeds = useMemo(() => {
     let filtered = deeds.filter(deed => {
-        const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
+        const matchesSearch = deed.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
+        const matchesTier = filters.tierFilter === 'all' || deed.tier === filters.tierFilter;
         
         let matchesTags = true;
-        const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        const tags = filters.tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
         if (tags.length > 0) {
           matchesTags = deed.tags ? tags.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
         }
@@ -75,7 +93,7 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
 
     const tierOrder: Record<string, number> = { light: 1, heavy: 2, mighty: 3 };
     const sorted = filtered.sort((a, b) => {
-        if (sortBy === 'tier') {
+        if (filters.sortBy === 'tier') {
             const tierA = tierOrder[a.tier] || 0;
             const tierB = tierOrder[b.tier] || 0;
             const tierDiff = tierA - tierB;
@@ -84,12 +102,12 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
         return a.name.localeCompare(b.name);
     });
 
-    if (sortOrder === 'desc') {
+    if (filters.sortOrder === 'desc') {
         sorted.reverse();
     }
 
     return sorted;
-  }, [deeds, searchTerm, tierFilter, tagFilter, sortBy, sortOrder]);
+  }, [deeds, filters]);
 
   return (
     <div className="flex flex-col h-full">
@@ -101,14 +119,17 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search deeds..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.searchTerm}
+            onChange={(e) => setFilters.setSearchTerm(e.target.value)}
             className="pl-9"
           />
         </div>
         <div className="space-y-2">
-            <Label>Filter</Label>
-            <Select value={tierFilter} onValueChange={setTierFilter}>
+            <div className="flex justify-between items-center">
+              <Label>Filter</Label>
+              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+            </div>
+            <Select value={filters.tierFilter} onValueChange={setFilters.setTierFilter}>
                 <SelectTrigger>
                     <SelectValue placeholder="Filter by tier" />
                 </SelectTrigger>
@@ -121,13 +142,13 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
             </Select>
             <div className="relative">
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Tags (e.g. fire, control)" value={tagFilter} onChange={e => setTagFilter(e.target.value)} className="pl-9"/>
+                <Input placeholder="Tags (e.g. fire, control)" value={filters.tagFilter} onChange={e => setFilters.setTagFilter(e.target.value)} className="pl-9"/>
             </div>
         </div>
          <div>
             <Label>Sort by</Label>
             <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={(value: 'name' | 'tier') => setSortBy(value)}>
+              <Select value={filters.sortBy} onValueChange={(value: 'name' | 'tier') => setFilters.setSortBy(value)}>
                   <SelectTrigger>
                       <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -136,8 +157,8 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
                       <SelectItem value="tier">Tier</SelectItem>
                   </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
-                  {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              <Button variant="ghost" size="icon" onClick={() => setFilters.setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
+                  {filters.sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
                   <span className="sr-only">Toggle sort order</span>
               </Button>
             </div>

@@ -46,6 +46,7 @@ interface CreatureListPanelProps {
     setSortBy: (value: SortByType) => void;
     setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
   };
+  onClearFilters: () => void;
 }
 
 export default function CreatureListPanel({ 
@@ -55,7 +56,8 @@ export default function CreatureListPanel({
   dataVersion, 
   onImportSuccess,
   filters,
-  setFilters
+  setFilters,
+  onClearFilters
 }: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -235,7 +237,10 @@ export default function CreatureListPanel({
         </div>
 
         <div className="space-y-2">
-            <Label>Filter</Label>
+            <div className="flex justify-between items-center">
+              <Label>Filter</Label>
+              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+            </div>
             <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
                 <SelectTrigger>
                     <SelectValue placeholder="Filter by role" />

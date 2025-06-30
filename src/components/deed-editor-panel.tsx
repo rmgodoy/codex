@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Edit, Tag, Copy, X } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { DeedDisplay } from "./deed-display";
+import { Badge } from "./ui/badge";
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -49,6 +50,7 @@ interface DeedEditorPanelProps {
   onUseAsTemplate: (deedData: Deed) => void;
   onEditCancel: () => void;
   dataVersion: number;
+  onFilterByClick: (updates: { tierFilter?: 'light' | 'heavy' | 'mighty', tagFilter?: string }, e: React.MouseEvent) => void;
 }
 
 const defaultValues: DeedFormData = {
@@ -60,7 +62,7 @@ const defaultValues: DeedFormData = {
   tags: '',
 };
 
-export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion }: DeedEditorPanelProps) {
+export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion, onFilterByClick }: DeedEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!deedId);
@@ -205,7 +207,9 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                 <div>
                     <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
                     <CardDescription className="mt-1 capitalize">
-                       {deedData.tier}
+                       <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                         {deedData.tier}
+                       </button>
                     </CardDescription>
                 </div>
                  <div className="flex gap-2">
@@ -215,6 +219,17 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             </CardHeader>
             <CardContent>
                 <DeedDisplay deed={deedData} />
+                 {deedData.tags && deedData.tags.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-border/50">
+                        <div className="flex flex-wrap gap-2">
+                            {deedData.tags.map(tag => (
+                                <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                    <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </CardContent>
             <CardFooter>
                  <AlertDialog>

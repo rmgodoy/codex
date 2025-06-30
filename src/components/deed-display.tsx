@@ -2,7 +2,6 @@
 import { cn } from "@/lib/utils";
 import type { Deed } from "@/lib/types";
 import { Label } from "@/components/ui/label";
-import { Badge } from "./ui/badge";
 
 export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplacement?: string }) => {
     const tierColors = {
@@ -44,13 +43,6 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
                 {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.shadow)}</p></div>}
                 {deed.effects.end && <div><Label className="text-primary-foreground/90 font-semibold">End</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.end)}</p></div>}
             </div>
-             {deed.tags && deed.tags.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-border/50">
-                    <div className="flex flex-wrap gap-2">
-                        {deed.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

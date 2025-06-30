@@ -8,12 +8,64 @@ import MainLayout from '@/components/main-layout';
 import type { Deed } from '@/lib/types';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
+type SortByType = 'name' | 'tier';
 
 export default function DeedsPage() {
   const [selectedDeedId, setSelectedDeedId] = useState<string | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<Deed> | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tierFilter, setTierFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortByType>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const filters = {
+    searchTerm,
+    tierFilter,
+    tagFilter,
+    sortBy,
+    sortOrder
+  };
+
+  const setFilters = {
+    setSearchTerm,
+    setTierFilter,
+    setTagFilter,
+    setSortBy,
+    setSortOrder
+  };
+
+  const handleFilterByClick = (updates: Partial<{ tierFilter: 'light' | 'heavy' | 'mighty', tagFilter: string }>, e: React.MouseEvent) => {
+    const isAdditive = e.shiftKey;
+
+    if (!isAdditive) {
+      setTierFilter(updates.tierFilter || 'all');
+      setTagFilter(updates.tagFilter || '');
+    } else {
+      if (updates.tierFilter) setTierFilter(updates.tierFilter);
+      if (updates.tagFilter) {
+        setTagFilter(prev => {
+          if (!prev) return updates.tagFilter!;
+          const existingTags = prev.split(',').map(t => t.trim());
+          if (!existingTags.includes(updates.tagFilter!)) {
+            return `${prev}, ${updates.tagFilter}`;
+          }
+          return prev;
+        });
+      }
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTierFilter('all');
+    setTagFilter('');
+    setSortBy('name');
+    setSortOrder('asc');
+  };
 
   const refreshList = () => setDataVersion(v => v + 1);
 
@@ -70,6 +122,9 @@ export default function DeedsPage() {
                   onNewDeed={handleNewDeed}
                   selectedDeedId={selectedDeedId}
                   dataVersion={dataVersion}
+                  filters={filters}
+                  setFilters={setFilters}
+                  onClearFilters={clearFilters}
               />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
@@ -84,6 +139,7 @@ export default function DeedsPage() {
                     onUseAsTemplate={handleUseAsTemplate}
                     onEditCancel={onEditCancel}
                     dataVersion={dataVersion}
+                    onFilterByClick={handleFilterByClick}
                 />
             </div>
           </SidebarInset>
