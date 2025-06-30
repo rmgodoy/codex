@@ -249,22 +249,22 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
             </div>
             <div className="space-y-3">
               {combatant.states.length > 0 ? combatant.states.map(state => (
-                <div key={state.id} className="flex items-center gap-4 p-3 bg-card-foreground/5 rounded-lg">
+                <div key={state.id} className="flex items-center gap-2 p-3 bg-card-foreground/5 rounded-lg">
                   <Input 
                     value={state.name} 
                     onChange={e => updateState(state.id, { name: e.target.value, effect: undefined, description: undefined })}
-                    className="flex-1 font-semibold"
+                    className="flex-1 font-semibold min-w-0"
                     disabled={!!COMMON_STATES.find(s => s.name === state.name)}
                   />
-                  <Label htmlFor={`intensity-${state.id}`}>Intensity</Label>
+                  <Label htmlFor={`intensity-${state.id}`} className="hidden sm:inline shrink-0">Intensity</Label>
                   <Input 
                     id={`intensity-${state.id}`} 
                     type="number" 
                     min="0"
                     value={state.intensity} 
                     onChange={e => handleStateChange(state.id, 'intensity', Math.max(0, parseInt(e.target.value, 10) || 0))} 
-                    className="w-20" />
-                  <Button variant="ghost" size="icon" onClick={() => removeState(state.id)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                    className="w-20 shrink-0" />
+                  <Button variant="ghost" size="icon" onClick={() => removeState(state.id)} className="shrink-0"><Trash2 className="h-4 w-4 text-destructive"/></Button>
                 </div>
               )) : <p className="text-muted-foreground text-center">No active states.</p>}
             </div>
