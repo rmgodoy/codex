@@ -78,6 +78,7 @@ export default function EncountersPage() {
     }
   };
 
+  const { toast } = useToast();
   const handleRunEncounter = async (id: string) => {
     try {
       const encounterData = await getEncounterById(id);

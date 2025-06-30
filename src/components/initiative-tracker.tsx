@@ -15,6 +15,7 @@ type Turn = Combatant & { turnId: string };
 
 interface InitiativeTrackerProps {
   combatantsInTurnOrder: Turn[];
+  untrackedPlayers: PlayerCombatant[];
   activeTurnId: string;
   round: number;
   onNextTurn: () => void;
@@ -27,6 +28,7 @@ interface InitiativeTrackerProps {
 
 export default function InitiativeTracker({
   combatantsInTurnOrder,
+  untrackedPlayers,
   activeTurnId,
   round,
   onNextTurn,
@@ -37,7 +39,7 @@ export default function InitiativeTracker({
   allPlayersReady,
 }: InitiativeTrackerProps) {
     
-  const handleInitiativeChange = (combatant: Combatant, newInitiative: number) => {
+  const handleInitiativeChange = (combatant: PlayerCombatant, newInitiative: number) => {
     onCombatantUpdate({ ...combatant, initiative: newInitiative });
   };
   
@@ -107,28 +109,65 @@ export default function InitiativeTracker({
         </div>
       </TooltipProvider>
 
+      {untrackedPlayers.length > 0 && (
+        <>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-destructive">Set Initiative</h3>
+            <ul className="space-y-2 pr-4">
+              {untrackedPlayers.map((c) => (
+                <li
+                  key={c.id}
+                  className="p-3 rounded-lg border-l-4 border-destructive bg-destructive/10"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      <span className="font-semibold">{c.name}</span>
+                    </div>
+                    <Input 
+                      type="number"
+                      value={c.initiative}
+                      onChange={(e) => handleInitiativeChange(c, parseInt(e.target.value, 10) || 0)}
+                      className="w-20 h-8"
+                      min="0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 pl-8">
+                    <Checkbox
+                      id={`nat20-untracked-${c.id}`}
+                      checked={c.nat20}
+                      onCheckedChange={(checked) => handleNat20Change(c, !!checked)}
+                    />
+                    <Label htmlFor={`nat20-untracked-${c.id}`}>Nat 20</Label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Separator className="my-2" />
+        </>
+      )}
+
       <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Initiative Order</h3>
       <ScrollArea className="flex-1">
-        <ul className="space-y-2 pr-4">
-          {combatantsInTurnOrder.map((c) => {
-            const isUntracked = c.type === 'player' && c.initiative === 0 && !c.nat20;
-            return (
+        {combatantsInTurnOrder.length > 0 ? (
+          <ul className="space-y-2 pr-4">
+            {combatantsInTurnOrder.map((c) => (
               <li
                 key={c.turnId}
                 className={`p-3 rounded-lg border-l-4 transition-all ${
                   c.turnId === activeTurnId
                     ? "bg-primary/20 border-primary shadow-md"
                     : "bg-background border-transparent"
-                } ${isUntracked ? "border-destructive" : ""}`}
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {isUntracked && <AlertTriangle className="h-5 w-5 text-destructive" />}
-                    {c.type === "player" && !isUntracked ? (
+                    {c.type === "player" ? (
                       <User className="h-5 w-5 text-accent" />
-                    ) : c.type === 'monster' ? (
+                    ) : (
                       <Bot className="h-5 w-5 text-accent" />
-                    ) : null}
+                    )}
                     <span className="font-semibold">{c.name}</span>
                   </div>
                   {c.type === 'player' ? (
@@ -154,8 +193,11 @@ export default function InitiativeTracker({
                   </div>
                 )}
               </li>
-          )})}
-        </ul>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-center pt-4">Waiting for players...</p>
+        )}
       </ScrollArea>
     </div>
   );

@@ -53,16 +53,19 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     return players.every(p => p.initiative > 0 || p.nat20);
   }, [combatants, loading]);
 
-  const { turnOrder, activeTurn } = useMemo(() => {
-    if (loading || combatants.length === 0) return { turnOrder: [], activeTurn: null };
+  const { turnOrder, activeTurn, untrackedPlayers } = useMemo(() => {
+    if (loading || combatants.length === 0) return { turnOrder: [], activeTurn: null, untrackedPlayers: [] };
 
-    const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
+    const allPlayers = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
     const monsters = combatants.filter((c): c is MonsterCombatant => c.type === 'monster');
     
+    const untracked = allPlayers.filter(p => p.initiative === 0 && !p.nat20);
+    const trackedPlayers = allPlayers.filter(p => p.initiative > 0 || p.nat20);
+
     const sortByInitiative = (a: Combatant, b: Combatant) => b.initiative - a.initiative;
     
-    const nat20Players = players.filter(p => p.nat20).sort(sortByInitiative);
-    const otherPlayers = players.filter(p => !p.nat20);
+    const nat20Players = trackedPlayers.filter(p => p.nat20).sort(sortByInitiative);
+    const otherPlayers = trackedPlayers.filter(p => !p.nat20);
 
     const maxMonsterInitiative = monsters.length > 0 ? Math.max(...monsters.map(m => m.initiative)) : -Infinity;
     const highInitiativePlayers = otherPlayers.filter(p => p.initiative > maxMonsterInitiative).sort(sortByInitiative);
@@ -78,10 +81,10 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
       ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-end` })),
     ];
     
-    const currentActiveTurn = finalTurnOrder[turnIndex];
+    const currentActiveTurn = allPlayersReady ? finalTurnOrder[turnIndex] : null;
 
-    return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn };
-  }, [combatants, turnIndex, loading]);
+    return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn, untrackedPlayers: untracked };
+  }, [combatants, turnIndex, loading, allPlayersReady]);
 
   useEffect(() => {
     const initializeCombatants = async () => {
@@ -146,6 +149,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   }, [encounter, rollPerilForRound]);
 
   const nextTurn = () => {
+    if (!allPlayersReady) return;
     setTurnIndex(prevIndex => {
         const newIndex = prevIndex + 1;
         if (newIndex >= turnOrder.length) {
@@ -163,6 +167,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   };
 
   const prevTurn = () => {
+    if (!allPlayersReady) return;
     setTurnIndex(prevIndex => {
       if (prevIndex === 0 && round === 1) return 0; // Can't go back from turn 1, round 1
 
@@ -184,11 +189,10 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const updateCombatant = (updatedCombatant: Combatant) => {
     setCombatants(prevCombatants => 
       prevCombatants.map(c => {
-        if (c.type === 'monster' && updatedCombatant.type === 'monster' && c.id === updatedCombatant.id) {
-          return updatedCombatant;
-        }
-        if (c.type === 'player' && updatedCombatant.type === 'player' && c.id === updatedCombatant.id) {
-          return updatedCombatant;
+        // This is a bit tricky since PlayerCombatant and MonsterCombatant have different shapes.
+        // We'll update based on ID and type.
+        if (c.id === updatedCombatant.id) {
+           return updatedCombatant;
         }
         return c;
       })
@@ -213,6 +217,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                 {loading ? <Skeleton className="h-full w-full" /> : (
                   <InitiativeTracker 
                       combatantsInTurnOrder={turnOrder}
+                      untrackedPlayers={untrackedPlayers}
                       activeTurnId={activeTurn?.turnId}
                       round={round}
                       onNextTurn={nextTurn}
