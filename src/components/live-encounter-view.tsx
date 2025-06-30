@@ -17,11 +17,13 @@ interface LiveEncounterViewProps {
 }
 
 export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEncounterViewProps) {
-  const [combatants, setCombatants] = useState<Combatant[]>([]);
+  const [combatantsByRound, setCombatantsByRound] = useState<Record<number, Combatant[]>>({});
   const [loading, setLoading] = useState(true);
   const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
   const [perilHistory, setPerilHistory] = useState<Record<number, { roll: number; deeds: { heavy: number; mighty: number } }>>({});
+
+  const combatants = useMemo(() => combatantsByRound[round] || [], [combatantsByRound, round]);
 
   const rollPerilForRound = useCallback((targetRound: number) => {
     setPerilHistory(prev => {
@@ -47,9 +49,9 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   }, []);
   
   const allPlayersReady = useMemo(() => {
-    if (loading) return false;
+    if (loading || combatants.length === 0) return false;
     const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
-    if (players.length === 0) return true; // No players means ready to go
+    if (players.length === 0) return true;
     return players.every(p => p.initiative > 0 || p.nat20);
   }, [combatants, loading]);
 
@@ -97,11 +99,10 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         const deedsData = await getDeedsByIds(allDeedIds);
         const deedsMap = new Map(deedsData.map(d => [d.id, d]));
 
-        const newCombatants: Combatant[] = [];
+        const initialCombatants: Combatant[] = [];
         
-        // Players
         (encounter.players || []).forEach(p => {
-            newCombatants.push({
+            initialCombatants.push({
                 id: p.id,
                 type: 'player',
                 name: p.name,
@@ -110,11 +111,9 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             });
         });
 
-        // Monsters
         (encounter.monsterGroups || []).forEach(group => {
             const creature = creaturesMap.get(group.monsterId);
             if (!creature) return;
-
             const monsterDeeds = creature.deeds.map(deedId => deedsMap.get(deedId)).filter(Boolean) as Deed[];
 
             for (let i = 0; i < group.quantity; i++) {
@@ -136,11 +135,11 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     tags: creature.tags,
                     states: [],
                 };
-                newCombatants.push(instance);
+                initialCombatants.push(instance);
             }
         });
 
-        setCombatants(newCombatants);
+        setCombatantsByRound({ 1: initialCombatants });
         rollPerilForRound(1);
         setLoading(false);
     };
@@ -154,29 +153,33 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         const newIndex = prevIndex + 1;
         if (newIndex >= turnOrder.length) {
             const newRound = round + 1;
+            
+            const newCombatantsForRound = JSON.parse(JSON.stringify(combatants));
+            newCombatantsForRound.forEach((c: Combatant) => {
+                if (c.type === 'player') {
+                    c.initiative = 0;
+                    c.nat20 = false;
+                }
+            });
+
+            setCombatantsByRound(prev => ({ ...prev, [newRound]: newCombatantsForRound }));
             setRound(newRound);
             rollPerilForRound(newRound);
-            // Reset player initiatives for the new round
-            setCombatants(prev => prev.map(c => 
-                c.type === 'player' ? { ...c, initiative: 0, nat20: false } : c
-            ));
-            return 0; // Reset turn index
+            return 0;
         }
         return newIndex;
     });
   };
 
   const prevTurn = () => {
-    if (!allPlayersReady) return;
+    if (round === 1 && turnIndex === 0) return;
     setTurnIndex(prevIndex => {
-      if (prevIndex === 0 && round === 1) return 0; // Can't go back from turn 1, round 1
-
       const newIndex = prevIndex - 1;
       if (newIndex < 0) {
         const newRound = round - 1;
         setRound(newRound);
-        // This is imperfect if turn order changes between rounds, but it's a reasonable approximation
-        return turnOrder.length > 0 ? turnOrder.length - 1 : 0;
+        const prevRoundTurnOrderLength = combatantsByRound[newRound]?.length > 0 ? combatantsByRound[newRound].length : 0;
+        return prevRoundTurnOrderLength > 0 ? prevRoundTurnOrderLength -1 : 0;
       }
       return newIndex;
     });
@@ -186,22 +189,18 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     return perilHistory[round] || { roll: 0, deeds: { heavy: 0, mighty: 0 } };
   }, [perilHistory, round]);
 
-  const updateCombatant = (updatedCombatant: Combatant) => {
-    setCombatants(prevCombatants => 
-      prevCombatants.map(c => {
-        // This is a bit tricky since PlayerCombatant and MonsterCombatant have different shapes.
-        // We'll update based on ID and type.
-        if (c.id === updatedCombatant.id) {
-           return updatedCombatant;
-        }
-        return c;
-      })
-    );
-  };
+  const updateCombatant = useCallback((updatedCombatant: Combatant) => {
+    setCombatantsByRound(prevRounds => {
+      const newCombatants = (prevRounds[round] || []).map(c => 
+        c.id === updatedCombatant.id ? updatedCombatant : c
+      );
+      return { ...prevRounds, [round]: newCombatants };
+    });
+  }, [round]);
   
   return (
     <SidebarProvider>
-      <div className="flex flex-col h-full w-full">
+      <div className="flex flex-col h-screen w-full">
          <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <SidebarTrigger />
@@ -218,7 +217,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                   <InitiativeTracker 
                       combatantsInTurnOrder={turnOrder}
                       untrackedPlayers={untrackedPlayers}
-                      activeTurnId={activeTurn?.turnId}
+                      activeTurnId={activeTurn?.turnId || null}
                       round={round}
                       onNextTurn={nextTurn}
                       onPrevTurn={prevTurn}
@@ -226,6 +225,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                       perilRoll={currentPeril.roll}
                       perilDeeds={currentPeril.deeds}
                       allPlayersReady={allPlayersReady}
+                      turnIndex={turnIndex}
                   />
                 )}
             </Sidebar>

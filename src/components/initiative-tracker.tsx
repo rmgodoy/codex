@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useMemo, useEffect, useCallback } from "react";
 import type { Combatant, PlayerCombatant } from "@/lib/types";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
@@ -11,12 +12,11 @@ import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
-type Turn = Combatant & { turnId: string };
 
 interface InitiativeTrackerProps {
-  combatantsInTurnOrder: Turn[];
+  combatantsInTurnOrder: (Combatant & { turnId: string })[];
   untrackedPlayers: PlayerCombatant[];
-  activeTurnId: string;
+  activeTurnId: string | null;
   round: number;
   onNextTurn: () => void;
   onPrevTurn: () => void;
@@ -24,6 +24,7 @@ interface InitiativeTrackerProps {
   perilRoll: number;
   perilDeeds: { heavy: number; mighty: number };
   allPlayersReady: boolean;
+  turnIndex: number;
 }
 
 export default function InitiativeTracker({
@@ -37,26 +38,50 @@ export default function InitiativeTracker({
   perilRoll,
   perilDeeds,
   allPlayersReady,
+  turnIndex,
 }: InitiativeTrackerProps) {
-    
-  const handleInitiativeChange = (combatant: PlayerCombatant, newInitiative: number) => {
-    onCombatantUpdate({ ...combatant, initiative: newInitiative });
+  const [localInitiatives, setLocalInitiatives] = useState<Record<string, string>>({});
+
+  const allPlayers = useMemo(() => 
+    [...untrackedPlayers, ...combatantsInTurnOrder.filter(c => c.type === 'player')] as PlayerCombatant[],
+    [untrackedPlayers, combatantsInTurnOrder]
+  );
+  
+  useEffect(() => {
+    const newInits: Record<string, string> = {};
+    allPlayers.forEach(p => {
+        newInits[p.id] = p.initiative > 0 ? String(p.initiative) : '';
+    });
+    setLocalInitiatives(newInits);
+  }, [allPlayers, round]); 
+
+
+  const handleInitiativeChange = (playerId: string, value: string) => {
+    setLocalInitiatives(prev => ({ ...prev, [playerId]: value }));
   };
   
+  const handleInitiativeBlur = (playerId: string) => {
+    const player = allPlayers.find(p => p.id === playerId);
+    const newInitiative = parseInt(localInitiatives[playerId], 10) || 0;
+    if (player && player.initiative !== newInitiative) {
+      onCombatantUpdate({ ...player, initiative: newInitiative });
+    }
+  };
+
   const handleNat20Change = (combatant: PlayerCombatant, checked: boolean) => {
     onCombatantUpdate({ ...combatant, nat20: checked });
   };
-
-  const renderButton = (type: 'prev' | 'next') => {
+  
+  const renderNextButton = () => {
     const isDisabled = !allPlayersReady;
     const button = (
        <Button 
-        onClick={type === 'prev' ? onPrevTurn : onNextTurn} 
-        variant={type === 'prev' ? "outline" : "default"} 
+        onClick={onNextTurn} 
+        variant="default" 
         className="w-full" 
         disabled={isDisabled}
       >
-        {type === 'prev' ? <><ChevronUp className="h-4 w-4 mr-2"/> Prev</> : <>Next <ChevronDown className="h-4 w-4 ml-2"/></>}
+        Next <ChevronDown className="h-4 w-4 ml-2"/>
       </Button>
     );
 
@@ -64,7 +89,6 @@ export default function InitiativeTracker({
       return (
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* The div is necessary for the tooltip to work on a disabled button */}
             <div className="w-full">{button}</div>
           </TooltipTrigger>
           <TooltipContent>
@@ -73,7 +97,6 @@ export default function InitiativeTracker({
         </Tooltip>
       );
     }
-
     return button;
   }
 
@@ -104,8 +127,15 @@ export default function InitiativeTracker({
       <Separator className="my-2" />
       <TooltipProvider delayDuration={100}>
         <div className="flex gap-2 mb-4">
-          {renderButton('prev')}
-          {renderButton('next')}
+           <Button 
+              onClick={onPrevTurn} 
+              variant="outline" 
+              className="w-full" 
+              disabled={turnIndex === 0 && round === 1}
+            >
+              <ChevronUp className="h-4 w-4 mr-2"/> Prev
+            </Button>
+          {renderNextButton()}
         </div>
       </TooltipProvider>
 
@@ -126,8 +156,9 @@ export default function InitiativeTracker({
                     </div>
                     <Input 
                       type="number"
-                      value={c.initiative}
-                      onChange={(e) => handleInitiativeChange(c, parseInt(e.target.value, 10) || 0)}
+                      value={localInitiatives[c.id] || ''}
+                      onChange={(e) => handleInitiativeChange(c.id, e.target.value)}
+                      onBlur={() => handleInitiativeBlur(c.id)}
                       className="w-20 h-8"
                       min="0"
                     />
@@ -156,7 +187,7 @@ export default function InitiativeTracker({
               <li
                 key={c.turnId}
                 className={`p-3 rounded-lg border-l-4 transition-all ${
-                  c.turnId === activeTurnId
+                  activeTurnId && c.turnId === activeTurnId
                     ? "bg-primary/20 border-primary shadow-md"
                     : "bg-background border-transparent"
                 }`}
@@ -173,8 +204,9 @@ export default function InitiativeTracker({
                   {c.type === 'player' ? (
                     <Input 
                       type="number"
-                      value={c.initiative}
-                      onChange={(e) => handleInitiativeChange(c, parseInt(e.target.value, 10) || 0)}
+                      value={localInitiatives[c.id] || ''}
+                      onChange={(e) => handleInitiativeChange(c.id, e.target.value)}
+                      onBlur={() => handleInitiativeBlur(c.id)}
                       className="w-20 h-8"
                       min="0"
                     />
