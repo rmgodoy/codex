@@ -6,7 +6,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Coward's Cut",
     name: "Coward's Cut",
     tier: 'light',
-    target: '1 creature',
+    target: 'Melee Attack vs Guard',
     range: 'Range: 1',
     effects: {
       hit: 'Deal 3 damage (1d6). Move 3.',
@@ -18,7 +18,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Crude Bow",
     name: 'Crude Bow',
     tier: 'light',
-    target: '1 creature',
+    target: 'Missile Attack vs Guard',
     range: 'Range: 8',
     effects: {
       hit: 'Deal 3 damage (1d6).',
@@ -30,7 +30,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Cut & Run",
     name: 'Cut & Run',
     tier: 'light',
-    target: '1 creature',
+    target: 'Melee Attack vs Guard',
     range: 'Range: 1',
     effects: {
       hit: 'Deal 7 damage (2d6). Move 2.',
@@ -42,7 +42,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Sharp Rock",
     name: 'Sharp Rock',
     tier: 'light',
-    target: '1 creature',
+    target: 'Missile Attack vs Guard',
     range: 'Range: 8',
     effects: {
       hit: 'Deal 3 damage (1d6).',
@@ -54,7 +54,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Blood-Spiller",
     name: 'Blood-Spiller',
     tier: 'heavy',
-    target: '1 creature',
+    target: 'Melee Attack vs Guard',
     range: 'Range: 1',
     effects: {
       base: 'Deal 7 damage (2d6).',
@@ -67,7 +67,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Barbed Arrow",
     name: 'Barbed Arrow',
     tier: 'light',
-    target: '1 creature',
+    target: 'Missile Attack vs Guard',
     range: 'Range: 8',
     effects: {
       hit: 'Deal 7 damage (2d6).',
@@ -79,7 +79,7 @@ export const defaultDeeds: (DeedData & { deedName: string })[] = [
     deedName: "Poison Arrow",
     name: 'Poison Arrow',
     tier: 'heavy',
-    target: '1 creature',
+    target: 'Missile Attack vs Guard',
     range: 'Range: 8',
     effects: {
       base: 'Deal 3 damage (1d6).',
