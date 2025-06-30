@@ -60,18 +60,6 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
     return allCreatures.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [allCreatures, searchTerm]);
 
-  const handleCheckboxChange = (creatureId: string, checked: boolean) => {
-    setSelectedCreatures(prev => {
-      const newMap = new Map(prev);
-      if (checked) {
-        newMap.set(creatureId, 1);
-      } else {
-        newMap.delete(creatureId);
-      }
-      return newMap;
-    });
-  };
-
   const handleQuantityChange = (creatureId: string, quantity: number) => {
     if (quantity >= 1) {
       setSelectedCreatures(prev => {
@@ -79,6 +67,12 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
         newMap.set(creatureId, quantity);
         return newMap;
       });
+    } else {
+        setSelectedCreatures(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(creatureId);
+            return newMap;
+        });
     }
   };
 
@@ -109,33 +103,27 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
           placeholder="Search monsters..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="mb-4"
+          className="mb-4 shrink-0"
         />
         <ScrollArea className="flex-1 border rounded-md p-2">
           <div className="space-y-1">
             {filteredCreatures.map(creature => (
               <div key={creature.id} className="flex items-center gap-3 p-2 rounded-md">
-                <Checkbox
-                  id={`creature-${creature.id}`}
-                  onCheckedChange={(checked) => handleCheckboxChange(creature.id, !!checked)}
-                  checked={selectedCreatures.has(creature.id)}
+                <Input
+                  type="number"
+                  min="0"
+                  value={selectedCreatures.get(creature.id) || 0}
+                  onChange={(e) => handleQuantityChange(creature.id, parseInt(e.target.value) || 0)}
+                  className="w-20 h-8"
                 />
                 <label htmlFor={`creature-${creature.id}`} className="flex-1">
                   <p className="font-semibold">{creature.name} <span className="text-xs text-muted-foreground">(Lvl {creature.level})</span></p>
                 </label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={selectedCreatures.get(creature.id) || 1}
-                  onChange={(e) => handleQuantityChange(creature.id, parseInt(e.target.value) || 1)}
-                  className="w-20 h-8"
-                  disabled={!selectedCreatures.has(creature.id)}
-                />
               </div>
             ))}
           </div>
         </ScrollArea>
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-2 pt-4 shrink-0">
           <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
           <Button onClick={handleAddClick} disabled={selectedCreatures.size === 0}>Add Selected</Button>
         </div>
@@ -213,15 +201,18 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
           form.reset(encounterFromDb);
           setEncounterData(encounterFromDb);
           
-          // Pre-calculate details for view mode
           const monsterIds = encounterFromDb.monsterGroups.map(g => g.monsterId);
-          const creatures = await getCreaturesByIds(monsterIds);
-          const creaturesMap = new Map(creatures.map(c => [c.id, c]));
-          const totalTR = encounterFromDb.monsterGroups.reduce((acc, group) => {
-            const creature = creaturesMap.get(group.monsterId);
-            return acc + (creature ? creature.TR * group.quantity : 0);
-          }, 0);
-          setViewModeDetails({ totalTR, monsters: creaturesMap });
+          if (monsterIds.length > 0) {
+            const creatures = await getCreaturesByIds(monsterIds);
+            const creaturesMap = new Map(creatures.map(c => [c.id, c]));
+            const totalTR = encounterFromDb.monsterGroups.reduce((acc, group) => {
+              const creature = creaturesMap.get(group.monsterId);
+              return acc + (creature ? creature.TR * group.quantity : 0);
+            }, 0);
+            setViewModeDetails({ totalTR, monsters: creaturesMap });
+          } else {
+            setViewModeDetails({ totalTR: 0, monsters: new Map() });
+          }
           
         } else {
           setEncounterData(null);
@@ -331,9 +322,9 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                      <div>
                       <h3 className="text-lg font-semibold text-primary-foreground mb-2">Combatants</h3>
                         <div className="space-y-3">
-                            <h4 className="font-semibold text-muted-foreground">Players ({encounterData.players.length})</h4>
+                            <h4 className="font-semibold text-muted-foreground">Players ({(encounterData.players || []).length})</h4>
                             <ul className="space-y-2 pl-4">
-                                {encounterData.players.map(p => (
+                                {(encounterData.players || []).map(p => (
                                 <li key={p.id} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
                                     <User className="h-5 w-5 text-accent" />
                                     <span className="font-semibold flex-1">{p.name}</span>
