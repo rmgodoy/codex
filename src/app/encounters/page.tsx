@@ -73,12 +73,10 @@ export default function EncountersPage() {
 
   if (mode === 'live' && liveEncounter) {
     return (
-      <MainLayout>
-        <LiveEncounterView
-          encounter={liveEncounter}
-          onEndEncounter={handleEndEncounter}
-        />
-      </MainLayout>
+      <LiveEncounterView
+        encounter={liveEncounter}
+        onEndEncounter={handleEndEncounter}
+      />
     );
   }
 
