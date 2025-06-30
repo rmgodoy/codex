@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, Tag } from 'lucide-react';
+import { PlusCircle, Search, Tag, ArrowUp, ArrowDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { useSidebar } from './ui/sidebar';
@@ -26,6 +26,8 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'tier'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -70,8 +72,24 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
 
         return matchesSearch && matchesTier && matchesTags;
     });
-    return filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }, [deeds, searchTerm, tierFilter, tagFilter]);
+
+    const tierOrder: Record<string, number> = { light: 1, heavy: 2, mighty: 3 };
+    const sorted = filtered.sort((a, b) => {
+        if (sortBy === 'tier') {
+            const tierA = tierOrder[a.tier] || 0;
+            const tierB = tierOrder[b.tier] || 0;
+            const tierDiff = tierA - tierB;
+            if (tierDiff !== 0) return tierDiff;
+        }
+        return a.name.localeCompare(b.name);
+    });
+
+    if (sortOrder === 'desc') {
+        sorted.reverse();
+    }
+
+    return sorted;
+  }, [deeds, searchTerm, tierFilter, tagFilter, sortBy, sortOrder]);
 
   return (
     <div className="flex flex-col h-full">
@@ -104,6 +122,24 @@ export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId,
             <div className="relative">
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Tags (e.g. fire, control)" value={tagFilter} onChange={e => setTagFilter(e.target.value)} className="pl-9"/>
+            </div>
+        </div>
+         <div>
+            <Label>Sort by</Label>
+            <div className="flex items-center gap-2">
+              <Select value={sortBy} onValueChange={(value: 'name' | 'tier') => setSortBy(value)}>
+                  <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="tier">Tier</SelectItem>
+                  </SelectContent>
+              </Select>
+              <Button variant="ghost" size="icon" onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
+                  {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                  <span className="sr-only">Toggle sort order</span>
+              </Button>
             </div>
         </div>
       </div>

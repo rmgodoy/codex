@@ -49,6 +49,7 @@ interface DeedEditorPanelProps {
   onDeedDeleteSuccess: () => void;
   onUseAsTemplate: (deedData: Deed) => void;
   onEditCancel: () => void;
+  dataVersion: number;
 }
 
 const defaultValues: DeedFormData = {
@@ -61,7 +62,7 @@ const defaultValues: DeedFormData = {
   tags: '',
 };
 
-export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel }: DeedEditorPanelProps) {
+export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion }: DeedEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!deedId);
@@ -111,7 +112,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
       }
     };
     fetchDeedData();
-  }, [deedId, isCreatingNew, template, form, toast]);
+  }, [deedId, isCreatingNew, template, form, toast, dataVersion]);
   
   const handleCancel = () => {
     if (isCreatingNew) {

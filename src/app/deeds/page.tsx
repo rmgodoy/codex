@@ -83,6 +83,7 @@ export default function DeedsPage() {
                     onDeedDeleteSuccess={onDeedDeleteSuccess}
                     onUseAsTemplate={handleUseAsTemplate}
                     onEditCancel={onEditCancel}
+                    dataVersion={dataVersion}
                 />
             </div>
           </SidebarInset>

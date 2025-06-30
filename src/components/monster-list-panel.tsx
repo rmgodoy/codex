@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Download, Upload, Search } from 'lucide-react';
+import { PlusCircle, Download, Upload, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
 interface CreatureListPanelProps {
@@ -34,6 +34,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
   const [maxTR, setMaxTR] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'TR'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -87,14 +88,20 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
       return matchesSearch && matchesRole && matchesLevel && matchesTR && matchesTags;
     });
 
-    return filtered.sort((a, b) => {
+    const sorted = filtered.sort((a, b) => {
       if (sortBy === 'TR') {
         const trDiff = a.TR - b.TR;
         if (trDiff !== 0) return trDiff;
       }
       return a.name.localeCompare(b.name);
     });
-  }, [creatures, searchTerm, roleFilter, minLevel, maxLevel, minTR, maxTR, tagFilter, sortBy]);
+
+    if (sortOrder === 'desc') {
+      sorted.reverse();
+    }
+    
+    return sorted;
+  }, [creatures, searchTerm, roleFilter, minLevel, maxLevel, minTR, maxTR, tagFilter, sortBy, sortOrder]);
 
 
   const handleExport = async () => {
@@ -224,15 +231,21 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
 
         <div>
             <Label>Sort by</Label>
-            <Select value={sortBy} onValueChange={(value: 'name' | 'TR') => setSortBy(value)}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="TR">TR</SelectItem>
-                </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={sortBy} onValueChange={(value: 'name' | 'TR') => setSortBy(value)}>
+                  <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="TR">TR</SelectItem>
+                  </SelectContent>
+              </Select>
+              <Button variant="ghost" size="icon" onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
+                  {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                  <span className="sr-only">Toggle sort order</span>
+              </Button>
+            </div>
         </div>
 
       </div>

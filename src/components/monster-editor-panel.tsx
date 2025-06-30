@@ -79,6 +79,7 @@ interface CreatureEditorPanelProps {
   onCreatureDeleteSuccess: () => void;
   onUseAsTemplate: (creatureData: CreatureWithDeeds) => void;
   onEditCancel: () => void;
+  dataVersion: number;
 }
 
 const defaultValues: CreatureFormData = {
@@ -196,7 +197,7 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
 };
 
 
-export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureSaveSuccess, onCreatureDeleteSuccess, onUseAsTemplate, onEditCancel }: CreatureEditorPanelProps) {
+export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureSaveSuccess, onCreatureDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion }: CreatureEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!creatureId);
@@ -235,7 +236,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
   useEffect(() => {
     getAllDeeds().then(setAllDeeds).catch(e => console.error("Could not fetch all deeds", e));
-  }, []);
+  }, [dataVersion]);
 
   useEffect(() => {
     const fetchCreatureData = async () => {
@@ -284,7 +285,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       }
     };
     fetchCreatureData();
-  }, [creatureId, isCreatingNew, template, form, toast]);
+  }, [creatureId, isCreatingNew, template, form, toast, dataVersion]);
 
 
   const onSubmit = async (data: CreatureFormData) => {
@@ -443,7 +444,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <div>
                     <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
                     {sortedDeeds.length > 0 ? (
-                        sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed} />)
+                        sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed} dmgReplacement={creatureData.attributes.DMG} />)
                     ) : (
                         <p className="text-muted-foreground">No deeds defined.</p>
                     )}

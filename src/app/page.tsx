@@ -83,6 +83,7 @@ export default function Home() {
                 onCreatureDeleteSuccess={onCreatureDeleteSuccess}
                 onUseAsTemplate={handleUseAsTemplate}
                 onEditCancel={onEditCancel}
+                dataVersion={dataVersion}
               />
             </div>
           </SidebarInset>

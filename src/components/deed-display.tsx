@@ -4,7 +4,7 @@ import type { Deed } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Badge } from "./ui/badge";
 
-export const DeedDisplay = ({ deed }: { deed: Deed }) => {
+export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplacement?: string }) => {
     const tierColors = {
         light: 'border-sky-400',
         heavy: 'border-amber-400',
@@ -16,6 +16,13 @@ export const DeedDisplay = ({ deed }: { deed: Deed }) => {
         mighty: 'text-fuchsia-300 bg-fuchsia-900/50',
     }
     
+    const processEffect = (text: string | undefined): string | undefined => {
+        if (!text) {
+            return undefined;
+        }
+        return dmgReplacement ? text.replace(/\\dd/g, dmgReplacement) : text;
+    };
+
     return (
         <div className={cn("rounded-lg border bg-card-foreground/5 border-l-4 p-4 mb-4", tierColors[deed.tier])}>
             <div className="flex justify-between items-baseline mb-3">
@@ -29,11 +36,11 @@ export const DeedDisplay = ({ deed }: { deed: Deed }) => {
             </div>
             
             <div className="space-y-3 text-sm">
-                {deed.effects.start && <div><Label className="text-primary-foreground/90 font-semibold">Start</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.start}</p></div>}
-                {deed.effects.base && <div><Label className="text-primary-foreground/90 font-semibold">Base</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.base}</p></div>}
-                {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold">Hit</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.hit}</p></div>}
-                {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.shadow}</p></div>}
-                {deed.effects.end && <div><Label className="text-primary-foreground/90 font-semibold">End</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.end}</p></div>}
+                {deed.effects.start && <div><Label className="text-primary-foreground/90 font-semibold">Start</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.start)}</p></div>}
+                {deed.effects.base && <div><Label className="text-primary-foreground/90 font-semibold">Base</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.base)}</p></div>}
+                {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold">Hit</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.hit)}</p></div>}
+                {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.shadow)}</p></div>}
+                {deed.effects.end && <div><Label className="text-primary-foreground/90 font-semibold">End</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.end)}</p></div>}
             </div>
              {deed.tags && deed.tags.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-border/50">
