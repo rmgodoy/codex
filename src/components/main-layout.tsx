@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -77,6 +77,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleImportDefaults = async () => {
+    try {
+      await seedInitialData(true); // Force seeding
+      toast({ title: "Import Successful", description: "Default data has been added. The page will now reload." });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (error: any) {
+      console.error("Import default data failed:", error);
+      toast({ variant: "destructive", title: "Import Failed", description: "Could not import the default data." });
+    }
   };
 
 
@@ -174,6 +189,28 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </div>
         <div className="flex items-center gap-1">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Import Default Data">
+                        <BookCopy className="h-5 w-5" />
+                        <span className="sr-only">Import Default Data</span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Import Default Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will add the default sample creatures and deeds. This may create duplicates if you already have them. Are you sure you want to proceed?
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleImportDefaults}>
+                        Proceed
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <input
                 type="file"
                 ref={fileInputRef}
