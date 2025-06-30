@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DeedDisplay } from "./deed-display";
+import { Badge } from "@/components/ui/badge";
 
 
 const deedEffectsSchema = z.object({
@@ -426,10 +427,17 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
-                    <CardDescription className="mt-1">
-                        Lvl {creatureData.level} {creatureData.role} • TR {creatureData.TR}
-                        {creatureData.tags && creatureData.tags.length > 0 && ` • ${creatureData.tags.join(', ')}`}
-                    </CardDescription>
+                    <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span>Lvl {creatureData.level} {creatureData.role} • TR {creatureData.TR}</span>
+                        {creatureData.tags && creatureData.tags.length > 0 && (
+                            <>
+                                <span className="font-bold text-base">•</span>
+                                {creatureData.tags.map(tag => (
+                                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                                ))}
+                            </>
+                        )}
+                    </div>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={handleUseAsTemplate}><Copy className="h-4 w-4 mr-1"/> Template</Button>
