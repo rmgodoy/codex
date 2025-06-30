@@ -272,7 +272,10 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           setCreatureData(fullCreatureData);
           const formData = {
             ...fullCreatureData,
-            deeds: deedObjects,
+            deeds: deedObjects.map(deed => ({
+              ...deed,
+              tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
+            })),
             tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
           };
           form.reset(formData);
@@ -292,8 +295,12 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     try {
       const deedPromises = data.deeds.map(deed => {
         if (!deed.id) {
-          const { id, ...deedData } = deed;
-          return addDeed(deedData as DeedData);
+          const { id, ...deedDataWithTagString } = deed;
+          const deedToSave: DeedData = {
+              ...deedDataWithTagString,
+              tags: (deedDataWithTagString.tags || '').split(',').map(t => t.trim()).filter(Boolean),
+          };
+          return addDeed(deedToSave);
         }
         return Promise.resolve(deed.id);
       });
@@ -342,6 +349,10 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       if (creatureData) {
         const formData = {
           ...creatureData,
+          deeds: creatureData.deeds.map(deed => ({
+            ...deed,
+            tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
+          })),
           tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
         };
         form.reset(formData);
