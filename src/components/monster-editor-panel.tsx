@@ -530,8 +530,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleUseAsTemplate}><Copy className="h-4 w-4 mr-1"/> Template</Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-1"/> Edit</Button>
+                  <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
+                    <Copy className="h-4 w-4"/>
+                    <span className="hidden sm:inline">Template</span>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    <Edit className="h-4 w-4"/>
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
                 </div>
             </CardHeader>
             <CardContent>
