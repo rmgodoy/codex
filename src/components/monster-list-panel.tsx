@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { getAllCreatures, importCreatures, exportAllData } from '@/lib/idb';
+import { getAllCreatures, importData, exportAllData } from '@/lib/idb';
 import type { Creature } from '@/lib/types';
 import { ROLES, type Role } from '@/lib/roles';
 import { Input } from '@/components/ui/input';
@@ -163,7 +163,7 @@ export default function CreatureListPanel({
         }
         const importedData = JSON.parse(content);
         
-        await importCreatures(importedData);
+        await importData(importedData);
         onImportSuccess();
         onSelectCreature(null);
         

@@ -1,3 +1,4 @@
+
 import type { Role } from './roles';
 
 export interface CreatureAttributes {
@@ -50,4 +51,48 @@ export type NewCreature = Omit<Creature, 'id'>;
 // Helper type for UI, with full deed objects
 export interface CreatureWithDeeds extends Omit<Creature, 'deeds'> {
   deeds: Deed[];
+}
+
+// Encounter Types
+export interface CombatantState {
+  id: string;
+  name: string;
+  intensity: number;
+  duration: number; // in rounds
+}
+
+interface BaseCombatant {
+  id: string;
+  name: string;
+  initiative: number;
+  currentHp: number;
+  states: CombatantState[];
+}
+
+export interface PlayerCombatant extends BaseCombatant {
+  type: 'player';
+}
+
+export interface MonsterCombatant extends BaseCombatant {
+  type: 'monster';
+  monsterId: string; // Original creature ID from bestiary
+  maxHp: number;
+  attributes: CreatureAttributes;
+  deeds: Deed[];
+  abilities: string;
+  description: string;
+  tags: string[];
+  role: Role;
+  level: number;
+  TR: number;
+}
+
+export type Combatant = PlayerCombatant | MonsterCombatant;
+
+export interface Encounter {
+  id: string;
+  name: string;
+  sceneDescription: string;
+  gmNotes: string;
+  combatants: Combatant[];
 }
