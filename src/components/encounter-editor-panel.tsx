@@ -5,9 +5,9 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, getDeedsByIds } from "@/lib/idb";
+import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, getDeedsByIds, getCreaturesByIds, getCreatureById } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Encounter, Combatant, PlayerCombatant, MonsterCombatant, Creature, CreatureWithDeeds, Deed } from "@/lib/types";
+import type { Encounter, Creature, CreatureWithDeeds, Deed, MonsterEncounterGroup, PlayerEncounterEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -18,60 +18,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, X, UserPlus, Swords, Shield, Heart, Plus, ChevronsUpDown, Bot, User } from "lucide-react";
+import { Trash2, Edit, X, UserPlus, Swords, Bot, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const combatantStateSchema = z.object({
+const playerEncounterEntrySchema = z.object({
   id: z.string(),
-  name: z.string(),
-  intensity: z.number(),
-  description: z.string().optional(),
-  effect: z.any().optional(),
-});
-
-const playerCombatantSchema = z.object({
-  id: z.string(),
-  type: z.literal('player'),
   name: z.string().min(1, "Player name is required"),
-  initiative: z.coerce.number(),
-  nat20: z.boolean().optional(),
 });
 
-const monsterCombatantSchema = z.object({
-  id: z.string(),
-  type: z.literal('monster'),
-  name: z.string(),
-  initiative: z.coerce.number(),
-  currentHp: z.coerce.number(),
-  states: z.array(combatantStateSchema),
+const monsterEncounterGroupSchema = z.object({
   monsterId: z.string(),
-  maxHp: z.number(),
-  attributes: z.any(),
-  deeds: z.array(z.any()),
-  abilities: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  role: z.any(),
-  level: z.number(),
-  TR: z.number(),
+  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
 });
-
-const combatantSchema = z.union([playerCombatantSchema, monsterCombatantSchema]);
 
 const encounterSchema = z.object({
   name: z.string().min(1, "Encounter name is required"),
   sceneDescription: z.string().optional(),
   gmNotes: z.string().optional(),
-  combatants: z.array(combatantSchema),
+  players: z.array(playerEncounterEntrySchema),
+  monsterGroups: z.array(monsterEncounterGroupSchema),
 });
 
 type EncounterFormData = z.infer<typeof encounterSchema>;
 
-const CreatureSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures: { creature: CreatureWithDeeds; quantity: number }[]) => void }) => {
+const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures: { id: string; name: string; quantity: number }[]) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
   const [selectedCreatures, setSelectedCreatures] = useState<Map<string, number>>(new Map());
@@ -110,23 +83,14 @@ const CreatureSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creature
   };
 
   const handleAddClick = async () => {
-    const creaturesToFetch = Array.from(selectedCreatures.keys());
-    if (creaturesToFetch.length === 0) {
-      setIsOpen(false);
-      return;
+    const creaturesToAdd = Array.from(selectedCreatures.entries()).map(([id, quantity]) => {
+      const creature = allCreatures.find(c => c.id === id)!;
+      return { id, name: creature.name, quantity };
+    });
+
+    if (creaturesToAdd.length > 0) {
+      onAddCreatures(creaturesToAdd);
     }
-
-    const creaturesData = allCreatures.filter(c => creaturesToFetch.includes(c.id));
-
-    const creaturesToAdd = await Promise.all(creaturesData.map(async c => {
-      const deeds = await getDeedsByIds(c.deeds);
-      return {
-        creature: { ...c, deeds },
-        quantity: selectedCreatures.get(c.id)!,
-      };
-    }));
-
-    onAddCreatures(creaturesToAdd);
     setIsOpen(false);
     setSelectedCreatures(new Map());
     setSearchTerm("");
@@ -186,7 +150,6 @@ interface EncounterEditorPanelProps {
   onEncounterSaveSuccess: (id: string) => void;
   onEncounterDeleteSuccess: () => void;
   onEditCancel: () => void;
-  dataVersion: number;
   onRunEncounter: (id: string) => void;
 }
 
@@ -194,27 +157,36 @@ const defaultValues: EncounterFormData = {
   name: "",
   sceneDescription: "",
   gmNotes: "",
-  combatants: [],
+  players: [],
+  monsterGroups: [],
 };
 
-export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, dataVersion, onRunEncounter }: EncounterEditorPanelProps) {
+export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter }: EncounterEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!encounterId);
   const [encounterData, setEncounterData] = useState<Encounter | null>(null);
+  
+  // For view mode display
+  const [viewModeDetails, setViewModeDetails] = useState<{ totalTR: number; monsters: Map<string, Creature> }>({ totalTR: 0, monsters: new Map() });
 
   const form = useForm<EncounterFormData>({
     resolver: zodResolver(encounterSchema),
     defaultValues,
   });
 
-  const { fields, append, remove, update } = useFieldArray({
-    control: form.control,
-    name: "combatants",
-  });
+  const { fields: playerFields, append: appendPlayer, remove: removePlayer } = useFieldArray({ control: form.control, name: "players" });
+  const { fields: monsterGroupFields, append: appendMonsterGroup, remove: removeMonsterGroup, update: updateMonsterGroup } = useFieldArray({ control: form.control, name: "monsterGroups" });
   
-  const { watch } = form;
-  const watchedCombatants = watch("combatants");
+  const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
+  useEffect(() => {
+    getAllCreatures().then(setAllCreatures);
+  }, []);
+
+  const monsterDetailsMap = useMemo(() => {
+    return new Map(allCreatures.map(c => [c.id, c]));
+  }, [allCreatures]);
+
 
   useEffect(() => {
     const fetchEncounterData = async () => {
@@ -240,6 +212,17 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         if (encounterFromDb) {
           form.reset(encounterFromDb);
           setEncounterData(encounterFromDb);
+          
+          // Pre-calculate details for view mode
+          const monsterIds = encounterFromDb.monsterGroups.map(g => g.monsterId);
+          const creatures = await getCreaturesByIds(monsterIds);
+          const creaturesMap = new Map(creatures.map(c => [c.id, c]));
+          const totalTR = encounterFromDb.monsterGroups.reduce((acc, group) => {
+            const creature = creaturesMap.get(group.monsterId);
+            return acc + (creature ? creature.TR * group.quantity : 0);
+          }, 0);
+          setViewModeDetails({ totalTR, monsters: creaturesMap });
+          
         } else {
           setEncounterData(null);
         }
@@ -250,7 +233,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
       }
     };
     fetchEncounterData();
-  }, [encounterId, isCreatingNew, form, toast, dataVersion]);
+  }, [encounterId, isCreatingNew, form, toast]);
   
   const handleCancel = () => {
     if (isCreatingNew) {
@@ -289,45 +272,22 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   };
 
   const addPlayer = () => {
-    const newPlayer: PlayerCombatant = {
+    appendPlayer({
       id: crypto.randomUUID(),
-      type: 'player',
-      name: `Player ${fields.filter(f => f.type === 'player').length + 1}`,
-      initiative: 0,
-      nat20: false,
-    };
-    append(newPlayer);
+      name: `Player ${playerFields.length + 1}`,
+    });
   };
   
-  const addMonsters = (creatures: { creature: CreatureWithDeeds; quantity: number }[]) => {
-    const newMonsters: MonsterCombatant[] = [];
-    creatures.forEach(({ creature: c, quantity }) => {
-      let existingCount = fields.filter(
-        (f) => f.type === 'monster' && f.monsterId === c.id
-      ).length;
-      for (let i = 0; i < quantity; i++) {
-        const monsterCombatant: MonsterCombatant = {
-          id: crypto.randomUUID(),
-          type: 'monster',
-          name: `${c.name} ${existingCount + i + 1}`,
-          initiative: c.attributes.Initiative,
-          monsterId: c.id,
-          maxHp: c.attributes.HP,
-          currentHp: c.attributes.HP,
-          attributes: c.attributes,
-          deeds: c.deeds,
-          abilities: c.abilities,
-          description: c.description,
-          tags: c.tags,
-          role: c.role,
-          level: c.level,
-          TR: c.TR,
-          states: [],
-        };
-        newMonsters.push(monsterCombatant);
+  const addMonsters = (creaturesToAdd: { id: string; name: string; quantity: number }[]) => {
+    creaturesToAdd.forEach(({ id: monsterId, quantity }) => {
+      const existingGroupIndex = monsterGroupFields.findIndex(group => group.monsterId === monsterId);
+      if (existingGroupIndex > -1) {
+        const existingGroup = monsterGroupFields[existingGroupIndex];
+        updateMonsterGroup(existingGroupIndex, { ...existingGroup, quantity: existingGroup.quantity + quantity });
+      } else {
+        appendMonsterGroup({ monsterId, quantity });
       }
     });
-    append(newMonsters);
   };
 
 
@@ -350,6 +310,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
+                    <CardDescription>Total Threat Rating (TR): {viewModeDetails.totalTR}</CardDescription>
                 </div>
                  <div className="flex gap-2">
                     <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}><Swords className="h-4 w-4 mr-1"/> Run Encounter</Button>
@@ -368,17 +329,32 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                     </div>
                     <Separator/>
                      <div>
-                      <h3 className="text-lg font-semibold text-primary-foreground mb-2">Combatants ({encounterData.combatants.length})</h3>
-                      <ul className="space-y-2">
-                        {encounterData.combatants.map(c => (
-                          <li key={c.id} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
-                            {c.type === 'player' ? <User className="h-5 w-5 text-accent" /> : <Bot className="h-5 w-5 text-accent" />}
-                            <span className="font-semibold flex-1">{c.name}</span>
-                            {c.type === 'monster' && <span className="text-sm text-muted-foreground">Lvl {c.level} {c.role}</span>}
-                            {c.type === 'monster' && <span className="text-sm text-muted-foreground">HP: {c.currentHp}/{c.maxHp}</span>}
-                          </li>
-                        ))}
-                      </ul>
+                      <h3 className="text-lg font-semibold text-primary-foreground mb-2">Combatants</h3>
+                        <div className="space-y-3">
+                            <h4 className="font-semibold text-muted-foreground">Players ({encounterData.players.length})</h4>
+                            <ul className="space-y-2 pl-4">
+                                {encounterData.players.map(p => (
+                                <li key={p.id} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
+                                    <User className="h-5 w-5 text-accent" />
+                                    <span className="font-semibold flex-1">{p.name}</span>
+                                </li>
+                                ))}
+                            </ul>
+                            <h4 className="font-semibold text-muted-foreground">Monsters</h4>
+                            <ul className="space-y-2 pl-4">
+                                {encounterData.monsterGroups.map(g => {
+                                  const monster = viewModeDetails.monsters.get(g.monsterId);
+                                  return (
+                                    <li key={g.monsterId} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
+                                        <Bot className="h-5 w-5 text-accent" />
+                                        <span className="font-semibold flex-1">{monster?.name || 'Unknown Monster'}</span>
+                                        <span className="text-sm text-muted-foreground">x {g.quantity}</span>
+                                        {monster && <span className="text-sm text-muted-foreground">Lvl {monster.level} {monster.role}</span>}
+                                    </li>
+                                  )
+                                })}
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </CardContent>
@@ -413,39 +389,51 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             <Separator />
             
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-primary-foreground">Combatants</h3>
-                <div className="flex gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={addPlayer}><UserPlus className="h-4 w-4 mr-2" /> Add Player</Button>
-                  <CreatureSelectionDialog onAddCreatures={addMonsters} />
+              <h3 className="text-lg font-semibold text-primary-foreground mb-4">Combatants</h3>
+              
+              {/* Players */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-muted-foreground">Players</h4>
+                    <Button type="button" size="sm" variant="outline" onClick={addPlayer}><UserPlus className="h-4 w-4 mr-2" /> Add Player</Button>
+                </div>
+                <div className="space-y-2">
+                    {playerFields.map((field, index) => (
+                        <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card-foreground/5">
+                            <FormField name={`players.${index}.name`} control={form.control} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removePlayer(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                    ))}
+                    {playerFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No players added.</p>}
                 </div>
               </div>
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="border bg-card-foreground/5 rounded-lg p-4">
-                     <div className="flex items-start justify-between">
-                        <div className="flex-1 space-y-2">
-                           {field.type === 'player' ? (
-                            <FormField name={`combatants.${index}.name`} control={form.control} render={({ field }) => (<FormItem><FormLabel>Player Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                           ) : (
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-semibold text-lg">{field.name}</p>
-                                    <p className="text-sm text-muted-foreground">Lvl {field.level} {field.role}</p>
-                                </div>
-                                <div className="text-right">
-                                    <Label>Initiative</Label>
-                                    <p className="font-bold text-lg">{field.initiative}</p>
-                                </div>
+              
+              {/* Monsters */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-muted-foreground">Monsters</h4>
+                    <MonsterSelectionDialog onAddCreatures={addMonsters} />
+                </div>
+                 <div className="space-y-2">
+                    {monsterGroupFields.map((field, index) => {
+                        const monster = monsterDetailsMap.get(field.monsterId);
+                        return (
+                             <div key={field.id} className="flex items-center gap-3 p-2 border rounded-lg bg-card-foreground/5">
+                                <p className="flex-1 font-semibold">{monster?.name || 'Unknown Monster'}</p>
+                                <FormField name={`monsterGroups.${index}.quantity`} control={form.control} render={({ field: quantityField }) => (
+                                <FormItem className="flex items-center gap-2">
+                                    <Label>Qty</Label>
+                                    <FormControl><Input type="number" min="1" {...quantityField} className="w-20 h-8" /></FormControl>
+                                </FormItem>
+                                )} />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeMonsterGroup(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
                             </div>
-                           )}
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="ml-4 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                     </div>
-                  </div>
-                ))}
-                 {fields.length === 0 && <p className="text-muted-foreground text-center py-4">No combatants added.</p>}
+                        )
+                    })}
+                    {monsterGroupFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No monsters added.</p>}
+                </div>
               </div>
+
             </div>
 
           </CardContent>

@@ -2,12 +2,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { Encounter, Combatant, MonsterCombatant, PlayerCombatant } from "@/lib/types";
+import type { Encounter, Combatant, MonsterCombatant, PlayerCombatant, Creature, Deed } from "@/lib/types";
+import { getCreaturesByIds, getDeedsByIds } from "@/lib/idb";
 import InitiativeTracker from "./initiative-tracker";
 import CombatantDashboard from "./combatant-dashboard";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "./ui/sidebar";
 import { Button } from "./ui/button";
 import { Swords } from "lucide-react";
+import { Skeleton } from "./ui/skeleton";
 
 interface LiveEncounterViewProps {
   encounter: Encounter;
@@ -16,33 +18,37 @@ interface LiveEncounterViewProps {
 
 export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEncounterViewProps) {
   const [combatants, setCombatants] = useState<Combatant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
   const [perilHistory, setPerilHistory] = useState<Record<number, { roll: number; deeds: { heavy: number; mighty: number } }>>({});
 
   const rollPerilForRound = useCallback((targetRound: number) => {
-    if (perilHistory[targetRound]) return;
+    setPerilHistory(prev => {
+        if (prev[targetRound]) return prev;
 
-    const d1 = Math.floor(Math.random() * 6) + 1;
-    const d2 = Math.floor(Math.random() * 6) + 1;
-    const roll = d1 + d2;
-    
-    let deeds = { heavy: 0, mighty: 0 };
-    if (roll <= 6) {
-      deeds = { heavy: 1, mighty: 0 };
-    } else if (roll <= 9) { // 7-9
-      deeds = { heavy: 1, mighty: 1 };
-    } else { // 10+
-      deeds = { heavy: 2, mighty: 1 };
-    }
-
-    setPerilHistory(prev => ({
-      ...prev,
-      [targetRound]: { roll, deeds }
-    }));
-  }, [perilHistory]);
+        const d1 = Math.floor(Math.random() * 6) + 1;
+        const d2 = Math.floor(Math.random() * 6) + 1;
+        const roll = d1 + d2;
+        
+        let deeds = { heavy: 0, mighty: 0 };
+        if (roll <= 6) {
+        deeds = { heavy: 1, mighty: 0 };
+        } else if (roll >= 7 && roll <= 9) {
+        deeds = { heavy: 1, mighty: 1 };
+        } else { // 10+
+        deeds = { heavy: 2, mighty: 1 };
+        }
+        
+        const newHistory = { ...prev };
+        newHistory[targetRound] = { roll, deeds };
+        return newHistory;
+    });
+  }, []);
 
   const { turnOrder, activeTurn } = useMemo(() => {
+    if (loading || combatants.length === 0) return { turnOrder: [], activeTurn: null };
+
     const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
     const monsters = combatants.filter((c): c is MonsterCombatant => c.type === 'monster');
     
@@ -68,12 +74,68 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     const currentActiveTurn = finalTurnOrder[turnIndex];
 
     return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn };
-  }, [combatants, turnIndex]);
+  }, [combatants, turnIndex, loading]);
 
   useEffect(() => {
-    const initialCombatants = encounter.combatants.map(c => ({ ...c }));
-    setCombatants(initialCombatants);
-    rollPerilForRound(1);
+    const initializeCombatants = async () => {
+        setLoading(true);
+        const monsterIds = encounter.monsterGroups.map(g => g.monsterId);
+        const creaturesData = await getCreaturesByIds(monsterIds);
+        const creaturesMap = new Map(creaturesData.map(c => [c.id, c]));
+
+        const allDeedIds = creaturesData.flatMap(c => c.deeds);
+        const deedsData = await getDeedsByIds(allDeedIds);
+        const deedsMap = new Map(deedsData.map(d => [d.id, d]));
+
+        const newCombatants: Combatant[] = [];
+        
+        // Players
+        encounter.players.forEach(p => {
+            newCombatants.push({
+                id: p.id,
+                type: 'player',
+                name: p.name,
+                initiative: 0,
+                nat20: false,
+            });
+        });
+
+        // Monsters
+        encounter.monsterGroups.forEach(group => {
+            const creature = creaturesMap.get(group.monsterId);
+            if (!creature) return;
+
+            const monsterDeeds = creature.deeds.map(deedId => deedsMap.get(deedId)).filter(Boolean) as Deed[];
+
+            for (let i = 0; i < group.quantity; i++) {
+                const instance: MonsterCombatant = {
+                    id: crypto.randomUUID(),
+                    type: 'monster',
+                    name: group.quantity > 1 ? `${creature.name} ${i + 1}` : creature.name,
+                    monsterId: creature.id,
+                    level: creature.level,
+                    role: creature.role,
+                    TR: creature.TR,
+                    initiative: creature.attributes.Initiative,
+                    maxHp: creature.attributes.HP,
+                    currentHp: creature.attributes.HP,
+                    attributes: creature.attributes,
+                    deeds: monsterDeeds,
+                    abilities: creature.abilities,
+                    description: creature.description,
+                    tags: creature.tags,
+                    states: [],
+                };
+                newCombatants.push(instance);
+            }
+        });
+
+        setCombatants(newCombatants);
+        rollPerilForRound(1);
+        setLoading(false);
+    };
+
+    initializeCombatants();
   }, [encounter, rollPerilForRound]);
 
   const nextTurn = () => {
@@ -82,9 +144,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         if (newIndex >= turnOrder.length) {
             const newRound = round + 1;
             setRound(newRound);
-            if (!perilHistory[newRound]) {
-                rollPerilForRound(newRound);
-            }
+            rollPerilForRound(newRound);
             return 0;
         }
         return newIndex;
@@ -93,15 +153,14 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
 
   const prevTurn = () => {
     setTurnIndex(prevIndex => {
+      if (prevIndex === 0 && round === 1) return 0; // Can't go back from turn 1, round 1
+
       const newIndex = prevIndex - 1;
       if (newIndex < 0) {
-        if (round > 1) {
-          const newRound = round - 1;
-          setRound(newRound);
-          // This logic might need refinement depending on desired behavior for turn order length changes
-          return turnOrder.length -1; 
-        }
-        return 0; // Stay at the first turn if it's round 1
+        const newRound = round - 1;
+        setRound(newRound);
+        // This is imperfect if turn order changes between rounds, but it's a reasonable approximation
+        return turnOrder.length > 0 ? turnOrder.length - 1 : 0;
       }
       return newIndex;
     });
@@ -132,24 +191,28 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
          </header>
          <main className="flex-1 flex min-h-0">
             <Sidebar style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
-                <InitiativeTracker 
-                    combatantsInTurnOrder={turnOrder}
-                    activeTurnId={activeTurn?.turnId}
-                    round={round}
-                    onNextTurn={nextTurn}
-                    onPrevTurn={prevTurn}
-                    onCombatantUpdate={updateCombatant}
-                    perilRoll={currentPeril.roll}
-                    perilDeeds={currentPeril.deeds}
-                />
+                {loading ? <Skeleton className="h-full w-full" /> : (
+                  <InitiativeTracker 
+                      combatantsInTurnOrder={turnOrder}
+                      activeTurnId={activeTurn?.turnId}
+                      round={round}
+                      onNextTurn={nextTurn}
+                      onPrevTurn={prevTurn}
+                      onCombatantUpdate={updateCombatant}
+                      perilRoll={currentPeril.roll}
+                      perilDeeds={currentPeril.deeds}
+                  />
+                )}
             </Sidebar>
             <SidebarInset className="flex-1 overflow-y-auto bg-background/50">
-                {activeTurn && (
-                <CombatantDashboard
-                    key={activeTurn.turnId} 
-                    combatant={activeTurn}
-                    onUpdate={updateCombatant}
-                />
+                {loading ? <Skeleton className="h-full w-full p-8" /> : activeTurn ? (
+                  <CombatantDashboard
+                      key={activeTurn.turnId} 
+                      combatant={activeTurn}
+                      onUpdate={updateCombatant}
+                  />
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">Encounter loaded. Press "Next" to begin.</div>
                 )}
             </SidebarInset>
         </main>

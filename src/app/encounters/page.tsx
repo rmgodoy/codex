@@ -19,6 +19,7 @@ export default function EncountersPage() {
   const [liveEncounter, setLiveEncounter] = useState<Encounter | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
   const refreshList = () => setDataVersion(v => v + 1);
@@ -90,6 +91,8 @@ export default function EncountersPage() {
               onNewEncounter={handleNewEncounter}
               selectedEncounterId={selectedEncounterId}
               dataVersion={dataVersion}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
@@ -101,7 +104,6 @@ export default function EncountersPage() {
                 onEncounterSaveSuccess={onEncounterSaveSuccess}
                 onEncounterDeleteSuccess={onEncounterDeleteSuccess}
                 onEditCancel={onEditCancel}
-                dataVersion={dataVersion}
                 onRunEncounter={handleRunEncounter}
               />
             </div>

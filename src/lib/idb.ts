@@ -65,6 +65,30 @@ export const getCreatureById = async (id: string): Promise<Creature | undefined>
     });
 };
 
+export const getCreaturesByIds = async (ids: string[]): Promise<Creature[]> => {
+    if (!ids || ids.length === 0) return [];
+    const db = await getDb();
+    const store = db.transaction(CREATURES_STORE_NAME, 'readonly').objectStore(CREATURES_STORE_NAME);
+    
+    const results: Creature[] = [];
+    const promises = ids.map(id => {
+        return new Promise<void>((resolve, reject) => {
+            const request = store.get(id);
+            request.onsuccess = () => {
+                if (request.result) {
+                    results.push(request.result);
+                }
+                resolve();
+            };
+            request.onerror = () => reject(request.error);
+        });
+    });
+
+    await Promise.all(promises);
+    return results;
+};
+
+
 export const addCreature = async (creatureData: Omit<Creature, 'id'>): Promise<string> => {
     const db = await getDb();
     const store = db.transaction(CREATURES_STORE_NAME, 'readwrite').objectStore(CREATURES_STORE_NAME);

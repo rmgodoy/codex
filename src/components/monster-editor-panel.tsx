@@ -95,7 +95,7 @@ const defaultValues: CreatureFormData = {
   tags: "",
 };
 
-const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Deed[]) => void, allDeeds: Deed[] }) => {
+const DeedSelectionDialog = ({ onAddDeeds, allDeeds, existingDeedIds }: { onAddDeeds: (deeds: Deed[]) => void, allDeeds: Deed[], existingDeedIds: Set<string> }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDeedIds, setSelectedDeedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -179,6 +179,7 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
                   id={`deed-${deed.id}`} 
                   onCheckedChange={() => handleCheckboxChange(deed.id)}
                   checked={selectedDeedIds.has(deed.id)}
+                  disabled={existingDeedIds.has(deed.id)}
                 />
                 <label htmlFor={`deed-${deed.id}`} className="flex-1">
                   <p className="font-semibold">{deed.name} <span className="text-xs text-muted-foreground">({deed.tier})</span></p>
@@ -420,6 +421,9 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   };
   
   const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2 };
+  
+  const existingDeedIds = useMemo(() => new Set(fields.map(field => field.id).filter(Boolean)), [fields]);
+
 
   if (loading && !isCreatingNew) {
      return (
@@ -678,7 +682,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                 <div className="flex gap-2">
-                  <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} />
+                  <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
                   <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', target: '', range: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
                     <Plus className="h-4 w-4 mr-2" /> Create New
                   </Button>

@@ -17,17 +17,20 @@ interface EncounterListPanelProps {
   onNewEncounter: () => void;
   selectedEncounterId: string | null;
   dataVersion: number;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
 }
 
 export default function EncounterListPanel({ 
   onSelectEncounter, 
   onNewEncounter, 
   selectedEncounterId, 
-  dataVersion 
+  dataVersion,
+  searchTerm,
+  setSearchTerm,
 }: EncounterListPanelProps) {
   const [encounters, setEncounters] = useState<Encounter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const { isMobile, setOpenMobile } = useSidebar();
 

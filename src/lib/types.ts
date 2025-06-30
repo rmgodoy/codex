@@ -96,10 +96,21 @@ export interface MonsterCombatant extends BaseCombatant {
 
 export type Combatant = PlayerCombatant | MonsterCombatant;
 
+export interface MonsterEncounterGroup {
+  monsterId: string;
+  quantity: number;
+}
+
+export interface PlayerEncounterEntry {
+  id: string;
+  name: string;
+}
+
 export interface Encounter {
   id: string;
   name: string;
   sceneDescription: string;
   gmNotes: string;
-  combatants: Combatant[];
+  monsterGroups: MonsterEncounterGroup[];
+  players: PlayerEncounterEntry[];
 }
