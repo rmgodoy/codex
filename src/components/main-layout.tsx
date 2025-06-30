@@ -79,13 +79,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pageTitle = useMemo(() => {
     switch (pathname) {
       case '/':
-        return 'Tresspasser Bestiary';
+        return 'Bestiary';
       case '/deeds':
-        return 'Tresspasser Deeds';
+        return 'Deeds';
       case '/encounters':
-        return 'Tresspasser Encounters';
+        return 'Encounters';
       default:
-        return 'Tresspasser Bestiary';
+        return 'Bestiary';
     }
   }, [pathname]);
 
@@ -156,14 +156,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters') && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground">{pageTitle}</h1>
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">
+                <span className="hidden sm:inline">Tresspasser </span>
+                {pageTitle}
+            </h1>
           </Link>
           <Separator orientation="vertical" className="h-6 mx-2 hidden md:block" />
           <nav className="hidden md:flex items-center gap-1">
             {desktopNav}
           </nav>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
             <input
                 type="file"
                 ref={fileInputRef}
