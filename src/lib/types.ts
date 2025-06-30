@@ -25,7 +25,6 @@ export interface Deed {
   tier: 'light' | 'heavy' | 'mighty';
   type: 'attack' | 'support';
   range: string;
-  target: string;
   effects: DeedEffects;
   tags?: string[];
 }

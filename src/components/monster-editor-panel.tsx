@@ -44,7 +44,6 @@ const deedSchema = z.object({
   tier: z.enum(['light', 'heavy', 'mighty']),
   type: z.enum(['attack', 'support']),
   range: z.string().min(1, "Range is required"),
-  target: z.string().min(1, "Target is required"),
   effects: deedEffectsSchema,
   tags: z.string().optional(),
 });
@@ -438,12 +437,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                         </button>
                         {creatureData.tags && creatureData.tags.length > 0 && (
                             <>
-                                <span className="font-bold text-base">•</span>
-                                {creatureData.tags.map(tag => (
-                                    <button key={tag} onClick={() => onFilterByClick({ tagFilter: tag })} className="bg-transparent border-none p-0 m-0">
-                                      <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
-                                    </button>
-                                ))}
+                                <span className="font-bold text-base mx-1">•</span>
+                                <div className="flex flex-wrap items-center gap-1">
+                                    {creatureData.tags.map(tag => (
+                                        <button key={tag} onClick={() => onFilterByClick({ tagFilter: tag })} className="bg-transparent border-none p-0 m-0">
+                                        <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                        </button>
+                                    ))}
+                                </div>
                             </>
                         )}
                     </div>
@@ -633,7 +634,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                 <div className="flex gap-2">
                   <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} />
-                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', type: 'attack', range: '', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' } })}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', type: 'attack', range: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
                     <Plus className="h-4 w-4 mr-2" /> Create New
                   </Button>
                 </div>
@@ -692,22 +693,13 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                     </FormItem>
                                 )} />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Target</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Range</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
+                            <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Range</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
 
                             <div className="mt-4 space-y-4">
                             <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>

@@ -34,7 +34,6 @@ const deedSchema = z.object({
   tier: z.enum(['light', 'heavy', 'mighty']),
   type: z.enum(['attack', 'support']),
   range: z.string().min(1, "Range is required"),
-  target: z.string().min(1, "Target is required"),
   effects: deedEffectsSchema,
   tags: z.string().optional(),
 });
@@ -57,7 +56,6 @@ const defaultValues: DeedFormData = {
   tier: 'light',
   type: 'attack',
   range: "",
-  target: "",
   effects: { start: '', base: '', hit: '', shadow: '', end: '' },
   tags: '',
 };
@@ -297,22 +295,15 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                     </FormItem>
                 )} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField name="target" control={form.control} render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Target</FormLabel>
-                        <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField name="range" control={form.control} render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Range</FormLabel>
-                        <FormControl><Input placeholder="e.g., Blast 4" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-            </div>
+            
+            <FormField name="range" control={form.control} render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Range</FormLabel>
+                    <FormControl><Input placeholder="e.g., Blast 4" {...field} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+
             <FormField name="tags" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>

@@ -29,10 +29,12 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
                 <h4 className="text-xl font-bold">{deed.name}</h4>
                 <div className={cn("text-xs font-bold uppercase px-2 py-0.5 rounded-full", tierTextBg[deed.tier])}>{deed.tier}</div>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3 border-b border-t border-border py-2">
-                <p><strong className="font-semibold text-foreground/80">Type:</strong> <span className="capitalize">{deed.type}</span></p>
-                <p><strong className="font-semibold text-foreground/80">Range:</strong> {deed.range}</p>
-                <p><strong className="font-semibold text-foreground/80">Target:</strong> {deed.target}</p>
+            <div className="text-sm text-muted-foreground mb-3 border-b border-t border-border py-2">
+                <p className="text-foreground/90">
+                    <span className="capitalize">{deed.type}</span>
+                    <span className="text-muted-foreground mx-2">|</span>
+                    <span>{deed.range}</span>
+                </p>
             </div>
             
             <div className="space-y-3 text-sm">
