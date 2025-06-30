@@ -6,6 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds } from "@/lib/idb";
+import { ROLES, getStatsForRoleAndLevel, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
 import type { Creature, Deed, DeedData, CreatureWithDeeds } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5, Edit, ChevronsUpDown, Copy, X, Library } from "lucide-react";
+import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5, Edit, ChevronsUpDown, Copy, X, Library, Sword } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -49,6 +50,8 @@ const deedSchema = z.object({
 
 const creatureSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  level: z.coerce.number().int().min(1).max(10),
+  role: z.enum(ROLES),
   TR: z.coerce.number().int().min(0),
   attributes: z.object({
     HP: z.coerce.number().int().min(0),
@@ -58,6 +61,7 @@ const creatureSchema = z.object({
     Guard: z.coerce.number().int().min(0),
     Resist: z.coerce.number().int().min(0),
     rollBonus: z.coerce.number().int().min(0),
+    DMG: z.string(),
   }),
   deeds: z.array(deedSchema),
   abilities: z.string().optional(),
@@ -79,8 +83,10 @@ interface CreatureEditorPanelProps {
 
 const defaultValues: CreatureFormData = {
   name: "",
+  level: 1,
+  role: 'Archer',
   TR: 1,
-  attributes: { HP: 10, Speed: 6, Initiative: 1, Accuracy: 0, Guard: 10, Resist: 10, rollBonus: 0 },
+  attributes: { HP: 10, Speed: 6, Initiative: 1, Accuracy: 0, Guard: 10, Resist: 10, rollBonus: 0, DMG: 'd6' },
   deeds: [],
   abilities: "",
   description: "",
@@ -201,12 +207,31 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     resolver: zodResolver(creatureSchema),
     defaultValues: template || defaultValues,
   });
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "deeds",
   });
 
-  const watchedData = form.watch();
+  const { watch, setValue } = form;
+  const watchedRole = watch("role");
+  const watchedLevel = watch("level");
+  const watchedData = watch();
+
+  useEffect(() => {
+    if (isEditing && watchedRole && watchedLevel) {
+        const stats = getStatsForRoleAndLevel(watchedRole, watchedLevel);
+        if (stats) {
+            setValue('attributes.HP', stats.HP);
+            setValue('attributes.Speed', stats.Speed);
+            setValue('attributes.Initiative', stats.Initiative);
+            setValue('attributes.Accuracy', stats.Accuracy);
+            setValue('attributes.Guard', stats.Guard);
+            setValue('attributes.Resist', stats.Resist);
+            setValue('attributes.rollBonus', stats.rollBonus);
+            setValue('attributes.DMG', stats.DMG);
+        }
+    }
+  }, [watchedRole, watchedLevel, setValue, isEditing]);
 
   useEffect(() => {
     getAllDeeds().then(setAllDeeds).catch(e => console.error("Could not fetch all deeds", e));
@@ -215,7 +240,11 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   useEffect(() => {
     const fetchCreatureData = async () => {
       if (isCreatingNew) {
-        form.reset(template || defaultValues);
+        const initialStats = getStatsForRoleAndLevel(defaultValues.role, defaultValues.level);
+        form.reset({
+            ...(template || defaultValues),
+            attributes: initialStats || defaultValues.attributes,
+        });
         setCreatureData(template ? (template as CreatureWithDeeds) : null);
         setIsEditing(true);
         setLoading(false);
@@ -262,7 +291,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     try {
       const deedPromises = data.deeds.map(deed => {
         if (!deed.id) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id, ...deedData } = deed;
           return addDeed(deedData as DeedData);
         }
@@ -387,7 +415,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
                     <CardDescription className="mt-1">
-                        TR {creatureData.TR}
+                        Lvl {creatureData.level} {creatureData.role} • TR {creatureData.TR}
                         {creatureData.tags && creatureData.tags.length > 0 && ` • ${creatureData.tags.join(', ')}`}
                     </CardDescription>
                 </div>
@@ -407,7 +435,8 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     <div className="flex items-center gap-2"><Crosshair className="h-5 w-5 text-accent"/><div><Label>Accuracy</Label><p className="text-lg font-bold">{creatureData.attributes.Accuracy}</p></div></div>
                     <div className="flex items-center gap-2"><Shield className="h-5 w-5 text-accent"/><div><Label>Guard</Label><p className="text-lg font-bold">{creatureData.attributes.Guard}</p></div></div>
                     <div className="flex items-center gap-2"><ShieldHalf className="h-5 w-5 text-accent"/><div><Label>Resist</Label><p className="text-lg font-bold">{creatureData.attributes.Resist}</p></div></div>
-                    <div className="flex items-center gap-2"><Dice5 className="h-5 w-5 text-accent"/><div><Label>Roll Bonus</Label><p className="text-lg font-bold">{creatureData.attributes.rollBonus}</p></div></div>
+                    <div className="flex items-center gap-2"><Dice5 className="h-5 w-5 text-accent"/><div><Label>Roll Bonus</Label><p className="text-lg font-bold">{creatureData.attributes.rollBonus > 0 ? `+${creatureData.attributes.rollBonus}` : creatureData.attributes.rollBonus}</p></div></div>
+                    <div className="flex items-center gap-2"><Sword className="h-5 w-5 text-accent"/><div><Label>DMG</Label><p className="text-lg font-bold">{creatureData.attributes.DMG}</p></div></div>
                   </div>
                 </div>
                 <Separator className="my-6"/>
@@ -476,11 +505,18 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             </Button>
           </CardHeader>
           <CardContent className="space-y-8 pt-0">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <FormField name="name" control={form.control} render={({ field }) => (
                 <FormItem className="md:col-span-2">
                   <FormLabel>Name</FormLabel>
                   <FormControl><Input placeholder="e.g., Gloomfang Serpent" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+               <FormField name="level" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Level</FormLabel>
+                  <FormControl><Input type="number" min="1" max="10" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -492,12 +528,24 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 </FormItem>
               )} />
             </div>
+             <FormField name="role" control={form.control} render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+            )} />
             
             <Separator />
             
             <div>
               <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <FormField name="attributes.HP" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2"><Heart className="h-4 w-4 text-accent" />HP</FormLabel>
@@ -538,6 +586,12 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                   <FormItem>
                     <FormLabel className="flex items-center gap-2"><Dice5 className="h-4 w-4 text-accent" />Roll Bonus</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                 <FormField name="attributes.DMG" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2"><Sword className="h-4 w-4 text-accent" />DMG</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
                   </FormItem>
                 )} />
               </div>

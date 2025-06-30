@@ -4,6 +4,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { getAllCreatures, importCreatures, exportAllData } from '@/lib/idb';
 import type { Creature } from '@/lib/types';
+import { ROLES, type Role } from '@/lib/roles';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,6 +27,9 @@ interface CreatureListPanelProps {
 export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId, dataVersion, onImportSuccess }: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [minLevel, setMinLevel] = useState('');
+  const [maxLevel, setMaxLevel] = useState('');
   const [minTR, setMinTR] = useState('');
   const [maxTR, setMaxTR] = useState('');
   const [tagFilter, setTagFilter] = useState('');
@@ -52,23 +56,36 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
   }, [dataVersion, toast]);
 
   const filteredAndSortedCreatures = useMemo(() => {
-    let filtered = creatures.filter(creature => 
-      creature.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = creatures.filter(creature => {
+      const matchesSearch = creature.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === 'all' || creature.role === roleFilter;
 
-    if (minTR && !isNaN(parseInt(minTR))) {
-      filtered = filtered.filter(c => c.TR >= parseInt(minTR, 10));
-    }
-    if (maxTR && !isNaN(parseInt(maxTR))) {
-      filtered = filtered.filter(c => c.TR <= parseInt(maxTR, 10));
-    }
-
-    if (tagFilter) {
-      const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
-      if (tags.length > 0) {
-        filtered = filtered.filter(c => c.tags && c.tags.length > 0 && tags.every(tag => c.tags.some(ct => ct.toLowerCase().includes(tag))));
+      let matchesLevel = true;
+      if (minLevel && !isNaN(parseInt(minLevel))) {
+        matchesLevel = matchesLevel && creature.level >= parseInt(minLevel, 10);
       }
-    }
+      if (maxLevel && !isNaN(parseInt(maxLevel))) {
+        matchesLevel = matchesLevel && creature.level <= parseInt(maxLevel, 10);
+      }
+
+      let matchesTR = true;
+      if (minTR && !isNaN(parseInt(minTR))) {
+        matchesTR = matchesTR && creature.TR >= parseInt(minTR, 10);
+      }
+      if (maxTR && !isNaN(parseInt(maxTR))) {
+        matchesTR = matchesTR && creature.TR <= parseInt(maxTR, 10);
+      }
+
+      let matchesTags = true;
+      if (tagFilter) {
+        const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        if (tags.length > 0) {
+          matchesTags = creature.tags && creature.tags.length > 0 && tags.every(tag => creature.tags!.some(ct => ct.toLowerCase().includes(tag)));
+        }
+      }
+      
+      return matchesSearch && matchesRole && matchesLevel && matchesTR && matchesTags;
+    });
 
     return filtered.sort((a, b) => {
       if (sortBy === 'TR') {
@@ -77,7 +94,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
       }
       return a.name.localeCompare(b.name);
     });
-  }, [creatures, searchTerm, minTR, maxTR, tagFilter, sortBy]);
+  }, [creatures, searchTerm, roleFilter, minLevel, maxLevel, minTR, maxTR, tagFilter, sortBy]);
 
 
   const handleExport = async () => {
@@ -185,6 +202,19 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
 
         <div className="space-y-2">
             <Label>Filter</Label>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+                <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+            </div>
             <div className="flex gap-2">
                 <Input placeholder="Min TR" type="number" value={minTR} onChange={e => setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
                 <Input placeholder="Max TR" type="number" value={maxTR} onChange={e => setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
@@ -219,7 +249,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
                     onClick={() => handleSelectCreature(creature.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
-                    {creature.name} <span className="text-xs opacity-70">(TR {creature.TR})</span>
+                    {creature.name} <span className="text-xs opacity-70">(Lvl {creature.level} / TR {creature.TR})</span>
                   </button>
                 </li>
               ))}

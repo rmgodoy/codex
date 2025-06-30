@@ -93,7 +93,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   );
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
           {(pathname === '/' || pathname === '/deeds') && <SidebarTrigger />}

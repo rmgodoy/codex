@@ -1,4 +1,4 @@
-
+import type { Role } from './roles';
 
 export interface CreatureAttributes {
   HP: number;
@@ -8,6 +8,7 @@ export interface CreatureAttributes {
   Guard: number;
   Resist: number;
   rollBonus: number;
+  DMG: string;
 }
 
 export interface DeedEffects {
@@ -35,6 +36,8 @@ export type DeedData = Omit<Deed, 'id'>;
 export interface Creature {
   id: string;
   name: string;
+  level: number;
+  role: Role;
   TR: number;
   attributes: CreatureAttributes;
   deeds: string[];
