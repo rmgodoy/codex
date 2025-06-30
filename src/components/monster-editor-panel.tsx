@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { doc, getDoc, setDoc, addDoc, deleteDoc, collection } from "firebase/firestore";
@@ -18,22 +19,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { BrainCircuit, Plus, Sparkles, Sword, Tag, Trash2, Wind, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Tag, Trash2, Heart, Rabbit, Zap, Crosshair, Shield, ShieldHalf, Dice5 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const deedEffectsSchema = z.object({
+  start: z.string().optional(),
+  base: z.string().optional(),
+  hit: z.string().min(1, "Hit effect is required"),
+  shadow: z.string().min(1, "Shadow effect is required"),
+  end: z.string().optional(),
+});
+
+const deedSchema = z.object({
+  name: z.string().min(1, "Deed name is required"),
+  tier: z.enum(['light', 'heavy', 'mighty']),
+  type: z.enum(['attack', 'support']),
+  range: z.string().min(1, "Range is required"),
+  target: z.string().min(1, "Target is required"),
+  effects: deedEffectsSchema,
+});
 
 const creatureSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  level: z.coerce.number().int().min(0),
+  TR: z.coerce.number().int().min(0),
   attributes: z.object({
-    strength: z.coerce.number().int().min(0),
-    agility: z.coerce.number().int().min(0),
-    mind: z.coerce.number().int().min(0),
-    charm: z.coerce.number().int().min(0),
+    HP: z.coerce.number().int().min(0),
+    Speed: z.coerce.number().int().min(0),
+    Initiative: z.coerce.number().int().min(0),
+    Accuracy: z.coerce.number().int().min(0),
+    Guard: z.coerce.number().int().min(0),
+    Resist: z.coerce.number().int().min(0),
+    rollBonus: z.coerce.number().int().min(0),
   }),
-  skills: z.array(z.object({
-    name: z.string().min(1, "Skill name is required"),
-    rating: z.coerce.number().int().min(0),
-  })),
+  deeds: z.array(deedSchema),
   abilities: z.string().optional(),
   description: z.string().optional(),
   tags: z.string().optional(),
@@ -50,9 +69,9 @@ interface CreatureEditorPanelProps {
 
 const defaultValues: CreatureFormData = {
   name: "",
-  level: 1,
-  attributes: { strength: 1, agility: 1, mind: 1, charm: 1 },
-  skills: [],
+  TR: 1,
+  attributes: { HP: 10, Speed: 6, Initiative: 1, Accuracy: 0, Guard: 10, Resist: 10, rollBonus: 0 },
+  deeds: [],
   abilities: "",
   description: "",
   tags: "",
@@ -66,7 +85,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
   });
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "skills",
+    name: "deeds",
   });
 
   const watchedData = form.watch();
@@ -103,7 +122,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
         form.reset(defaultValues);
         return;
       }
-      form.reset(undefined, { keepValues: false }); // Reset to show loading state
+      form.reset(undefined, { keepValues: false }); 
       try {
         const creatureDoc = await getDoc(doc(db, "creatures", creatureId));
         if (creatureDoc.exists()) {
@@ -192,9 +211,9 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField name="level" control={form.control} render={({ field }) => (
+              <FormField name="TR" control={form.control} render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Level</FormLabel>
+                  <FormLabel>TR</FormLabel>
                   <FormControl><Input type="number" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -206,27 +225,45 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
             <div>
               <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <FormField name="attributes.strength" control={form.control} render={({ field }) => (
+                <FormField name="attributes.HP" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Sword className="h-4 w-4 text-accent" />Strength</FormLabel>
+                    <FormLabel className="flex items-center gap-2"><Heart className="h-4 w-4 text-accent" />HP</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                   </FormItem>
                 )} />
-                <FormField name="attributes.agility" control={form.control} render={({ field }) => (
+                <FormField name="attributes.Speed" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Wind className="h-4 w-4 text-accent" />Agility</FormLabel>
+                    <FormLabel className="flex items-center gap-2"><Rabbit className="h-4 w-4 text-accent" />Speed</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                   </FormItem>
                 )} />
-                <FormField name="attributes.mind" control={form.control} render={({ field }) => (
+                <FormField name="attributes.Initiative" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><BrainCircuit className="h-4 w-4 text-accent" />Mind</FormLabel>
+                    <FormLabel className="flex items-center gap-2"><Zap className="h-4 w-4 text-accent" />Initiative</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                   </FormItem>
                 )} />
-                <FormField name="attributes.charm" control={form.control} render={({ field }) => (
+                <FormField name="attributes.Accuracy" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent" />Charm</FormLabel>
+                    <FormLabel className="flex items-center gap-2"><Crosshair className="h-4 w-4 text-accent" />Accuracy</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                 <FormField name="attributes.Guard" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2"><Shield className="h-4 w-4 text-accent" />Guard</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField name="attributes.Resist" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2"><ShieldHalf className="h-4 w-4 text-accent" />Resist</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                 <FormField name="attributes.rollBonus" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2"><Dice5 className="h-4 w-4 text-accent" />Roll Bonus</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
                   </FormItem>
                 )} />
@@ -237,28 +274,107 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
 
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-primary-foreground">Skills</h3>
-                <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', rating: 1 })}>
-                  <Plus className="h-4 w-4 mr-2" /> Add Skill
+                <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
+                <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', type: 'attack', range: '', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' } })}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Deed
                 </Button>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-center gap-2">
-                    <FormField name={`skills.${index}.name`} control={form.control} render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl><Input placeholder="Skill name" {...field} /></FormControl>
-                      </FormItem>
-                    )} />
-                    <FormField name={`skills.${index}.rating`} control={form.control} render={({ field }) => (
-                      <FormItem>
-                        <FormControl><Input type="number" className="w-20" {...field} /></FormControl>
-                      </FormItem>
-                    )} />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                      <X className="h-4 w-4" />
+                  <Card key={field.id} className="p-4 relative bg-card-foreground/5">
+                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="absolute top-2 right-2 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Deed Name</FormLabel>
+                                <FormControl><Input placeholder="e.g., Inferno" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Tier</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="light">Light</SelectItem>
+                                        <SelectItem value="heavy">Heavy</SelectItem>
+                                        <SelectItem value="mighty">Mighty</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField name={`deeds.${index}.type`} control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="attack">Attack</SelectItem>
+                                        <SelectItem value="support">Support</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Target</FormLabel>
+                                <FormControl><Input placeholder="e.g., Spell Attack vs. Resist" {...field} /></FormControl>
+                                 <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField name={`deeds.${index}.range`} control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Range</FormLabel>
+                                <FormControl><Input placeholder="e.g., Blast 4" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>
+                       <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                            <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} /></FormControl>
+                          </FormItem>
+                        )} />
+                       <FormField name={`deeds.${index}.effects.base`} control={form.control} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                            <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} /></FormControl>
+                          </FormItem>
+                        )} />
+                        <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hit <span className="text-destructive">*</span></FormLabel>
+                            <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                         <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Shadow (Critical) <span className="text-destructive">*</span></FormLabel>
+                            <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                            <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} /></FormControl>
+                          </FormItem>
+                        )} />
+                    </div>
+
+                  </Card>
                 ))}
               </div>
             </div>

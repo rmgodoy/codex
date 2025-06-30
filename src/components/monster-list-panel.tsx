@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -23,10 +24,10 @@ interface CreatureListPanelProps {
 export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId }: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [minLevel, setMinLevel] = useState('');
-  const [maxLevel, setMaxLevel] = useState('');
+  const [minTR, setMinTR] = useState('');
+  const [maxTR, setMaxTR] = useState('');
   const [tagFilter, setTagFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'level'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'TR'>('name');
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -51,11 +52,11 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
       creature.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (minLevel && !isNaN(parseInt(minLevel))) {
-      filtered = filtered.filter(c => c.level >= parseInt(minLevel, 10));
+    if (minTR && !isNaN(parseInt(minTR))) {
+      filtered = filtered.filter(c => c.TR >= parseInt(minTR, 10));
     }
-    if (maxLevel && !isNaN(parseInt(maxLevel))) {
-      filtered = filtered.filter(c => c.level <= parseInt(maxLevel, 10));
+    if (maxTR && !isNaN(parseInt(maxTR))) {
+      filtered = filtered.filter(c => c.TR <= parseInt(maxTR, 10));
     }
 
     if (tagFilter) {
@@ -66,13 +67,13 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
     }
 
     return filtered.sort((a, b) => {
-      if (sortBy === 'level') {
-        const levelDiff = a.level - b.level;
-        if (levelDiff !== 0) return levelDiff;
+      if (sortBy === 'TR') {
+        const trDiff = a.TR - b.TR;
+        if (trDiff !== 0) return trDiff;
       }
       return a.name.localeCompare(b.name);
     });
-  }, [creatures, searchTerm, minLevel, maxLevel, tagFilter, sortBy]);
+  }, [creatures, searchTerm, minTR, maxTR, tagFilter, sortBy]);
 
 
   const handleExport = async () => {
@@ -80,7 +81,12 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
       const querySnapshot = await getDocs(collection(db, 'creatures'));
       const creaturesData = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        return { id: doc.id, ...data };
+        // This is a temp fix for bad data in DB
+        const { level, ...rest } = data;
+        if (level && !rest.TR) {
+          rest.TR = level;
+        }
+        return { id: doc.id, ...rest };
       });
       const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(creaturesData, null, 2))}`;
       const link = document.createElement("a");
@@ -186,21 +192,21 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
         <div className="space-y-2">
             <Label>Filter</Label>
             <div className="flex gap-2">
-                <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Min TR" type="number" value={minTR} onChange={e => setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Max TR" type="number" value={maxTR} onChange={e => setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
             </div>
             <Input placeholder="Tags (e.g. undead, goblin)" value={tagFilter} onChange={e => setTagFilter(e.target.value)} />
         </div>
 
         <div>
             <Label>Sort by</Label>
-            <Select value={sortBy} onValueChange={(value: 'name' | 'level') => setSortBy(value)}>
+            <Select value={sortBy} onValueChange={(value: 'name' | 'TR') => setSortBy(value)}>
                 <SelectTrigger>
                     <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="level">Level</SelectItem>
+                    <SelectItem value="TR">TR</SelectItem>
                 </SelectContent>
             </Select>
         </div>
@@ -219,7 +225,7 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
                     onClick={() => onSelectCreature(creature.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
-                    {creature.name} <span className="text-xs opacity-70">(Lvl {creature.level})</span>
+                    {creature.name} <span className="text-xs opacity-70">(TR {creature.TR})</span>
                   </button>
                 </li>
               ))}

@@ -1,21 +1,37 @@
+
 export interface CreatureAttributes {
-  strength: number;
-  agility: number;
-  mind: number;
-  charm: number;
+  HP: number;
+  Speed: number;
+  Initiative: number;
+  Accuracy: number;
+  Guard: number;
+  Resist: number;
+  rollBonus: number;
 }
 
-export interface CreatureSkill {
+export interface DeedEffects {
+  start?: string;
+  base?: string;
+  hit: string;
+  shadow: string;
+  end?: string;
+}
+
+export interface Deed {
   name: string;
-  rating: number;
+  tier: 'light' | 'heavy' | 'mighty';
+  type: 'attack' | 'support';
+  range: string;
+  target: string;
+  effects: DeedEffects;
 }
 
 export interface Creature {
   id: string;
   name: string;
-  level: number;
+  TR: number;
   attributes: CreatureAttributes;
-  skills: CreatureSkill[];
+  deeds: Deed[];
   abilities: string;
   description: string;
   tags: string[];
