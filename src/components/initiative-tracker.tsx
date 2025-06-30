@@ -8,6 +8,7 @@ import { ChevronUp, ChevronDown, User, Bot } from "lucide-react";
 import { Input } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
 
 type Turn = Combatant & { turnId: string };
 
@@ -18,6 +19,8 @@ interface InitiativeTrackerProps {
   onNextTurn: () => void;
   onPrevTurn: () => void;
   onCombatantUpdate: (combatant: Combatant) => void;
+  perilRoll: number;
+  perilDeeds: { heavy: number; mighty: number };
 }
 
 export default function InitiativeTracker({
@@ -27,6 +30,8 @@ export default function InitiativeTracker({
   onNextTurn,
   onPrevTurn,
   onCombatantUpdate,
+  perilRoll,
+  perilDeeds,
 }: InitiativeTrackerProps) {
     
   const handleInitiativeChange = (combatant: Combatant, newInitiative: number) => {
@@ -43,6 +48,26 @@ export default function InitiativeTracker({
         <p className="text-sm text-muted-foreground">Round</p>
         <p className="text-4xl font-bold">{round}</p>
       </div>
+
+      <Separator className="my-2" />
+      
+      <div className="text-center mb-4">
+        <p className="text-sm text-muted-foreground">Peril</p>
+        <p className="text-4xl font-bold">{perilRoll}</p>
+        <div className="flex justify-center gap-6 mt-2 text-sm">
+          <div>
+            <p className="text-muted-foreground">Heavy Deeds</p>
+            <p className="font-bold text-lg">{perilDeeds.heavy}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Mighty Deeds</p>
+            <p className="font-bold text-lg">{perilDeeds.mighty}</p>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-2" />
+
       <div className="flex gap-2 mb-4">
         <Button onClick={onPrevTurn} variant="outline" className="w-full">
           <ChevronUp className="h-4 w-4 mr-2"/> Prev

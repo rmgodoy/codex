@@ -18,6 +18,23 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const [combatants, setCombatants] = useState<Combatant[]>([]);
   const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
+  const [perilRoll, setPerilRoll] = useState(0);
+  const [perilDeeds, setPerilDeeds] = useState({ heavy: 0, mighty: 0 });
+
+  const rollPeril = useCallback(() => {
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const roll = d1 + d2;
+    setPerilRoll(roll);
+
+    if (roll <= 6) {
+      setPerilDeeds({ heavy: 1, mighty: 0 });
+    } else if (roll <= 9) { // 7-9
+      setPerilDeeds({ heavy: 1, mighty: 1 });
+    } else { // 10+
+      setPerilDeeds({ heavy: 2, mighty: 1 });
+    }
+  }, []);
 
   const { turnOrder, activeTurn } = useMemo(() => {
     const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
@@ -57,6 +74,10 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     setCombatants(initialCombatants);
   }, [encounter]);
   
+  useEffect(() => {
+    rollPeril();
+  }, [round, rollPeril]);
+
   const nextTurn = () => {
     const newIndex = turnIndex + 1;
     if (newIndex >= turnOrder.length) {
@@ -109,6 +130,8 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     onNextTurn={nextTurn}
                     onPrevTurn={prevTurn}
                     onCombatantUpdate={updateCombatant}
+                    perilRoll={perilRoll}
+                    perilDeeds={perilDeeds}
                  />
               </Sidebar>
               <SidebarInset className="flex-1 overflow-y-auto">

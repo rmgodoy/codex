@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Heart, Plus, Swords, Eye, Trash2 } from "lucide-react";
+import { Heart, Plus, Swords, Trash2, Zap, Rabbit, Crosshair, Shield, ShieldHalf, Dice5 } from "lucide-react";
 import { DeedDisplay } from "./deed-display";
 import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -45,62 +45,6 @@ const StatDisplay = ({ label, modified, original, isBonus }: { label: string, mo
   )
 }
 
-
-const MonsterStatBlock = ({ combatant }: { combatant: MonsterCombatant }) => {
-    const { modifiedAttributes, originalAttributes } = useMemo(() => {
-        const original = { ...combatant.attributes };
-        const modified = { ...combatant.attributes };
-
-        combatant.states.forEach(state => {
-            if (state.effect) {
-                const { attribute, modifier } = state.effect;
-                const change = state.intensity * (modifier === 'bonus' ? 1 : -1);
-                if (typeof modified[attribute] === 'number') {
-                    (modified[attribute] as number) += change;
-                }
-            }
-        });
-
-        return { modifiedAttributes: modified, originalAttributes: original };
-    }, [combatant]);
-
-
-    return (
-        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle className="text-3xl font-bold">{combatant.name}</DialogTitle>
-                <DialogDescription>
-                    Lvl {combatant.level} {combatant.role} • TR {combatant.TR}
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto pr-6">
-                <div className="grid grid-cols-4 gap-4 text-center my-4">
-                    <StatDisplay label="HP" modified={combatant.attributes.HP} original={combatant.attributes.HP} />
-                    <StatDisplay label="Speed" modified={modifiedAttributes.Speed} original={originalAttributes.Speed} />
-                    <StatDisplay label="Accuracy" modified={modifiedAttributes.Accuracy} original={originalAttributes.Accuracy} isBonus />
-                    <StatDisplay label="Initiative" modified={modifiedAttributes.Initiative} original={originalAttributes.Initiative} isBonus />
-                    <StatDisplay label="Guard" modified={modifiedAttributes.Guard} original={originalAttributes.Guard} isBonus />
-                    <StatDisplay label="Resist" modified={modifiedAttributes.Resist} original={originalAttributes.Resist} isBonus />
-                    <StatDisplay label="Roll Bonus" modified={modifiedAttributes.rollBonus > 0 ? `+${modifiedAttributes.rollBonus}`: modifiedAttributes.rollBonus} original={originalAttributes.rollBonus > 0 ? `+${originalAttributes.rollBonus}`: originalAttributes.rollBonus} isBonus />
-                    <StatDisplay label="DMG" modified={combatant.attributes.DMG} original={combatant.attributes.DMG} />
-                </div>
-                <Separator />
-                <div className="my-4">
-                    <h3 className="text-xl font-semibold mb-2 text-primary-foreground">Deeds</h3>
-                    {combatant.deeds.map((deed, i) => <DeedDisplay key={i} deed={deed} dmgReplacement={combatant.attributes.DMG} />)}
-                </div>
-                 {combatant.abilities && <>
-                    <Separator />
-                    <div className="my-4">
-                        <h3 className="text-xl font-semibold mb-2 text-primary-foreground">Abilities</h3>
-                        <p className="whitespace-pre-wrap">{combatant.abilities}</p>
-                    </div>
-                 </>}
-            </div>
-        </DialogContent>
-    )
-}
-
 interface CombatantDashboardProps {
   combatant: Combatant;
   onUpdate: (combatant: Combatant) => void;
@@ -109,6 +53,26 @@ interface CombatantDashboardProps {
 export default function CombatantDashboard({ combatant, onUpdate }: CombatantDashboardProps) {
   const [hpChange, setHpChange] = useState("");
   const [selectedCommonState, setSelectedCommonState] = useState("");
+  
+  const { modifiedAttributes, originalAttributes } = useMemo(() => {
+    if (combatant.type === 'player') return { modifiedAttributes: null, originalAttributes: null };
+    
+    const original = { ...combatant.attributes };
+    const modified = { ...combatant.attributes };
+
+    combatant.states.forEach(state => {
+        if (state.effect) {
+            const { attribute, modifier } = state.effect;
+            const change = state.intensity * (modifier === 'bonus' ? 1 : -1);
+            if (typeof modified[attribute] === 'number') {
+                (modified[attribute] as number) += change;
+            }
+        }
+    });
+
+    return { modifiedAttributes: modified, originalAttributes: original };
+  }, [combatant]);
+
 
   if (combatant.type === 'player') {
     return (
@@ -195,14 +159,6 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
               <CardTitle className="text-4xl font-bold">{combatant.name}</CardTitle>
               {combatant.type === 'monster' && <CardDescription>Lvl {combatant.level} {combatant.role} • TR {combatant.TR}</CardDescription>}
             </div>
-            {combatant.type === 'monster' && (
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" size="sm"><Eye className="h-4 w-4 mr-2"/> View Stats</Button>
-                    </DialogTrigger>
-                    <MonsterStatBlock combatant={combatant} />
-                </Dialog>
-            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -227,6 +183,21 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                  <Button onClick={handleHpChange} size="sm">Apply</Button>
             </div>
           </div>
+          
+          {combatant.type === 'monster' && modifiedAttributes && originalAttributes && (
+             <>
+                <Separator />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center my-6">
+                    <StatDisplay label="Speed" modified={modifiedAttributes.Speed} original={originalAttributes.Speed} />
+                    <StatDisplay label="Accuracy" modified={modifiedAttributes.Accuracy} original={originalAttributes.Accuracy} isBonus />
+                    <StatDisplay label="Guard" modified={modifiedAttributes.Guard} original={originalAttributes.Guard} isBonus />
+                    <StatDisplay label="Resist" modified={modifiedAttributes.Resist} original={originalAttributes.Resist} isBonus />
+                    <StatDisplay label="Roll Bonus" modified={modifiedAttributes.rollBonus > 0 ? `+${modifiedAttributes.rollBonus}`: modifiedAttributes.rollBonus} original={originalAttributes.rollBonus > 0 ? `+${originalAttributes.rollBonus}`: originalAttributes.rollBonus} isBonus />
+                    <StatDisplay label="DMG" modified={combatant.attributes.DMG} original={combatant.attributes.DMG} />
+                    <StatDisplay label="Initiative" modified={modifiedAttributes.Initiative} original={originalAttributes.Initiative} isBonus />
+                </div>
+             </>
+          )}
 
           <Separator />
           
@@ -255,7 +226,13 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                     disabled={!!COMMON_STATES.find(s => s.name === state.name)}
                   />
                   <Label htmlFor={`intensity-${state.id}`}>Intensity</Label>
-                  <Input id={`intensity-${state.id}`} type="number" value={state.intensity} onChange={e => handleStateChange(state.id, 'intensity', parseInt(e.target.value, 10))} className="w-20" />
+                  <Input 
+                    id={`intensity-${state.id}`} 
+                    type="number" 
+                    min="0"
+                    value={state.intensity} 
+                    onChange={e => handleStateChange(state.id, 'intensity', Math.max(0, parseInt(e.target.value, 10) || 0))} 
+                    className="w-20" />
                   <Button variant="ghost" size="icon" onClick={() => removeState(state.id)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
                 </div>
               )) : <p className="text-muted-foreground text-center">No active states.</p>}
