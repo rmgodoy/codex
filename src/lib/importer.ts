@@ -32,19 +32,35 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
     
     return deedStrings.map(deedStr => {
         const lines = deedStr.trim().split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length < 3) return null;
+        if (lines.length < 2) return null;
 
         const name = lines[0];
+        const typeLine = lines[1];
         
-        const typeLineParts = lines[1].toUpperCase().split(/\sVS\s|\s+/);
-        const deedType = typeLineParts[0]?.toLowerCase() as DeedType;
-        const actionType = typeLineParts[1]?.toLowerCase() as DeedActionType;
-        const versus = typeLineParts[2]?.toLowerCase() as DeedVersus;
+        const typeLineParts = typeLine.split('|');
+        const attackInfo = typeLineParts[0].trim();
+        const attackParts = attackInfo.toUpperCase().split(/\s+VS\.?\s+/);
+
+        let deedType: DeedType | undefined;
+        let actionType: DeedActionType | undefined;
+        let versus: DeedVersus | undefined;
+
+        if (attackParts.length === 2) {
+            const typeAndActionParts = attackParts[0].split(/\s+/);
+            deedType = typeAndActionParts[0]?.toLowerCase() as DeedType;
+            actionType = typeAndActionParts[1]?.toLowerCase() as DeedActionType;
+            versus = attackParts[1]?.trim().toLowerCase() as DeedVersus;
+        }
         
         if (!deedType || !actionType || !versus) return null;
 
-        const targetLine = lines.find(l => l.toLowerCase().startsWith('target:')) || '';
-        const target = targetLine.replace(/target:\s*/i, '');
+        let target = '';
+        if (typeLineParts.length > 1) {
+             target = typeLineParts.slice(1).map(p => p.trim()).join(' | ');
+        } else {
+            const targetLine = lines.find(l => l.toLowerCase().startsWith('target:')) || '';
+            target = targetLine.replace(/target:\s*/i, '');
+        }
         
         const effects: DeedData['effects'] = { hit: '' };
         
@@ -58,6 +74,13 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
                 if (effectName) {
                    effects[effectName] = effectValue;
                 }
+            }
+        }
+        
+        if (!effects.hit) {
+            const firstEffectLine = effectLines.find(l => !/^(Start|Base|Shadow|End):/i.test(l));
+            if (firstEffectLine) {
+                effects.hit = firstEffectLine.replace(/^Hit:\s*/i, '');
             }
         }
         
