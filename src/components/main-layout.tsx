@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -130,7 +130,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           <span className="sr-only">Open menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right">
+      <SheetContent side="right" className="p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle>Menu</SheetTitle>
+        </SheetHeader>
         <div className="flex flex-col gap-4 p-4">
           <p className="font-bold text-lg">Compendium</p>
           {compendiumLinks.map(link => (
@@ -205,7 +208,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       </header>
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1 min-h-0">{children}</main>
     </div>
   );
 }
