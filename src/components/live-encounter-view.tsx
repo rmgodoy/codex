@@ -10,6 +10,8 @@ import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "./ui/sid
 import { Button } from "./ui/button";
 import { Swords } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Separator } from "./ui/separator";
 
 interface LiveEncounterViewProps {
   encounter: Encounter;
@@ -24,6 +26,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
   const [perilHistory, setPerilHistory] = useState<Record<number, PerilState>>({});
+  const isMobile = useIsMobile();
 
   const combatants = useMemo(() => combatantsByRound[round] || [], [combatantsByRound, round]);
 
@@ -264,6 +267,49 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     );
   }
   
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-screen w-full">
+         <header className="py-4 px-6 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
+            <div className="flex items-center gap-3">
+              <Swords className="text-primary h-8 w-8" />
+              <h1 className="text-xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">{encounter.name}</h1>
+            </div>
+            <Button variant="destructive" onClick={onEndEncounter}>End Encounter</Button>
+         </header>
+         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <InitiativeTracker 
+                combatantsInTurnOrder={turnOrder}
+                untrackedPlayers={untrackedPlayers}
+                activeTurnId={activeTurn?.turnId || null}
+                round={round}
+                onNextTurn={nextTurn}
+                onPrevTurn={prevTurn}
+                onCombatantUpdate={updateCombatant}
+                perilRoll={currentPeril.roll}
+                perilText={currentPeril.text}
+                allPlayersReady={allPlayersReady}
+                turnIndex={turnIndex}
+            />
+            {activeTurn ? (
+              <CombatantDashboard
+                  key={activeTurn.turnId} 
+                  combatant={activeTurn}
+                  onUpdate={updateCombatant}
+              />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground flex items-center justify-center h-full rounded-lg bg-card">
+                <div>
+                  <p className="text-xl">Encounter loaded.</p>
+                  <p>Set player initiatives and press "Next" to begin.</p>
+                </div>
+              </div>
+            )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="flex flex-col h-screen w-full">
@@ -296,6 +342,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                 )}
             </Sidebar>
             <SidebarInset className="flex-1 overflow-y-auto bg-background/50">
+              <div className="p-4 sm:p-6 md:p-8 h-full">
                 {activeTurn ? (
                   <CombatantDashboard
                       key={activeTurn.turnId} 
@@ -303,13 +350,14 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                       onUpdate={updateCombatant}
                   />
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground flex items-center justify-center h-full">
+                  <div className="text-center text-muted-foreground flex items-center justify-center h-full">
                     <div>
                       <p className="text-xl">Encounter loaded.</p>
                       <p>Set player initiatives and press "Next" to begin.</p>
                     </div>
                   </div>
                 )}
+              </div>
             </SidebarInset>
         </div>
       </div>
