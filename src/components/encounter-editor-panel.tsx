@@ -201,11 +201,11 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
           form.reset(encounterFromDb);
           setEncounterData(encounterFromDb);
           
-          const monsterIds = encounterFromDb.monsterGroups.map(g => g.monsterId);
+          const monsterIds = (encounterFromDb.monsterGroups || []).map(g => g.monsterId);
           if (monsterIds.length > 0) {
             const creatures = await getCreaturesByIds(monsterIds);
             const creaturesMap = new Map(creatures.map(c => [c.id, c]));
-            const totalTR = encounterFromDb.monsterGroups.reduce((acc, group) => {
+            const totalTR = (encounterFromDb.monsterGroups || []).reduce((acc, group) => {
               const creature = creaturesMap.get(group.monsterId);
               return acc + (creature ? creature.TR * group.quantity : 0);
             }, 0);
@@ -333,7 +333,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                             </ul>
                             <h4 className="font-semibold text-muted-foreground">Monsters</h4>
                             <ul className="space-y-2 pl-4">
-                                {encounterData.monsterGroups.map(g => {
+                                {(encounterData.monsterGroups || []).map(g => {
                                   const monster = viewModeDetails.monsters.get(g.monsterId);
                                   return (
                                     <li key={g.monsterId} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
