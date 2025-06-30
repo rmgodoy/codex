@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds } from "@/lib/idb";
-import { ROLES, getStatsForRoleAndLevel, type Role } from '@/lib/roles';
+import { ROLES, getStatsForRoleAndLevel, getTR, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
 import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -228,22 +228,18 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     if (isEditing) {
         const stats = getStatsForRoleAndLevel(watchedRole, watchedLevel);
         if (stats) {
-            const levelTRMap: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6, 6: 7, 7: 8, 8: 9, 9: 11, 10: 12 };
-            const baseTR = levelTRMap[watchedLevel] || 1;
+            const finalTr = getTR(watchedTemplate, watchedLevel);
             
             let finalHp = stats.HP;
-            let finalTr = baseTR;
 
             switch(watchedTemplate) {
                 case 'Underling':
                     finalHp = 1;
-                    finalTr = Math.max(1, Math.round(baseTR / 4));
                     const currentDeeds = getValues('deeds');
                     replace(currentDeeds.filter(d => d.tier === 'light'));
                     break;
                 case 'Paragon':
                     finalHp = stats.HP * 2;
-                    finalTr = baseTR * 2;
                     break;
                 case 'Tyrant':
                     finalHp = stats.HP * 4;

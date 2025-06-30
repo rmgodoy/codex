@@ -1,6 +1,6 @@
 'use client';
 
-import type { CreatureAttributes } from './types';
+import type { CreatureAttributes, CreatureTemplate } from './types';
 
 export const ROLES = [
   'Archer',
@@ -119,6 +119,20 @@ const ROLE_STATS: Record<Role, RoleStatsData[]> = {
     { level: 10, HP: 80, Initiative: 16, Accuracy: 20, Guard: 16, Resist: 20, rollBonus: '+8', Speed: 7, DMG: 'd12' },
   ],
 };
+
+export const TR_TABLE: Record<CreatureTemplate, number[]> = {
+  Normal: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+  Underling: [3, 5, 7, 10, 12, 15, 17, 20, 22, 25],
+  Paragon: [20, 40, 60, 80, 100, 120, 140, 160, 180, 200],
+  Tyrant: [40, 80, 120, 160, 200, 240, 280, 320, 360, 400],
+};
+
+export function getTR(template: CreatureTemplate, level: number): number {
+    if (level < 1 || level > 10) {
+        return 0;
+    }
+    return TR_TABLE[template]?.[level - 1] ?? 0;
+}
 
 export function getStatsForRoleAndLevel(role: Role, level: number): Omit<CreatureAttributes, 'level'> | null {
   if (!role || level < 1 || level > 10) {
