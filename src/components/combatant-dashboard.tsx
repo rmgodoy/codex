@@ -76,7 +76,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
 
   if (combatant.type === 'player') {
     return (
-      <div className="p-4 sm:p-6 md:p-8 h-full w-full">
+      <div className="p-4 sm:p-6 md:p-8 w-full">
         <Card>
           <CardHeader>
             <CardTitle className="text-4xl font-bold">{combatant.name}</CardTitle>
@@ -151,7 +151,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 h-full w-full">
+    <div className="p-4 sm:p-6 md:p-8 w-full">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">

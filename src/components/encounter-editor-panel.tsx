@@ -71,10 +71,10 @@ const encounterSchema = z.object({
 
 type EncounterFormData = z.infer<typeof encounterSchema>;
 
-const CreatureSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures: CreatureWithDeeds[]) => void }) => {
+const CreatureSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures: { creature: CreatureWithDeeds; quantity: number }[]) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
-  const [selectedCreatureIds, setSelectedCreatureIds] = useState<Set<string>>(new Set());
+  const [selectedCreatures, setSelectedCreatures] = useState<Map<string, number>>(new Map());
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -87,25 +87,49 @@ const CreatureSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creature
     return allCreatures.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [allCreatures, searchTerm]);
 
-  const handleAddClick = async () => {
-    const creaturesToAdd = allCreatures.filter(c => selectedCreatureIds.has(c.id));
-    const fullCreatures = await Promise.all(creaturesToAdd.map(async c => {
-      const deeds = await getDeedsByIds(c.deeds);
-      return { ...c, deeds };
-    }));
-    onAddCreatures(fullCreatures);
-    setIsOpen(false);
-    setSelectedCreatureIds(new Set());
-    setSearchTerm("");
+  const handleCheckboxChange = (creatureId: string, checked: boolean) => {
+    setSelectedCreatures(prev => {
+      const newMap = new Map(prev);
+      if (checked) {
+        newMap.set(creatureId, 1);
+      } else {
+        newMap.delete(creatureId);
+      }
+      return newMap;
+    });
   };
 
-  const handleCheckboxChange = (creatureId: string) => {
-    setSelectedCreatureIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(creatureId)) newSet.delete(creatureId);
-      else newSet.add(creatureId);
-      return newSet;
-    });
+  const handleQuantityChange = (creatureId: string, quantity: number) => {
+    if (quantity >= 1) {
+      setSelectedCreatures(prev => {
+        const newMap = new Map(prev);
+        newMap.set(creatureId, quantity);
+        return newMap;
+      });
+    }
+  };
+
+  const handleAddClick = async () => {
+    const creaturesToFetch = Array.from(selectedCreatures.keys());
+    if (creaturesToFetch.length === 0) {
+      setIsOpen(false);
+      return;
+    }
+
+    const creaturesData = allCreatures.filter(c => creaturesToFetch.includes(c.id));
+
+    const creaturesToAdd = await Promise.all(creaturesData.map(async c => {
+      const deeds = await getDeedsByIds(c.deeds);
+      return {
+        creature: { ...c, deeds },
+        quantity: selectedCreatures.get(c.id)!,
+      };
+    }));
+
+    onAddCreatures(creaturesToAdd);
+    setIsOpen(false);
+    setSelectedCreatures(new Map());
+    setSearchTerm("");
   };
 
   return (
@@ -113,35 +137,43 @@ const CreatureSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creature
       <DialogTrigger asChild>
         <Button type="button" size="sm" variant="outline"><Bot className="h-4 w-4 mr-2" /> Add Monster</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md h-[60vh] flex flex-col">
+      <DialogContent className="max-w-lg h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Select Monsters from Bestiary</DialogTitle>
         </DialogHeader>
-        <Input 
+        <Input
           placeholder="Search monsters..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="flex-1 min-w-[150px]"
+          className="mb-4"
         />
-        <ScrollArea className="flex-1 border rounded-md p-4">
-          <div className="space-y-2">
+        <ScrollArea className="flex-1 border rounded-md p-2">
+          <div className="space-y-1">
             {filteredCreatures.map(creature => (
-              <div key={creature.id} className="flex items-center gap-3">
-                <Checkbox 
-                  id={`creature-${creature.id}`} 
-                  onCheckedChange={() => handleCheckboxChange(creature.id)}
-                  checked={selectedCreatureIds.has(creature.id)}
+              <div key={creature.id} className="flex items-center gap-3 p-2 rounded-md">
+                <Checkbox
+                  id={`creature-${creature.id}`}
+                  onCheckedChange={(checked) => handleCheckboxChange(creature.id, !!checked)}
+                  checked={selectedCreatures.has(creature.id)}
                 />
                 <label htmlFor={`creature-${creature.id}`} className="flex-1">
                   <p className="font-semibold">{creature.name} <span className="text-xs text-muted-foreground">(Lvl {creature.level})</span></p>
                 </label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={selectedCreatures.get(creature.id) || 1}
+                  onChange={(e) => handleQuantityChange(creature.id, parseInt(e.target.value) || 1)}
+                  className="w-20 h-8"
+                  disabled={!selectedCreatures.has(creature.id)}
+                />
               </div>
             ))}
           </div>
         </ScrollArea>
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
-          <Button onClick={handleAddClick} disabled={selectedCreatureIds.size === 0}>Add Selected</Button>
+          <Button onClick={handleAddClick} disabled={selectedCreatures.size === 0}>Add Selected</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -267,30 +299,37 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
     append(newPlayer);
   };
   
-  const addMonsters = (creatures: CreatureWithDeeds[]) => {
-    const newMonsters: MonsterCombatant[] = creatures.map(c => {
-      const existingCount = fields.filter(f => f.type === 'monster' && f.monsterId === c.id).length;
-      return {
-        id: crypto.randomUUID(),
-        type: 'monster',
-        name: `${c.name}${creatures.length > 1 || existingCount > 0 ? ` ${existingCount + 1}`: ''}`,
-        initiative: c.attributes.Initiative,
-        monsterId: c.id,
-        maxHp: c.attributes.HP,
-        currentHp: c.attributes.HP,
-        attributes: c.attributes,
-        deeds: c.deeds,
-        abilities: c.abilities,
-        description: c.description,
-        tags: c.tags,
-        role: c.role,
-        level: c.level,
-        TR: c.TR,
-        states: [],
-      };
+  const addMonsters = (creatures: { creature: CreatureWithDeeds; quantity: number }[]) => {
+    const newMonsters: MonsterCombatant[] = [];
+    creatures.forEach(({ creature: c, quantity }) => {
+      let existingCount = fields.filter(
+        (f) => f.type === 'monster' && f.monsterId === c.id
+      ).length;
+      for (let i = 0; i < quantity; i++) {
+        const monsterCombatant: MonsterCombatant = {
+          id: crypto.randomUUID(),
+          type: 'monster',
+          name: `${c.name} ${existingCount + i + 1}`,
+          initiative: c.attributes.Initiative,
+          monsterId: c.id,
+          maxHp: c.attributes.HP,
+          currentHp: c.attributes.HP,
+          attributes: c.attributes,
+          deeds: c.deeds,
+          abilities: c.abilities,
+          description: c.description,
+          tags: c.tags,
+          role: c.role,
+          level: c.level,
+          TR: c.TR,
+          states: [],
+        };
+        newMonsters.push(monsterCombatant);
+      }
     });
     append(newMonsters);
   };
+
 
   if (loading) return <Card><CardHeader><Skeleton className="h-8 w-48" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>;
   
