@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState } from "react";
 import type { CreatureWithDeeds } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
-import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Sidebar, SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Skull } from "lucide-react";
 import Link from "next/link";
 import {
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
