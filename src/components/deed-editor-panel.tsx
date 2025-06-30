@@ -17,8 +17,9 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit, Tag } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { DeedDisplay } from "./deed-display";
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -35,6 +36,7 @@ const deedSchema = z.object({
   range: z.string().min(1, "Range is required"),
   target: z.string().min(1, "Target is required"),
   effects: deedEffectsSchema,
+  tags: z.string().optional(),
 });
 
 type DeedFormData = z.infer<typeof deedSchema>;
@@ -53,12 +55,15 @@ const defaultValues: DeedFormData = {
   range: "",
   target: "",
   effects: { start: '', base: '', hit: '', shadow: '', end: '' },
+  tags: '',
 };
 
 export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDeleteSuccess, clearSelection }: DeedEditorPanelProps) {
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(!deedId);
+  const [isEditing, setIsEditing] = useState(isCreating);
   const [loading, setLoading] = useState(!!deedId);
+  const [deedData, setDeedData] = useState<Deed | null>(null);
 
   const form = useForm<DeedFormData>({
     resolver: zodResolver(deedSchema),
@@ -69,19 +74,28 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
     const fetchDeedData = async () => {
       if (!deedId) {
         setIsCreating(true);
+        setIsEditing(true);
         form.reset(defaultValues);
+        setDeedData(null);
         setLoading(false);
         return;
       }
 
       setIsCreating(false);
       setLoading(true);
+      setIsEditing(false);
       try {
         const deedFromDb = await getDeedById(deedId);
         if (deedFromDb) {
-          form.reset(deedFromDb);
+          const formData = {
+            ...deedFromDb,
+            tags: Array.isArray(deedFromDb.tags) ? deedFromDb.tags.join(', ') : '',
+          };
+          form.reset(formData);
+          setDeedData(deedFromDb);
         } else {
-            clearSelection();
+          clearSelection();
+          setDeedData(null);
         }
       } catch (error) {
         console.error("Failed to fetch deed data:", error);
@@ -92,13 +106,30 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
     };
     fetchDeedData();
   }, [deedId, form, toast, clearSelection]);
+  
+  const handleCancel = () => {
+    if (isCreating) {
+        clearSelection();
+    } else if (deedData) {
+        const formData = {
+            ...deedData,
+            tags: Array.isArray(deedData.tags) ? deedData.tags.join(', ') : '',
+        };
+        form.reset(formData);
+        setIsEditing(false);
+    }
+  };
 
   const onSubmit = async (data: DeedFormData) => {
     try {
-      const deedToSave: DeedData = data;
+      const tagsValue = data.tags || '';
+      const deedToSave: DeedData | Deed = {
+        ...data,
+        tags: tagsValue.split(',').map(t => t.trim()).filter(Boolean),
+      };
 
       if (isCreating) {
-        const newId = await addDeed(deedToSave);
+        const newId = await addDeed(deedToSave as DeedData);
         toast({ title: "Deed Created!", description: `${data.name} has been added to the library.` });
         onDeedSaveSuccess(newId);
       } else if (deedId) {
@@ -106,6 +137,7 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
         onDeedSaveSuccess(deedId);
       }
+      setIsEditing(false);
     } catch (error) {
       console.error("Failed to save deed:", error);
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
@@ -152,6 +184,25 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
             <p className="text-muted-foreground">or create a new one.</p>
         </CardContent>
       </Card>
+    );
+  }
+
+  if (!isEditing && deedData) {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                    <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
+                    <CardDescription className="mt-1 capitalize">
+                       {deedData.tier} {deedData.type}
+                    </CardDescription>
+                </div>
+                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-1"/> Edit</Button>
+            </CardHeader>
+            <CardContent>
+                <DeedDisplay deed={deedData} />
+            </CardContent>
+        </Card>
     );
   }
 
@@ -218,6 +269,13 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
                     </FormItem>
                 )} />
             </div>
+            <FormField name="tags" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                <FormControl><Input placeholder="e.g. fire, ongoing, control" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <Separator />
             <h4 className="font-semibold text-primary-foreground">Effects</h4>
@@ -280,10 +338,7 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
                 </AlertDialog>
             )}
             <div className="flex-grow" />
-            <Button type="button" variant="outline" onClick={() => {
-                form.reset(defaultValues);
-                clearSelection();
-            }}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
             <Button type="submit">{isCreating ? "Create Deed" : "Save Changes"}</Button>
           </CardFooter>
         </form>

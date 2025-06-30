@@ -26,6 +26,7 @@ export interface Deed {
   range: string;
   target: string;
   effects: DeedEffects;
+  tags?: string[];
 }
 
 export type DeedData = Omit<Deed, 'id'>;

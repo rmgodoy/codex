@@ -111,7 +111,7 @@ export const SidebarProvider = React.forwardRef<
     return (
       <SidebarContext.Provider value={contextValue}>
         <div
-          className={cn("flex min-h-svh w-full", className)}
+          className={cn("flex min-h-0 w-full flex-1", className)}
           ref={ref}
           {...props}
         >
@@ -194,13 +194,13 @@ SidebarTrigger.displayName = "SidebarTrigger"
 
 export const SidebarInset = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"main">
+  React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
   return (
-    <main
+    <div
       ref={ref}
       className={cn(
-        "flex-1 flex flex-col min-h-screen",
+        "flex-1 flex flex-col",
         className
       )}
       {...props}

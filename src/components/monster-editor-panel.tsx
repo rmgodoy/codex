@@ -25,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DeedDisplay } from "./deed-display";
 
 
 const deedEffectsSchema = z.object({
@@ -43,6 +44,7 @@ const deedSchema = z.object({
   range: z.string().min(1, "Range is required"),
   target: z.string().min(1, "Target is required"),
   effects: deedEffectsSchema,
+  tags: z.string().optional(),
 });
 
 const creatureSchema = z.object({
@@ -83,41 +85,6 @@ const defaultValues: CreatureFormData = {
   abilities: "",
   description: "",
   tags: "",
-};
-
-const DeedDisplay = ({ deed }: { deed: Deed }) => {
-    const tierColors = {
-        light: 'border-sky-400',
-        heavy: 'border-amber-400',
-        mighty: 'border-fuchsia-400',
-    };
-    const tierTextBg = {
-        light: 'text-sky-300 bg-sky-900/50',
-        heavy: 'text-amber-300 bg-amber-900/50',
-        mighty: 'text-fuchsia-300 bg-fuchsia-900/50',
-    }
-    
-    return (
-        <div className={cn("rounded-lg border bg-card-foreground/5 border-l-4 p-4 mb-4", tierColors[deed.tier])}>
-            <div className="flex justify-between items-baseline mb-3">
-                <h4 className="text-xl font-bold">{deed.name}</h4>
-                <div className={cn("text-xs font-bold uppercase px-2 py-0.5 rounded-full", tierTextBg[deed.tier])}>{deed.tier}</div>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3 border-b border-t border-border py-2">
-                <p><strong className="font-semibold text-foreground/80">Type:</strong> <span className="capitalize">{deed.type}</span></p>
-                <p><strong className="font-semibold text-foreground/80">Range:</strong> {deed.range}</p>
-                <p><strong className="font-semibold text-foreground/80">Target:</strong> {deed.target}</p>
-            </div>
-            
-            <div className="space-y-3 text-sm">
-                {deed.effects.start && <div><Label className="text-primary-foreground/90 font-semibold">Start</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.start}</p></div>}
-                {deed.effects.base && <div><Label className="text-primary-foreground/90 font-semibold">Base</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.base}</p></div>}
-                {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold">Hit</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.hit}</p></div>}
-                {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.shadow}</p></div>}
-                {deed.effects.end && <div><Label className="text-primary-foreground/90 font-semibold">End</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.end}</p></div>}
-            </div>
-        </div>
-    );
 };
 
 const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Deed[]) => void, allDeeds: Deed[] }) => {
@@ -264,6 +231,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           setCreatureData(fullCreatureData);
           const formData = {
             ...fullCreatureData,
+            deeds: deedObjects,
             tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
           };
           form.reset(formData);
@@ -351,7 +319,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   const handleAddDeedsFromLibrary = (newDeeds: Deed[]) => {
     const currentDeedIds = new Set(fields.map(f => f.id));
     const deedsToAdd = newDeeds.filter(d => !currentDeedIds.has(d.id!));
-    append(deedsToAdd);
+    append(deedsToAdd.map(d => ({...d, tags: Array.isArray(d.tags) ? d.tags.join(', ') : ''})));
   };
   
   const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2 };

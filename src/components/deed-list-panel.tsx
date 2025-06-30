@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Tag } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Label } from './ui/label';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
@@ -22,6 +23,7 @@ export default function DeedListPanel({ onSelectDeed, selectedDeedId, dataVersio
   const [deeds, setDeeds] = useState<Deed[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -49,10 +51,17 @@ export default function DeedListPanel({ onSelectDeed, selectedDeedId, dataVersio
     let filtered = deeds.filter(deed => {
         const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
-        return matchesSearch && matchesTier;
+        
+        let matchesTags = true;
+        const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        if (tags.length > 0) {
+          matchesTags = deed.tags ? tags.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
+        }
+
+        return matchesSearch && matchesTier && matchesTags;
     });
     return filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }, [deeds, searchTerm, tierFilter]);
+  }, [deeds, searchTerm, tierFilter, tagFilter]);
 
   return (
     <div className="flex flex-col h-full">
@@ -69,17 +78,24 @@ export default function DeedListPanel({ onSelectDeed, selectedDeedId, dataVersio
             className="pl-9"
           />
         </div>
-        <Select value={tierFilter} onValueChange={setTierFilter}>
-            <SelectTrigger>
-                <SelectValue placeholder="Filter by tier" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">All Tiers</SelectItem>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="heavy">Heavy</SelectItem>
-                <SelectItem value="mighty">Mighty</SelectItem>
-            </SelectContent>
-        </Select>
+        <div className="space-y-2">
+            <Label>Filter</Label>
+            <Select value={tierFilter} onValueChange={setTierFilter}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Filter by tier" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Tiers</SelectItem>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="heavy">Heavy</SelectItem>
+                    <SelectItem value="mighty">Mighty</SelectItem>
+                </SelectContent>
+            </Select>
+            <div className="relative">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Tags (e.g. fire, control)" value={tagFilter} onChange={e => setTagFilter(e.target.value)} className="pl-9"/>
+            </div>
+        </div>
       </div>
       <Separator />
       <ScrollArea className="flex-1">
