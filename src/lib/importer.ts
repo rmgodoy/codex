@@ -28,63 +28,77 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
         return [];
     }
 
-    const deedStrings = deedBlock.trim().split(/\n(?=[A-Z\s'-]+$)/m);
+    // A new deed starts with a line that is likely a name (all caps, spaces, hyphens, apostrophes).
+    const deedStrings = deedBlock.trim().split(/\n(?=[A-Z][A-Z\s'-]+$)/m);
     
     return deedStrings.map(deedStr => {
         const lines = deedStr.trim().split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length < 2) return null;
 
         const name = lines[0];
-        const typeLine = lines[1];
-        
-        const typeLineParts = typeLine.split('|');
-        const attackInfo = typeLineParts[0].trim();
-        const attackParts = attackInfo.toUpperCase().split(/\s+VS\.?\s+/);
+        if (name.length > 50) return null; // Sanity check for a deed name
 
-        let deedType: DeedType | undefined;
-        let actionType: DeedActionType | undefined;
-        let versus: DeedVersus | undefined;
+        // Line 1 should be the type line, which might also contain target info
+        const typeLineRaw = lines[1];
+        const typeLineParts = typeLineRaw.split('|').map(p => p.trim());
+        const actualTypeLine = typeLineParts[0];
 
-        if (attackParts.length === 2) {
-            const typeAndActionParts = attackParts[0].split(/\s+/);
-            deedType = typeAndActionParts[0]?.toLowerCase() as DeedType;
-            actionType = typeAndActionParts[1]?.toLowerCase() as DeedActionType;
-            versus = attackParts[1]?.trim().toLowerCase() as DeedVersus;
-        }
-        
-        if (!deedType || !actionType || !versus) return null;
+        const typeMatch = actualTypeLine.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
+        if (!typeMatch) return null;
 
-        let target = '';
+        const deedType = typeMatch[1].toLowerCase() as DeedType;
+        const actionType = typeMatch[2].toLowerCase() as DeedActionType;
+        const versus = typeMatch[3].toLowerCase() as DeedVersus;
+
+        const remainingLines = lines.slice(2);
+
+        // Parse Target/Range/Area
+        const targetParts: string[] = [];
         if (typeLineParts.length > 1) {
-             target = typeLineParts.slice(1).map(p => p.trim()).join(' | ');
-        } else {
-            const targetLine = lines.find(l => l.toLowerCase().startsWith('target:')) || '';
-            target = targetLine.replace(/target:\s*/i, '');
+            targetParts.push(typeLineParts.slice(1).join(' | '));
         }
-        
+
+        const effectLines: string[] = [];
+        let targetParsingDone = false;
+
+        for (const line of remainingLines) {
+            const lowerLine = line.toLowerCase();
+            if (!targetParsingDone && (lowerLine.startsWith('target:') || lowerLine.startsWith('range:') || lowerLine.startsWith('area:'))) {
+                targetParts.push(line.substring(line.indexOf(':') + 1).trim());
+            } else {
+                targetParsingDone = true;
+                effectLines.push(line);
+            }
+        }
+        const target = targetParts.join(' | ');
+
+        // Parse Effects
         const effects: DeedData['effects'] = { hit: '' };
-        
-        const effectLines = lines.slice(2).filter(l => !l.toLowerCase().startsWith('target:'));
+        let inEffect: keyof DeedData['effects'] | null = null;
         
         for (const line of effectLines) {
-            const match = line.match(/^(Start|Base|Hit|Shadow|End):\s*(.*)$/i);
-            if (match) {
-                const effectName = match[1].toLowerCase() as keyof DeedData['effects'];
-                const effectValue = match[2];
-                if (effectName) {
-                   effects[effectName] = effectValue;
-                }
-            }
+             const match = line.match(/^(Start|Base|Hit|Shadow|End):\s*(.*)$/i);
+             if (match) {
+                 const effectName = match[1].toLowerCase() as keyof DeedData['effects'];
+                 const effectValue = match[2].trim();
+                 effects[effectName] = (effects[effectName] ? `${effects[effectName]}\n` : '') + effectValue;
+                 inEffect = effectName;
+             } else if (inEffect) {
+                 // Multi-line effect value
+                 effects[inEffect] += '\n' + line;
+             } else if (!effects.hit) {
+                 // If we find a line that is not a recognized effect start, and we haven't found a hit yet, assume it is Hit
+                 effects.hit = line;
+                 inEffect = 'hit';
+             } else {
+                // If we already have a hit and this is not a prefixed effect, it's likely a multiline part of the previous effect.
+                // The 'inEffect' logic should already handle this. If inEffect is null here, something is odd.
+                // We'll just append to hit to be safe.
+                effects.hit += '\n' + line;
+             }
         }
-        
-        if (!effects.hit) {
-            const firstEffectLine = effectLines.find(l => !/^(Start|Base|Shadow|End):/i.test(l));
-            if (firstEffectLine) {
-                effects.hit = firstEffectLine.replace(/^Hit:\s*/i, '');
-            }
-        }
-        
-        if (!effects.hit) return null;
+
+        if (!effects.hit) return null; // Hit is mandatory
 
         return {
             name,
