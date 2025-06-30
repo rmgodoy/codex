@@ -82,33 +82,36 @@ const defaultValues: CreatureFormData = {
 
 const DeedDisplay = ({ deed }: { deed: Deed }) => {
     const tierColors = {
-        light: 'bg-sky-200/10 text-sky-200 border-sky-200/20',
-        heavy: 'bg-amber-200/10 text-amber-200 border-amber-200/20',
-        mighty: 'bg-fuchsia-300/10 text-fuchsia-300 border-fuchsia-300/20',
+        light: 'border-sky-400',
+        heavy: 'border-amber-400',
+        mighty: 'border-fuchsia-400',
     };
+    const tierTextBg = {
+        light: 'text-sky-300 bg-sky-900/50',
+        heavy: 'text-amber-300 bg-amber-900/50',
+        mighty: 'text-fuchsia-300 bg-fuchsia-900/50',
+    }
     
     return (
-        <Card className="bg-card-foreground/5 mb-4 shadow-md">
-            <CardHeader className="flex-row items-start justify-between">
-                <CardTitle className="text-xl">{deed.name}</CardTitle>
-                <Badge variant="outline" className={cn("capitalize", tierColors[deed.tier])}>{deed.tier}</Badge>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground mb-4 border-b border-border pb-4">
-                    <div><Label className="text-xs">Type</Label><p className="font-semibold text-foreground capitalize">{deed.type}</p></div>
-                    <div><Label className="text-xs">Range</Label><p className="font-semibold text-foreground">{deed.range}</p></div>
-                    <div><Label className="text-xs">Target</Label><p className="font-semibold text-foreground">{deed.target}</p></div>
-                </div>
-                
-                <div className="space-y-4 text-sm">
-                    {deed.effects.start && <div><Label className="text-primary-foreground font-semibold">Start</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.start}</p></div>}
-                    {deed.effects.base && <div><Label className="text-primary-foreground font-semibold">Base</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.base}</p></div>}
-                    {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold">Hit</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.hit}</p></div>}
-                    {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.shadow}</p></div>}
-                    {deed.effects.end && <div><Label className="text-primary-foreground font-semibold">End</Label><p className="text-foreground/90 mt-1 whitespace-pre-wrap">{deed.effects.end}</p></div>}
-                </div>
-            </CardContent>
-        </Card>
+        <div className={cn("rounded-lg border bg-card-foreground/5 border-l-4 p-4 mb-4", tierColors[deed.tier])}>
+            <div className="flex justify-between items-baseline mb-3">
+                <h4 className="text-xl font-bold">{deed.name}</h4>
+                <div className={cn("text-xs font-bold uppercase px-2 py-0.5 rounded-full", tierTextBg[deed.tier])}>{deed.tier}</div>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3 border-b border-t border-border py-2">
+                <p><strong className="font-semibold text-foreground/80">Type:</strong> <span className="capitalize">{deed.type}</span></p>
+                <p><strong className="font-semibold text-foreground/80">Range:</strong> {deed.range}</p>
+                <p><strong className="font-semibold text-foreground/80">Target:</strong> {deed.target}</p>
+            </div>
+            
+            <div className="space-y-3 text-sm">
+                {deed.effects.start && <div><Label className="text-primary-foreground/90 font-semibold">Start</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.start}</p></div>}
+                {deed.effects.base && <div><Label className="text-primary-foreground/90 font-semibold">Base</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.base}</p></div>}
+                {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold">Hit</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.hit}</p></div>}
+                {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.shadow}</p></div>}
+                {deed.effects.end && <div><Label className="text-primary-foreground/90 font-semibold">End</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{deed.effects.end}</p></div>}
+            </div>
+        </div>
     );
 };
 
@@ -116,6 +119,7 @@ const DeedDisplay = ({ deed }: { deed: Deed }) => {
 export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreatureCreated, onCreatureDeleted }: CreatureEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
+  const [loading, setLoading] = useState(!isCreatingNew && !!creatureId);
   
   const form = useForm<CreatureFormData>({
     resolver: zodResolver(creatureSchema),
@@ -159,10 +163,11 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
       if (!creatureId) {
         form.reset(defaultValues);
         setIsEditing(true);
+        setLoading(false);
         return;
       }
+      setLoading(true);
       setIsEditing(isCreatingNew);
-      form.reset(undefined, { keepValues: false }); 
       try {
         const creatureDoc = await getDoc(doc(db, "creatures", creatureId));
         if (creatureDoc.exists()) {
@@ -176,6 +181,8 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
       } catch (error) {
         console.error("Failed to fetch creature data:", error);
         toast({ variant: "destructive", title: "Error", description: "Could not load creature data." });
+      } finally {
+        setLoading(false);
       }
     };
     fetchCreatureData();
@@ -208,7 +215,40 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
   
   const creatureData = form.getValues();
 
-  if (!isCreatingNew && !creatureId) {
+  if (loading && !isCreatingNew) {
+     return (
+       <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </CardHeader>
+        <CardContent>
+            <Separator className="my-6"/>
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+            <Separator className="my-6"/>
+            <Skeleton className="h-6 w-32 mb-4" />
+            <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+            </div>
+        </CardContent>
+       </Card>
+     );
+  }
+
+  if (!isCreatingNew && !creatureId && !loading) {
     return (
       <Card className="h-full flex items-center justify-center">
         <CardContent className="text-center pt-6">
@@ -219,21 +259,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
     );
   }
   
-  if (!isCreatingNew && !creatureId && form.formState.isLoading) {
-     return (
-       <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-4 w-1/4" />
-        </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </CardContent>
-       </Card>
-     )
-  }
-
   if (!isEditing && creatureId) {
     return (
         <Card>
@@ -251,7 +276,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
                 <Separator className="my-6"/>
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
                     <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
                     <div className="flex items-center gap-2"><Zap className="h-5 w-5 text-accent"/><div><Label>Initiative</Label><p className="text-lg font-bold">{creatureData.attributes.Initiative}</p></div></div>
@@ -343,7 +368,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
             
             <div>
               <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <FormField name="attributes.HP" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2"><Heart className="h-4 w-4 text-accent" />HP</FormLabel>
