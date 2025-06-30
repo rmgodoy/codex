@@ -63,12 +63,31 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
     const modified = { ...combatant.attributes };
 
     combatant.states.forEach(state => {
-        if (state.effect) {
-            const { attribute, modifier } = state.effect;
-            const change = state.intensity * (modifier === 'bonus' ? 1 : -1);
-            if (typeof modified[attribute] === 'number') {
-                (modified[attribute] as number) += change;
-            }
+        if (state.effects) {
+            state.effects.forEach(effect => {
+                switch (effect.modifier) {
+                    case 'bonus':
+                    case 'penalty': {
+                        const change = state.intensity * (effect.modifier === 'bonus' ? 1 : -1);
+                        if (typeof modified[effect.attribute] === 'number') {
+                            (modified[effect.attribute] as number) += change;
+                        }
+                        break;
+                    }
+                    case 'fixed': {
+                        if (typeof modified[effect.attribute] === 'number') {
+                            (modified[effect.attribute] as number) += effect.value;
+                        }
+                        break;
+                    }
+                    case 'halve': {
+                        if (effect.attribute === 'Speed') {
+                            modified.Speed = Math.floor(modified.Speed / 2);
+                        }
+                        break;
+                    }
+                }
+            });
         }
     });
 
@@ -140,7 +159,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
       name: stateToAdd.name,
       intensity: 1,
       description: stateToAdd.description,
-      effect: stateToAdd.effect,
+      effects: stateToAdd.effects,
     };
   
     onUpdate({ ...combatant, states: [...combatant.states, newState]});
@@ -300,7 +319,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                 <div key={state.id} className="flex items-center gap-2 p-3 bg-card-foreground/5 rounded-lg">
                   <Input 
                     value={state.name} 
-                    onChange={e => updateState(state.id, { name: e.target.value, effect: undefined, description: undefined })}
+                    onChange={e => updateState(state.id, { name: e.target.value, effects: undefined, description: undefined })}
                     className="flex-1 font-semibold min-w-0"
                     disabled={!!COMMON_STATES.find(s => s.name === state.name)}
                   />

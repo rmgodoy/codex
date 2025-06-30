@@ -64,7 +64,7 @@ export interface CombatantState {
   name: string;
   intensity: number;
   description?: string;
-  effect?: StateEffect;
+  effects?: StateEffect[];
 }
 
 interface BaseCombatant {
