@@ -1,7 +1,8 @@
 
 "use client";
 
-import type { Creature, Deed, DeedData, Encounter } from '@/lib/types';
+import type { Creature, Deed, DeedData, Encounter, NewCreature } from '@/lib/types';
+import { defaultCreatures, defaultDeeds } from './default-data';
 
 const DB_NAME = 'TresspasserBestiaryDB';
 const DB_VERSION = 3;
@@ -89,7 +90,7 @@ export const getCreaturesByIds = async (ids: string[]): Promise<Creature[]> => {
 };
 
 
-export const addCreature = async (creatureData: Omit<Creature, 'id'>): Promise<string> => {
+export const addCreature = async (creatureData: NewCreature): Promise<string> => {
     const db = await getDb();
     const store = db.transaction(CREATURES_STORE_NAME, 'readwrite').objectStore(CREATURES_STORE_NAME);
     const id = generateId();
@@ -308,4 +309,46 @@ export const importData = async (data: any): Promise<void> => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
     });
+};
+
+// Data Seeding
+const SEED_FLAG = 'tresspasser_db_seeded_v1';
+
+export const seedInitialData = async (): Promise<void> => {
+    if (typeof window === 'undefined' || localStorage.getItem(SEED_FLAG)) {
+        return;
+    }
+
+    try {
+        const db = await getDb();
+        const creatureCount = await db.transaction(CREATURES_STORE_NAME, 'readonly').objectStore(CREATURES_STORE_NAME).count();
+
+        if (creatureCount > 0) {
+            // Data already exists, so don't seed. Just set the flag.
+            localStorage.setItem(SEED_FLAG, 'true');
+            return;
+        }
+
+        console.log("Seeding database with default goblin data...");
+
+        const deedNameIdMap = new Map<string, string>();
+        for (const deedData of defaultDeeds) {
+            const { deedName, ...data } = deedData;
+            const newId = await addDeed(data);
+            deedNameIdMap.set(deedName, newId);
+        }
+
+        for (const creatureData of defaultCreatures) {
+            const { deedNames, ...restOfCreature } = creatureData;
+            const deedIds = deedNames.map(name => deedNameIdMap.get(name)).filter((id): id is string => !!id);
+            await addCreature({ ...restOfCreature, deeds: deedIds });
+        }
+
+        localStorage.setItem(SEED_FLAG, 'true');
+        console.log("Database seeded successfully.");
+
+    } catch (error) {
+        console.error("Failed to seed database:", error);
+        // Don't set the flag if it fails, so it can try again next time.
+    }
 };
