@@ -45,6 +45,13 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         return newHistory;
     });
   }, []);
+  
+  const allPlayersReady = useMemo(() => {
+    if (loading) return false;
+    const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
+    if (players.length === 0) return true; // No players means ready to go
+    return players.every(p => p.initiative > 0 || p.nat20);
+  }, [combatants, loading]);
 
   const { turnOrder, activeTurn } = useMemo(() => {
     if (loading || combatants.length === 0) return { turnOrder: [], activeTurn: null };
@@ -90,7 +97,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         const newCombatants: Combatant[] = [];
         
         // Players
-        encounter.players.forEach(p => {
+        (encounter.players || []).forEach(p => {
             newCombatants.push({
                 id: p.id,
                 type: 'player',
@@ -101,7 +108,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
         });
 
         // Monsters
-        encounter.monsterGroups.forEach(group => {
+        (encounter.monsterGroups || []).forEach(group => {
             const creature = creaturesMap.get(group.monsterId);
             if (!creature) return;
 
@@ -145,7 +152,11 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             const newRound = round + 1;
             setRound(newRound);
             rollPerilForRound(newRound);
-            return 0;
+            // Reset player initiatives for the new round
+            setCombatants(prev => prev.map(c => 
+                c.type === 'player' ? { ...c, initiative: 0, nat20: false } : c
+            ));
+            return 0; // Reset turn index
         }
         return newIndex;
     });
@@ -172,7 +183,15 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
 
   const updateCombatant = (updatedCombatant: Combatant) => {
     setCombatants(prevCombatants => 
-      prevCombatants.map(c => c.id === updatedCombatant.id ? updatedCombatant : c)
+      prevCombatants.map(c => {
+        if (c.type === 'monster' && updatedCombatant.type === 'monster' && c.id === updatedCombatant.id) {
+          return updatedCombatant;
+        }
+        if (c.type === 'player' && updatedCombatant.type === 'player' && c.id === updatedCombatant.id) {
+          return updatedCombatant;
+        }
+        return c;
+      })
     );
   };
   
@@ -201,6 +220,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                       onCombatantUpdate={updateCombatant}
                       perilRoll={currentPeril.roll}
                       perilDeeds={currentPeril.deeds}
+                      allPlayersReady={allPlayersReady}
                   />
                 )}
             </Sidebar>
@@ -212,7 +232,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                       onUpdate={updateCombatant}
                   />
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground">Encounter loaded. Press "Next" to begin.</div>
+                  <div className="p-8 text-center text-muted-foreground">Encounter loaded. Set player initiatives and press "Next" to begin.</div>
                 )}
             </SidebarInset>
         </main>

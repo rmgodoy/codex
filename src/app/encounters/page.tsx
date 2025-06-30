@@ -12,6 +12,7 @@ import { getEncounterById } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
 
 type EncounterViewMode = 'preparation' | 'live';
+type SortByType = 'name' | 'TR';
 
 export default function EncountersPage() {
   const [mode, setMode] = useState<EncounterViewMode>('preparation');
@@ -19,8 +20,32 @@ export default function EncountersPage() {
   const [liveEncounter, setLiveEncounter] = useState<Encounter | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const { toast } = useToast();
+  const [tagFilter, setTagFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortByType>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const filters = {
+    searchTerm,
+    tagFilter,
+    sortBy,
+    sortOrder,
+  };
+
+  const setFilters = {
+    setSearchTerm,
+    setTagFilter,
+    setSortBy,
+    setSortOrder,
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTagFilter('');
+    setSortBy('name');
+    setSortOrder('asc');
+  };
 
   const refreshList = () => setDataVersion(v => v + 1);
 
@@ -91,8 +116,9 @@ export default function EncountersPage() {
               onNewEncounter={handleNewEncounter}
               selectedEncounterId={selectedEncounterId}
               dataVersion={dataVersion}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
+              filters={filters}
+              setFilters={setFilters}
+              onClearFilters={clearFilters}
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">

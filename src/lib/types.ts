@@ -113,4 +113,6 @@ export interface Encounter {
   gmNotes: string;
   monsterGroups: MonsterEncounterGroup[];
   players: PlayerEncounterEntry[];
+  tags?: string[];
+  totalTR?: number;
 }

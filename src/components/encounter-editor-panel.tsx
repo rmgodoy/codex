@@ -18,11 +18,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, X, UserPlus, Swords, Bot, User } from "lucide-react";
+import { Trash2, Edit, X, UserPlus, Swords, Bot, User, Tag } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 const playerEncounterEntrySchema = z.object({
   id: z.string(),
@@ -40,6 +41,8 @@ const encounterSchema = z.object({
   gmNotes: z.string().optional(),
   players: z.array(playerEncounterEntrySchema),
   monsterGroups: z.array(monsterEncounterGroupSchema),
+  tags: z.string().optional(),
+  totalTR: z.number().optional(),
 });
 
 type EncounterFormData = z.infer<typeof encounterSchema>;
@@ -147,6 +150,8 @@ const defaultValues: EncounterFormData = {
   gmNotes: "",
   players: [],
   monsterGroups: [],
+  tags: "",
+  totalTR: 0,
 };
 
 export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter }: EncounterEditorPanelProps) {
@@ -156,7 +161,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   const [encounterData, setEncounterData] = useState<Encounter | null>(null);
   
   // For view mode display
-  const [viewModeDetails, setViewModeDetails] = useState<{ totalTR: number; monsters: Map<string, Creature> }>({ totalTR: 0, monsters: new Map() });
+  const [viewModeDetails, setViewModeDetails] = useState<{ monsters: Map<string, Creature> }>({ monsters: new Map() });
 
   const form = useForm<EncounterFormData>({
     resolver: zodResolver(encounterSchema),
@@ -198,20 +203,20 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
       try {
         const encounterFromDb = await getEncounterById(encounterId);
         if (encounterFromDb) {
-          form.reset(encounterFromDb);
+           const formData = {
+            ...encounterFromDb,
+            tags: Array.isArray(encounterFromDb.tags) ? encounterFromDb.tags.join(', ') : '',
+          };
+          form.reset(formData);
           setEncounterData(encounterFromDb);
           
           const monsterIds = (encounterFromDb.monsterGroups || []).map(g => g.monsterId);
           if (monsterIds.length > 0) {
             const creatures = await getCreaturesByIds(monsterIds);
             const creaturesMap = new Map(creatures.map(c => [c.id, c]));
-            const totalTR = (encounterFromDb.monsterGroups || []).reduce((acc, group) => {
-              const creature = creaturesMap.get(group.monsterId);
-              return acc + (creature ? creature.TR * group.quantity : 0);
-            }, 0);
-            setViewModeDetails({ totalTR, monsters: creaturesMap });
+            setViewModeDetails({ monsters: creaturesMap });
           } else {
-            setViewModeDetails({ totalTR: 0, monsters: new Map() });
+            setViewModeDetails({ monsters: new Map() });
           }
           
         } else {
@@ -230,19 +235,37 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
     if (isCreatingNew) {
         onEditCancel();
     } else if (encounterData) {
-        form.reset(encounterData);
+        const formData = {
+            ...encounterData,
+            tags: Array.isArray(encounterData.tags) ? encounterData.tags.join(', ') : '',
+        };
+        form.reset(formData);
         setIsEditing(false);
     }
   };
 
   const onSubmit = async (data: EncounterFormData) => {
     try {
+      const tagsValue = data.tags || '';
+      const monsterTRs = await getCreaturesByIds(data.monsterGroups.map(g => g.monsterId));
+      const monsterTRMap = new Map(monsterTRs.map(c => [c.id, c.TR]));
+      const totalTR = data.monsterGroups.reduce((acc, group) => {
+          const tr = monsterTRMap.get(group.monsterId) || 0;
+          return acc + (tr * group.quantity);
+      }, 0);
+
+      const encounterToSave: Omit<Encounter, 'id'> | Encounter = {
+        ...data,
+        tags: tagsValue.split(',').map(t => t.trim()).filter(Boolean),
+        totalTR,
+      };
+
       if (isCreatingNew) {
-        const newId = await addEncounter(data);
+        const newId = await addEncounter(encounterToSave as Omit<Encounter, 'id'>);
         toast({ title: "Encounter Created!", description: `${data.name} has been saved.` });
         onEncounterSaveSuccess(newId);
       } else if (encounterId) {
-        await updateEncounter({ ...data, id: encounterId });
+        await updateEncounter({ ...encounterToSave, id: encounterId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
         onEncounterSaveSuccess(encounterId);
       }
@@ -301,7 +324,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
-                    <CardDescription>Total Threat Rating (TR): {viewModeDetails.totalTR}</CardDescription>
+                    <CardDescription>Total Threat Rating (TR): {encounterData.totalTR || 0}</CardDescription>
                 </div>
                  <div className="flex gap-2">
                     <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}><Swords className="h-4 w-4 mr-1"/> Run Encounter</Button>
@@ -347,6 +370,15 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                             </ul>
                         </div>
                     </div>
+                    {encounterData.tags && encounterData.tags.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-border/50">
+                            <div className="flex flex-wrap gap-2">
+                                {encounterData.tags.map(tag => (
+                                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </CardContent>
             <CardFooter>
@@ -374,6 +406,13 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
           </CardHeader>
           <CardContent className="space-y-6">
             <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Encounter Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField name="tags" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                <FormControl><Input placeholder="e.g. random, boss-fight, exploration" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
             <FormField name="sceneDescription" control={form.control} render={({ field }) => (<FormItem><FormLabel>Scene Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
             <FormField name="gmNotes" control={form.control} render={({ field }) => (<FormItem><FormLabel>GM Notes (Private)</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
             
