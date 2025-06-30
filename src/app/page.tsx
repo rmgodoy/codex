@@ -1,33 +1,49 @@
 "use client";
 
 import { useState } from "react";
+import type { Creature } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
-import { Skull } from "lucide-react";
+import { Skull, Copy } from "lucide-react";
 import { Sidebar, SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function Home() {
   const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(true);
+  const [templateData, setTemplateData] = useState<Partial<Creature> | null>(null);
 
   const handleSelectCreature = (id: string) => {
     setSelectedCreatureId(id);
     setIsCreatingNew(false);
+    setTemplateData(null);
   };
 
   const handleNewCreature = () => {
     setSelectedCreatureId(null);
     setIsCreatingNew(true);
+    setTemplateData(null);
+  };
+
+  const handleUseAsTemplate = (creatureData: Creature) => {
+    const template = { ...creatureData };
+    template.name = `Copy of ${creatureData.name || 'creature'}`;
+    delete template.id;
+
+    setSelectedCreatureId(null);
+    setIsCreatingNew(true);
+    setTemplateData(template);
   };
 
   const handleCreatureCreated = (id: string) => {
     setSelectedCreatureId(id);
     setIsCreatingNew(false);
+    setTemplateData(null);
   }
 
   const handleCreatureDeleted = () => {
     setSelectedCreatureId(null);
     setIsCreatingNew(true);
+    setTemplateData(null);
   }
 
   return (
@@ -52,8 +68,10 @@ export default function Home() {
             key={selectedCreatureId ?? 'new'} 
             creatureId={selectedCreatureId}
             isCreatingNew={isCreatingNew}
+            template={templateData}
             onCreatureCreated={handleCreatureCreated}
             onCreatureDeleted={handleCreatureDeleted}
+            onUseAsTemplate={handleUseAsTemplate}
           />
         </div>
       </SidebarInset>
