@@ -79,7 +79,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
       <div className="w-full">
         <Card>
           <CardHeader>
-            <CardTitle className="text-4xl font-bold">{combatant.name}</CardTitle>
+            <CardTitle className="text-3xl sm:text-4xl font-bold">{combatant.name}</CardTitle>
             <CardDescription>Player Character</CardDescription>
           </CardHeader>
           <CardContent>
@@ -160,7 +160,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-4xl font-bold">{combatant.name}</CardTitle>
+              <CardTitle className="text-3xl sm:text-4xl font-bold">{combatant.name}</CardTitle>
               {combatant.type === 'monster' && <CardDescription>Lvl {combatant.level} {combatant.template} {combatant.role} • TR {combatant.TR}</CardDescription>}
             </div>
           </div>
@@ -177,29 +177,31 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
           )}
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="hp" className="flex items-center gap-2 text-lg"><Heart className="h-6 w-6 text-red-500" /> HP</Label>
-            <Input 
-                id="hp" 
-                type="number" 
-                value={combatant.currentHp} 
-                onChange={(e) => {
-                  let newHp = parseInt(e.target.value, 10) || 0;
-                  if (combatant.template === 'Underling') {
-                    newHp = Math.min(1, Math.max(0, newHp));
-                  }
-                  onUpdate({ ...combatant, currentHp: newHp })
-                }}
-                className="w-24 text-lg font-bold"
-            />
-            {combatant.type === 'monster' && <span className="text-muted-foreground text-lg">/ {combatant.maxHp}</span>}
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
+              <Label htmlFor="hp" className="flex items-center gap-2 text-lg shrink-0"><Heart className="h-6 w-6 text-red-500" /> HP</Label>
+              <Input 
+                  id="hp" 
+                  type="number" 
+                  value={combatant.currentHp} 
+                  onChange={(e) => {
+                    let newHp = parseInt(e.target.value, 10) || 0;
+                    if (combatant.template === 'Underling') {
+                      newHp = Math.min(1, Math.max(0, newHp));
+                    }
+                    onUpdate({ ...combatant, currentHp: newHp })
+                  }}
+                  className="w-24 text-lg font-bold"
+              />
+              {combatant.type === 'monster' && <span className="text-muted-foreground text-lg">/ {combatant.maxHp}</span>}
+            </div>
+            <div className="flex items-center gap-2 flex-1 min-w-[180px]">
                  <Input 
                     placeholder="+5 or -10" 
                     value={hpChange}
                     onChange={e => setHpChange(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleHpChange()}
-                    className="w-28"
+                    className="flex-1"
                  />
                  <Button onClick={handleHpChange} size="sm">Apply</Button>
             </div>
@@ -226,16 +228,24 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-primary-foreground">States</h3>
             </div>
-             <div className="flex items-center gap-2 mb-4">
+             <div className="flex flex-wrap items-center gap-2 mb-4">
               <Select value={selectedCommonState} onValueChange={setSelectedCommonState}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder="Select a common state..." /></SelectTrigger>
+                <SelectTrigger className="flex-1 min-w-[180px]"><SelectValue placeholder="Select a common state..." /></SelectTrigger>
                 <SelectContent>
                   {COMMON_STATES.map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button onClick={addSelectedCommonState} disabled={!selectedCommonState}>Add State</Button>
-              <Separator orientation="vertical" className="h-6 mx-2" />
-              <Button variant="outline" onClick={addCustomState}>Add Custom</Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={addSelectedCommonState} disabled={!selectedCommonState}>
+                    <span className="sm:hidden">Add</span>
+                    <span className="hidden sm:inline">Add State</span>
+                </Button>
+                <Separator orientation="vertical" className="h-6" />
+                <Button variant="outline" onClick={addCustomState}>
+                    <span className="sm:hidden">Custom</span>
+                    <span className="hidden sm:inline">Add Custom</span>
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               {combatant.states.length > 0 ? combatant.states.map(state => (
