@@ -174,14 +174,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, onCreat
   }
 
   return (
-    <Card className="h-full overflow-hidden">
+    <Card>
       <CardHeader>
         <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
         <CardDescription>
           {isCreatingNew ? "Fill out the details for your new creature." : "Changes are saved automatically."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="h-[calc(100%-100px)] overflow-y-auto pr-3">
+      <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleCreateCreature)} className="space-y-8">
             <div className="grid md:grid-cols-3 gap-4">
