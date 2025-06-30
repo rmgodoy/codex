@@ -21,6 +21,8 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const [perilHistory, setPerilHistory] = useState<Record<number, { roll: number; deeds: { heavy: number; mighty: number } }>>({});
 
   const rollPerilForRound = useCallback((targetRound: number) => {
+    if (perilHistory[targetRound]) return;
+
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const roll = d1 + d2;
@@ -38,7 +40,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
       ...prev,
       [targetRound]: { roll, deeds }
     }));
-  }, []);
+  }, [perilHistory]);
 
   const { turnOrder, activeTurn } = useMemo(() => {
     const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
@@ -75,17 +77,18 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   }, [encounter, rollPerilForRound]);
 
   const nextTurn = () => {
-    const newIndex = turnIndex + 1;
-    if (newIndex >= turnOrder.length) {
-      const newRound = round + 1;
-      setRound(newRound);
-      setTurnIndex(0);
-      if (!perilHistory[newRound]) {
-        rollPerilForRound(newRound);
-      }
-    } else {
-      setTurnIndex(newIndex);
-    }
+    setTurnIndex(prevIndex => {
+        const newIndex = prevIndex + 1;
+        if (newIndex >= turnOrder.length) {
+            const newRound = round + 1;
+            setRound(newRound);
+            if (!perilHistory[newRound]) {
+                rollPerilForRound(newRound);
+            }
+            return 0;
+        }
+        return newIndex;
+    });
   };
 
   const prevTurn = () => {
@@ -123,10 +126,9 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             </div>
             <Button variant="destructive" onClick={onEndEncounter}>End Encounter</Button>
          </header>
-         <main className="flex-1 overflow-hidden">
-            <div className="flex w-full h-full overflow-hidden">
-              <Sidebar style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
-                 <InitiativeTracker 
+         <main className="flex-1 flex overflow-hidden">
+            <Sidebar style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
+                <InitiativeTracker 
                     combatantsInTurnOrder={turnOrder}
                     activeTurnId={activeTurn?.turnId}
                     round={round}
@@ -135,18 +137,17 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     onCombatantUpdate={updateCombatant}
                     perilRoll={currentPeril.roll}
                     perilDeeds={currentPeril.deeds}
-                 />
-              </Sidebar>
-              <SidebarInset className="flex-1 overflow-y-auto">
-                 {activeTurn && (
-                   <CombatantDashboard
-                      key={activeTurn.turnId} 
-                      combatant={activeTurn}
-                      onUpdate={updateCombatant}
-                   />
-                 )}
-              </SidebarInset>
-            </div>
+                />
+            </Sidebar>
+            <SidebarInset className="flex-1 overflow-y-auto bg-background/50">
+                {activeTurn && (
+                <CombatantDashboard
+                    key={activeTurn.turnId} 
+                    combatant={activeTurn}
+                    onUpdate={updateCombatant}
+                />
+                )}
+            </SidebarInset>
         </main>
       </div>
     </SidebarProvider>
