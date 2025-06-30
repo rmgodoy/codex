@@ -16,25 +16,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PlusCircle, Download, Upload, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
+type SortByType = 'name' | 'TR' | 'level';
+
 interface CreatureListPanelProps {
   onSelectCreature: (id: string | null) => void;
   onNewCreature: () => void;
   selectedCreatureId: string | null;
   dataVersion: number;
   onImportSuccess: () => void;
+  filters: {
+    searchTerm: string;
+    roleFilter: string;
+    minLevel: string;
+    maxLevel: string;
+    minTR: string;
+    maxTR: string;
+    tagFilter: string;
+    sortBy: SortByType;
+    sortOrder: 'asc' | 'desc';
+  };
+  setFilters: {
+    setSearchTerm: (value: string) => void;
+    setRoleFilter: (value: string) => void;
+    setMinLevel: (value: string) => void;
+    setMaxLevel: (value: string) => void;
+    setMinTR: (value: string) => void;
+    setMaxTR: (value: string) => void;
+    setTagFilter: (value: string) => void;
+    setSortBy: (value: SortByType) => void;
+    setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
+  };
 }
 
-export default function CreatureListPanel({ onSelectCreature, onNewCreature, selectedCreatureId, dataVersion, onImportSuccess }: CreatureListPanelProps) {
+export default function CreatureListPanel({ 
+  onSelectCreature, 
+  onNewCreature, 
+  selectedCreatureId, 
+  dataVersion, 
+  onImportSuccess,
+  filters,
+  setFilters
+}: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [minLevel, setMinLevel] = useState('');
-  const [maxLevel, setMaxLevel] = useState('');
-  const [minTR, setMinTR] = useState('');
-  const [maxTR, setMaxTR] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'TR'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -58,28 +81,28 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
 
   const filteredAndSortedCreatures = useMemo(() => {
     let filtered = creatures.filter(creature => {
-      const matchesSearch = creature.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = roleFilter === 'all' || creature.role === roleFilter;
+      const matchesSearch = creature.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
+      const matchesRole = filters.roleFilter === 'all' || creature.role === filters.roleFilter;
 
       let matchesLevel = true;
-      if (minLevel && !isNaN(parseInt(minLevel))) {
-        matchesLevel = matchesLevel && creature.level >= parseInt(minLevel, 10);
+      if (filters.minLevel && !isNaN(parseInt(filters.minLevel))) {
+        matchesLevel = matchesLevel && creature.level >= parseInt(filters.minLevel, 10);
       }
-      if (maxLevel && !isNaN(parseInt(maxLevel))) {
-        matchesLevel = matchesLevel && creature.level <= parseInt(maxLevel, 10);
+      if (filters.maxLevel && !isNaN(parseInt(filters.maxLevel))) {
+        matchesLevel = matchesLevel && creature.level <= parseInt(filters.maxLevel, 10);
       }
 
       let matchesTR = true;
-      if (minTR && !isNaN(parseInt(minTR))) {
-        matchesTR = matchesTR && creature.TR >= parseInt(minTR, 10);
+      if (filters.minTR && !isNaN(parseInt(filters.minTR))) {
+        matchesTR = matchesTR && creature.TR >= parseInt(filters.minTR, 10);
       }
-      if (maxTR && !isNaN(parseInt(maxTR))) {
-        matchesTR = matchesTR && creature.TR <= parseInt(maxTR, 10);
+      if (filters.maxTR && !isNaN(parseInt(filters.maxTR))) {
+        matchesTR = matchesTR && creature.TR <= parseInt(filters.maxTR, 10);
       }
 
       let matchesTags = true;
-      if (tagFilter) {
-        const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+      if (filters.tagFilter) {
+        const tags = filters.tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
         if (tags.length > 0) {
           matchesTags = creature.tags && creature.tags.length > 0 && tags.every(tag => creature.tags!.some(ct => ct.toLowerCase().includes(tag)));
         }
@@ -89,19 +112,23 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
     });
 
     const sorted = filtered.sort((a, b) => {
-      if (sortBy === 'TR') {
+      if (filters.sortBy === 'TR') {
         const trDiff = a.TR - b.TR;
         if (trDiff !== 0) return trDiff;
+      }
+      if (filters.sortBy === 'level') {
+        const levelDiff = a.level - b.level;
+        if (levelDiff !== 0) return levelDiff;
       }
       return a.name.localeCompare(b.name);
     });
 
-    if (sortOrder === 'desc') {
+    if (filters.sortOrder === 'desc') {
       sorted.reverse();
     }
     
     return sorted;
-  }, [creatures, searchTerm, roleFilter, minLevel, maxLevel, minTR, maxTR, tagFilter, sortBy, sortOrder]);
+  }, [creatures, filters]);
 
 
   const handleExport = async () => {
@@ -201,15 +228,15 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search creatures..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.searchTerm}
+            onChange={(e) => setFilters.setSearchTerm(e.target.value)}
             className="pl-9"
           />
         </div>
 
         <div className="space-y-2">
             <Label>Filter</Label>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
                 <SelectTrigger>
                     <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
@@ -219,30 +246,31 @@ export default function CreatureListPanel({ onSelectCreature, onNewCreature, sel
                 </SelectContent>
             </Select>
             <div className="flex gap-2">
-                <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Min Lvl" type="number" value={filters.minLevel} onChange={e => setFilters.setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Max Lvl" type="number" value={filters.maxLevel} onChange={e => setFilters.setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
             </div>
             <div className="flex gap-2">
-                <Input placeholder="Min TR" type="number" value={minTR} onChange={e => setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                <Input placeholder="Max TR" type="number" value={maxTR} onChange={e => setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
             </div>
-            <Input placeholder="Tags (e.g. undead, goblin)" value={tagFilter} onChange={e => setTagFilter(e.target.value)} />
+            <Input placeholder="Tags (e.g. undead, goblin)" value={filters.tagFilter} onChange={e => setFilters.setTagFilter(e.target.value)} />
         </div>
 
         <div>
             <Label>Sort by</Label>
             <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={(value: 'name' | 'TR') => setSortBy(value)}>
+              <Select value={filters.sortBy} onValueChange={(value: 'name' | 'TR' | 'level') => setFilters.setSortBy(value)}>
                   <SelectTrigger>
                       <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
                       <SelectItem value="name">Name</SelectItem>
                       <SelectItem value="TR">TR</SelectItem>
+                      <SelectItem value="level">Level</SelectItem>
                   </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
-                  {sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              <Button variant="ghost" size="icon" onClick={() => setFilters.setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
+                  {filters.sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
                   <span className="sr-only">Toggle sort order</span>
               </Button>
             </div>

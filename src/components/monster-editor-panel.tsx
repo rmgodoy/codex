@@ -81,6 +81,7 @@ interface CreatureEditorPanelProps {
   onUseAsTemplate: (creatureData: CreatureWithDeeds) => void;
   onEditCancel: () => void;
   dataVersion: number;
+  onFilterByClick: (updates: { roleFilter?: Role, minLevel?: number, maxLevel?: number, minTR?: number, maxTR?: number, tagFilter?: string }) => void;
 }
 
 const defaultValues: CreatureFormData = {
@@ -198,7 +199,7 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
 };
 
 
-export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureSaveSuccess, onCreatureDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion }: CreatureEditorPanelProps) {
+export default function CreatureEditorPanel({ creatureId, isCreatingNew, template, onCreatureSaveSuccess, onCreatureDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion, onFilterByClick }: CreatureEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!creatureId);
@@ -428,12 +429,20 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <div>
                     <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
                     <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span>Lvl {creatureData.level} {creatureData.role} • TR {creatureData.TR}</span>
+                        <button onClick={() => onFilterByClick({ roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level })} className="hover:underline p-0 bg-transparent text-inherit">
+                            <span>Lvl {creatureData.level} {creatureData.role}</span>
+                        </button>
+                        •
+                        <button onClick={() => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR })} className="hover:underline p-0 bg-transparent text-inherit">
+                            <span>TR {creatureData.TR}</span>
+                        </button>
                         {creatureData.tags && creatureData.tags.length > 0 && (
                             <>
                                 <span className="font-bold text-base">•</span>
                                 {creatureData.tags.map(tag => (
-                                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                                    <button key={tag} onClick={() => onFilterByClick({ tagFilter: tag })} className="bg-transparent border-none p-0 m-0">
+                                      <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                    </button>
                                 ))}
                             </>
                         )}

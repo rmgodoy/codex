@@ -8,11 +8,57 @@ import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import MainLayout from "@/components/main-layout";
 
+type SortByType = 'name' | 'TR' | 'level';
+
 export default function Home() {
   const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<CreatureWithDeeds> | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [minLevel, setMinLevel] = useState('');
+  const [maxLevel, setMaxLevel] = useState('');
+  const [minTR, setMinTR] = useState('');
+  const [maxTR, setMaxTR] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortByType>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const filters = {
+    searchTerm,
+    roleFilter,
+    minLevel,
+    maxLevel,
+    minTR,
+    maxTR,
+    tagFilter,
+    sortBy,
+    sortOrder
+  };
+
+  const setFilters = {
+    setSearchTerm,
+    setRoleFilter,
+    setMinLevel,
+    setMaxLevel,
+    setMinTR,
+    setMaxTR,
+    setTagFilter,
+    setSortBy,
+    setSortOrder
+  };
+
+  const handleFilterByClick = (updates: Partial<typeof filters>) => {
+    if (updates.roleFilter) setRoleFilter(updates.roleFilter);
+    if (updates.minLevel) setMinLevel(String(updates.minLevel));
+    if (updates.maxLevel) setMaxLevel(String(updates.maxLevel));
+    if (updates.minTR) setMinTR(String(updates.minTR));
+    if (updates.maxTR) setMaxTR(String(updates.maxTR));
+    if (updates.tagFilter) setTagFilter(updates.tagFilter);
+  };
+  
 
   const refreshList = () => setDataVersion(v => v + 1);
 
@@ -70,6 +116,8 @@ export default function Home() {
               selectedCreatureId={selectedCreatureId}
               dataVersion={dataVersion}
               onImportSuccess={refreshList}
+              filters={filters}
+              setFilters={setFilters}
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
@@ -84,6 +132,7 @@ export default function Home() {
                 onUseAsTemplate={handleUseAsTemplate}
                 onEditCancel={onEditCancel}
                 dataVersion={dataVersion}
+                onFilterByClick={handleFilterByClick}
               />
             </div>
           </SidebarInset>
