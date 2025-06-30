@@ -148,7 +148,6 @@ export default function Home() {
               onNewCreature={handleNewCreature}
               selectedCreatureId={selectedCreatureId}
               dataVersion={dataVersion}
-              onImportSuccess={refreshList}
               filters={filters}
               setFilters={setFilters}
               onClearFilters={clearFilters}

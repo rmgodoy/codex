@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu } from 'lucide-react';
+import { Skull, Menu, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,10 +14,67 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { importData, exportAllData } from '@/lib/idb';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleExport = async () => {
+    try {
+      const dataToExport = await exportAllData();
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
+      const link = document.createElement("a");
+      link.href = jsonString;
+      link.download = "tresspasser_bestiary.json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "Export Successful", description: "Your data has been downloaded." });
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not export the data." });
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content !== 'string') {
+          throw new Error("File content could not be read as text.");
+        }
+        const importedData = JSON.parse(content);
+        
+        await importData(importedData);
+        
+        toast({ title: "Import Successful", description: "Data has been overwritten. The application will now reload." });
+        
+        // Reload the page to reflect changes everywhere
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
+      } catch (error: any) {
+        console.error("Import failed:", error);
+        toast({ variant: "destructive", title: "Import Failed", description: error.message || "Please check the file format and content." });
+      } finally {
+        if(fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
 
   const pageTitle = useMemo(() => {
     switch (pathname) {
@@ -106,8 +163,43 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             {desktopNav}
           </nav>
         </div>
-        <div className="md:hidden">
-          {mobileNav}
+        <div className="flex items-center gap-2">
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImport}
+                accept=".json"
+                className="hidden"
+            />
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Import Data">
+                        <Upload className="h-5 w-5" />
+                        <span className="sr-only">Import Data</span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Import Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will overwrite all existing creatures, deeds, and encounters with the data from the selected JSON file. This action cannot be undone.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => fileInputRef.current?.click()}>
+                        Proceed
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Button variant="ghost" size="icon" onClick={handleExport} title="Export Data">
+                <Download className="h-5 w-5" />
+                <span className="sr-only">Export Data</span>
+            </Button>
+          <div className="md:hidden">
+            {mobileNav}
+          </div>
         </div>
       </header>
       <main className="flex-1 overflow-hidden">{children}</main>

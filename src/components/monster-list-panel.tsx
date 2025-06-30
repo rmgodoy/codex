@@ -1,19 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { getAllCreatures, importData, exportAllData } from '@/lib/idb';
+import { useState, useEffect, useMemo } from 'react';
+import { getAllCreatures } from '@/lib/idb';
 import type { Creature } from '@/lib/types';
 import { ROLES, type Role } from '@/lib/roles';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Download, Upload, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 
 type SortByType = 'name' | 'TR' | 'level';
@@ -23,7 +22,6 @@ interface CreatureListPanelProps {
   onNewCreature: () => void;
   selectedCreatureId: string | null;
   dataVersion: number;
-  onImportSuccess: () => void;
   filters: {
     searchTerm: string;
     roleFilter: string;
@@ -54,14 +52,12 @@ export default function CreatureListPanel({
   onNewCreature, 
   selectedCreatureId, 
   dataVersion, 
-  onImportSuccess,
   filters,
   setFilters,
   onClearFilters
 }: CreatureListPanelProps) {
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -133,53 +129,6 @@ export default function CreatureListPanel({
   }, [creatures, filters]);
 
 
-  const handleExport = async () => {
-    try {
-      const dataToExport = await exportAllData();
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
-      const link = document.createElement("a");
-      link.href = jsonString;
-      link.download = "tresspasser_bestiary.json";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast({ title: "Export Successful", description: "Your bestiary has been downloaded." });
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast({ variant: "destructive", title: "Export Failed", description: "Could not export the bestiary." });
-    }
-  };
-
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const content = e.target?.result;
-        if (typeof content !== 'string') {
-          throw new Error("File content could not be read as text.");
-        }
-        const importedData = JSON.parse(content);
-        
-        await importData(importedData);
-        onImportSuccess();
-        onSelectCreature(null);
-        
-        toast({ title: "Import Successful", description: "Bestiary has been overwritten with the imported data." });
-      } catch (error: any) {
-        console.error("Import failed:", error);
-        toast({ variant: "destructive", title: "Import Failed", description: error.message || "Please check the file format and content." });
-      } finally {
-        if(fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      }
-    };
-    reader.readAsText(file);
-  };
-
   const handleSelectCreature = (id: string) => {
     onSelectCreature(id);
     if (isMobile) {
@@ -193,39 +142,6 @@ export default function CreatureListPanel({
         <Button onClick={onNewCreature} className="w-full">
           <PlusCircle /> New Creature
         </Button>
-        <div className="flex gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="secondary" className="w-full">
-                  <Upload /> Import
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Import Bestiary?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will overwrite your entire existing bestiary with the data from the selected JSON file. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => fileInputRef.current?.click()}>
-                    Proceed
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          <Button variant="secondary" onClick={handleExport} className="w-full">
-            <Download /> Export
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImport}
-            accept=".json"
-            className="hidden"
-          />
-        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
