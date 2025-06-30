@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Tag } from "lucide-react";
+import { Trash2, Edit, Tag, Copy, X } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { DeedDisplay } from "./deed-display";
 
@@ -43,9 +43,12 @@ type DeedFormData = z.infer<typeof deedSchema>;
 
 interface DeedEditorPanelProps {
   deedId: string | null;
+  isCreatingNew: boolean;
+  template: Partial<Deed> | null;
   onDeedSaveSuccess: (id: string) => void;
   onDeedDeleteSuccess: () => void;
-  clearSelection: () => void;
+  onUseAsTemplate: (deedData: Deed) => void;
+  onEditCancel: () => void;
 }
 
 const defaultValues: DeedFormData = {
@@ -58,30 +61,34 @@ const defaultValues: DeedFormData = {
   tags: '',
 };
 
-export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDeleteSuccess, clearSelection }: DeedEditorPanelProps) {
+export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel }: DeedEditorPanelProps) {
   const { toast } = useToast();
-  const [isCreating, setIsCreating] = useState(!deedId);
-  const [isEditing, setIsEditing] = useState(isCreating);
-  const [loading, setLoading] = useState(!!deedId);
+  const [isEditing, setIsEditing] = useState(isCreatingNew);
+  const [loading, setLoading] = useState(!isCreatingNew && !!deedId);
   const [deedData, setDeedData] = useState<Deed | null>(null);
 
   const form = useForm<DeedFormData>({
     resolver: zodResolver(deedSchema),
-    defaultValues,
+    defaultValues: template || defaultValues,
   });
 
   useEffect(() => {
     const fetchDeedData = async () => {
-      if (!deedId) {
-        setIsCreating(true);
+      if (isCreatingNew) {
+        form.reset(template || defaultValues);
+        setDeedData(template ? (template as Deed) : null);
         setIsEditing(true);
-        form.reset(defaultValues);
-        setDeedData(null);
         setLoading(false);
         return;
       }
+      
+      if (!deedId) {
+        setIsEditing(false);
+        setLoading(false);
+        setDeedData(null);
+        return;
+      }
 
-      setIsCreating(false);
       setLoading(true);
       setIsEditing(false);
       try {
@@ -94,7 +101,6 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
           form.reset(formData);
           setDeedData(deedFromDb);
         } else {
-          clearSelection();
           setDeedData(null);
         }
       } catch (error) {
@@ -105,11 +111,11 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
       }
     };
     fetchDeedData();
-  }, [deedId, form, toast, clearSelection]);
+  }, [deedId, isCreatingNew, template, form, toast]);
   
   const handleCancel = () => {
-    if (isCreating) {
-        clearSelection();
+    if (isCreatingNew) {
+        onEditCancel();
     } else if (deedData) {
         const formData = {
             ...deedData,
@@ -128,7 +134,7 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
         tags: tagsValue.split(',').map(t => t.trim()).filter(Boolean),
       };
 
-      if (isCreating) {
+      if (isCreatingNew) {
         const newId = await addDeed(deedToSave as DeedData);
         toast({ title: "Deed Created!", description: `${data.name} has been added to the library.` });
         onDeedSaveSuccess(newId);
@@ -155,6 +161,12 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
       toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the deed." });
     }
   };
+
+  const handleUseAsTemplate = () => {
+    if (deedData) {
+      onUseAsTemplate(deedData);
+    }
+  };
   
   if (loading) {
     return <Card>
@@ -176,7 +188,7 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
     </Card>;
   }
   
-  if (!deedId && !isCreating) {
+  if (!deedId && !isCreatingNew) {
     return (
       <Card className="h-full flex items-center justify-center min-h-[300px]">
         <CardContent className="text-center pt-6">
@@ -197,11 +209,37 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
                        {deedData.tier} {deedData.type}
                     </CardDescription>
                 </div>
-                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-1"/> Edit</Button>
+                 <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleUseAsTemplate}><Copy className="h-4 w-4 mr-1"/> Template</Button>
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4 mr-1"/> Edit</Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <DeedDisplay deed={deedData} />
             </CardContent>
+            <CardFooter>
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteDeed} className="bg-destructive hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
         </Card>
     );
   }
@@ -210,11 +248,16 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
     <Card>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <CardHeader>
-            <CardTitle>{isCreating ? "Create a New Deed" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
-            <CardDescription>
-              {isCreating ? "Fill out the details for your new deed." : "Make your changes and click Save."}
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle>{isCreatingNew ? "Create a New Deed" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+              <CardDescription>
+                {isCreatingNew ? "Fill out the details for your new deed." : "Make your changes and click Save."}
+              </CardDescription>
+            </div>
+             <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
+              <X className="h-5 w-5" />
+            </Button>
           </CardHeader>
           <CardContent className="space-y-6">
             <FormField name="name" control={form.control} render={({ field }) => (
@@ -314,7 +357,7 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
 
           </CardContent>
           <CardFooter className="flex items-center gap-2">
-            {!isCreating && (
+            {!isCreatingNew && (
                 <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button type="button" variant="destructive" size="sm">
@@ -339,7 +382,7 @@ export default function DeedEditorPanel({ deedId, onDeedSaveSuccess, onDeedDelet
             )}
             <div className="flex-grow" />
             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-            <Button type="submit">{isCreating ? "Create Deed" : "Save Changes"}</Button>
+            <Button type="submit">{isCreatingNew ? "Create Deed" : "Save Changes"}</Button>
           </CardFooter>
         </form>
       </Form>

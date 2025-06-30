@@ -15,11 +15,12 @@ import { Label } from './ui/label';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
+  onNewDeed: () => void;
   selectedDeedId: string | null;
   dataVersion: number;
 }
 
-export default function DeedListPanel({ onSelectDeed, selectedDeedId, dataVersion }: DeedListPanelProps) {
+export default function DeedListPanel({ onSelectDeed, onNewDeed, selectedDeedId, dataVersion }: DeedListPanelProps) {
   const [deeds, setDeeds] = useState<Deed[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
@@ -44,7 +45,7 @@ export default function DeedListPanel({ onSelectDeed, selectedDeedId, dataVersio
   }, [dataVersion, toast]);
   
   const handleNewDeed = () => {
-    onSelectDeed(null);
+    onNewDeed();
   };
 
   const filteredAndSortedDeeds = useMemo(() => {

@@ -62,7 +62,7 @@ export default function Home() {
   return (
     <SidebarProvider>
       <MainLayout>
-        <div className="flex flex-1 overflow-hidden h-full">
+        <div className="flex w-full h-full overflow-hidden">
           <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
             <CreatureListPanel
               onSelectCreature={handleSelectCreature}

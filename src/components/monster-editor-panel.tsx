@@ -92,14 +92,18 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
   const [selectedDeedIds, setSelectedDeedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [tierFilter, setTierFilter] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState("");
 
   const filteredDeeds = useMemo(() => {
     return allDeeds.filter(deed => {
         const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
-        return matchesSearch && matchesTier;
+        const tagsToFilter = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        const matchesTags = tagsToFilter.length === 0 || 
+                            (deed.tags && tagsToFilter.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))));
+        return matchesSearch && matchesTier && matchesTags;
     });
-  }, [allDeeds, searchTerm, tierFilter]);
+  }, [allDeeds, searchTerm, tierFilter, tagFilter]);
 
 
   const handleAddClick = () => {
@@ -109,6 +113,7 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
     setSelectedDeedIds(new Set());
     setSearchTerm("");
     setTierFilter("all");
+    setTagFilter("");
   }
 
   const handleCheckboxChange = (deedId: string) => {
@@ -133,15 +138,15 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
           <DialogTitle>Select Deeds from Library</DialogTitle>
           <DialogDescription>Select one or more deeds to add to the creature.</DialogDescription>
         </DialogHeader>
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           <Input 
             placeholder="Search deeds..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="flex-1"
+            className="flex-1 min-w-[150px]"
           />
           <Select value={tierFilter} onValueChange={setTierFilter}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-full sm:w-[120px]">
                 <SelectValue placeholder="Filter tier" />
             </SelectTrigger>
             <SelectContent>
@@ -151,6 +156,12 @@ const DeedSelectionDialog = ({ onAddDeeds, allDeeds }: { onAddDeeds: (deeds: Dee
                 <SelectItem value="mighty">Mighty</SelectItem>
             </SelectContent>
           </Select>
+           <Input 
+            placeholder="Filter by tags..."
+            value={tagFilter}
+            onChange={e => setTagFilter(e.target.value)}
+            className="flex-1 min-w-[150px]"
+          />
         </div>
         <ScrollArea className="flex-1 border rounded-md p-4">
           <div className="space-y-2">

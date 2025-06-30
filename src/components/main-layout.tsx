@@ -87,10 +87,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground">Tresspasser Bestiary</h1>
           </Link>
+          <Separator orientation="vertical" className="h-6 mx-2 hidden md:block" />
+          <nav className="hidden md:flex items-center gap-1">
+            {desktopNav}
+          </nav>
         </div>
-        <nav className="hidden md:flex items-center gap-2">
-          {desktopNav}
-        </nav>
         <div className="md:hidden">
           {mobileNav}
         </div>
