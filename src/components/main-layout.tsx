@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, FilePlus2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,10 +18,13 @@ import { useMemo, useRef, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { importData, exportAllData, seedInitialData } from '@/lib/idb';
+import { importLegacyData } from '@/lib/importer';
+
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const legacyFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,7 +65,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         
         toast({ title: "Import Successful", description: "Data has been overwritten. The application will now reload." });
         
-        // Reload the page to reflect changes everywhere
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -73,6 +75,38 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       } finally {
         if(fileInputRef.current) {
           fileInputRef.current.value = "";
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  const handleLegacyImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content !== 'string') {
+          throw new Error("File content could not be read as text.");
+        }
+        
+        const { creaturesAdded, deedsAdded } = await importLegacyData(content);
+        
+        toast({ title: "Import Successful", description: `Added ${creaturesAdded} creatures and ${deedsAdded} new deeds. The application will now reload.` });
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
+      } catch (error: any) {
+        console.error("Legacy import failed:", error);
+        toast({ variant: "destructive", title: "Import Failed", description: error.message || "Please check the file format and content." });
+      } finally {
+        if(legacyFileInputRef.current) {
+          legacyFileInputRef.current.value = "";
         }
       }
     };
@@ -206,6 +240,35 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleImportDefaults}>
+                        Proceed
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <input
+                type="file"
+                ref={legacyFileInputRef}
+                onChange={handleLegacyImport}
+                accept=".json"
+                className="hidden"
+            />
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Import Legacy Data">
+                        <FilePlus2 className="h-5 w-5" />
+                        <span className="sr-only">Import Legacy Data</span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Import Legacy Creatures?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will add creatures and deeds from the selected JSON file. This action does not overwrite existing data, but may create duplicates if the imported creatures already exist in your library.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => legacyFileInputRef.current?.click()}>
                         Proceed
                     </AlertDialogAction>
                     </AlertDialogFooter>

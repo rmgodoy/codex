@@ -33,10 +33,12 @@ export type DeedType = (typeof DEED_TYPES)[number];
 export const DEED_VERSUS = ['guard', 'resist', '10', 'special'] as const;
 export type DeedVersus = (typeof DEED_VERSUS)[number];
 
+export type DeedTier = 'light' | 'heavy' | 'mighty';
+
 export interface Deed {
   id: string;
   name: string;
-  tier: 'light' | 'heavy' | 'mighty';
+  tier: DeedTier;
   actionType: DeedActionType;
   deedType: DeedType;
   versus: DeedVersus;
