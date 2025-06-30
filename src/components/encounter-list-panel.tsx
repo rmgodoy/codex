@@ -24,12 +24,16 @@ interface EncounterListPanelProps {
   filters: {
     searchTerm: string;
     tagFilter: string;
+    minTR: string;
+    maxTR: string;
     sortBy: SortByType;
     sortOrder: 'asc' | 'desc';
   };
   setFilters: {
     setSearchTerm: (value: string) => void;
     setTagFilter: (value: string) => void;
+    setMinTR: (value: string) => void;
+    setMaxTR: (value: string) => void;
     setSortBy: (value: SortByType) => void;
     setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
   };
@@ -99,7 +103,15 @@ export default function EncounterListPanel({
         matchesTags = encounter.tags ? tags.every(tag => encounter.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
       }
 
-      return matchesSearch && matchesTags;
+      let matchesTR = true;
+      if (filters.minTR && !isNaN(parseInt(filters.minTR))) {
+        matchesTR = matchesTR && encounter.totalTR >= parseInt(filters.minTR, 10);
+      }
+      if (filters.maxTR && !isNaN(parseInt(filters.maxTR))) {
+        matchesTR = matchesTR && encounter.totalTR <= parseInt(filters.maxTR, 10);
+      }
+
+      return matchesSearch && matchesTags && matchesTR;
     });
 
     const sorted = filtered.sort((a, b) => {
@@ -142,6 +154,10 @@ export default function EncounterListPanel({
             <div className="relative">
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Tags (e.g. boss-fight)" value={filters.tagFilter} onChange={e => setFilters.setTagFilter(e.target.value)} className="pl-9"/>
+            </div>
+            <div className="flex gap-2">
+                <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
             </div>
         </div>
          <div>

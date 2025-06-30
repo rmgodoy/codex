@@ -23,12 +23,16 @@ export default function EncountersPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [minTR, setMinTR] = useState('');
+  const [maxTR, setMaxTR] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const filters = {
     searchTerm,
     tagFilter,
+    minTR,
+    maxTR,
     sortBy,
     sortOrder,
   };
@@ -36,6 +40,8 @@ export default function EncountersPage() {
   const setFilters = {
     setSearchTerm,
     setTagFilter,
+    setMinTR,
+    setMaxTR,
     setSortBy,
     setSortOrder,
   };
@@ -43,6 +49,8 @@ export default function EncountersPage() {
   const clearFilters = () => {
     setSearchTerm('');
     setTagFilter('');
+    setMinTR('');
+    setMaxTR('');
     setSortBy('name');
     setSortOrder('asc');
   };
