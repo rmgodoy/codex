@@ -19,7 +19,7 @@ export interface CreatureAttributes {
 export interface DeedEffects {
   start?: string;
   base?: string;
-  hit: string;
+  hit?: string;
   shadow?: string;
   end?: string;
 }

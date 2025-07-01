@@ -35,7 +35,7 @@ const TEMPLATES: CreatureTemplate[] = ['Normal', 'Underling', 'Paragon', 'Tyrant
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
   base: z.string().optional(),
-  hit: z.string().min(1, "Hit effect is required"),
+  hit: z.string().optional(),
   shadow: z.string().optional(),
   end: z.string().optional(),
 });
@@ -847,7 +847,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             )} />
                                 <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Hit <span className="text-destructive">*</span></FormLabel>
+                                    <FormLabel>Hit</FormLabel>
                                     <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                     <FormMessage />
                                 </FormItem>

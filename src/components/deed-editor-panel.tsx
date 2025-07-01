@@ -26,7 +26,7 @@ import { Badge } from "./ui/badge";
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
   base: z.string().optional(),
-  hit: z.string().min(1, "Hit effect is required"),
+  hit: z.string().optional(),
   shadow: z.string().optional(),
   end: z.string().optional(),
 });
@@ -380,7 +380,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             )} />
             <FormField name="effects.hit" control={form.control} render={({ field }) => (
             <FormItem>
-                <FormLabel>Hit <span className="text-destructive">*</span></FormLabel>
+                <FormLabel>Hit</FormLabel>
                 <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} /></FormControl>
                 <FormMessage />
             </FormItem>

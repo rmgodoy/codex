@@ -39,16 +39,32 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
         if (name.length > 50) return null; // Sanity check for a deed name
 
         const typeLineRaw = lines[1];
-        const typeMatch = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
         
-        if (!typeMatch) {
-            console.warn('Failed to parse deed type line -> ', typeLineRaw);
-            return null;
-        };
+        let deedType: DeedType;
+        let actionType: DeedActionType;
+        let versus: DeedVersus;
 
-        const deedType = typeMatch[1].toLowerCase() as DeedType;
-        const actionType = typeMatch[2].toLowerCase() as DeedActionType;
-        const versus = typeMatch[3].toLowerCase() as DeedVersus;
+        let typeMatch = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
+        
+        if (typeMatch) {
+            deedType = typeMatch[1].toLowerCase() as DeedType;
+            actionType = typeMatch[2].toLowerCase() as DeedActionType;
+            versus = typeMatch[3].toLowerCase() as DeedVersus;
+        } else {
+            const typeMatchWithoutVs = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)/);
+            if (typeMatchWithoutVs) {
+                deedType = typeMatchWithoutVs[1].toLowerCase() as DeedType;
+                actionType = typeMatchWithoutVs[2].toLowerCase() as DeedActionType;
+                if (actionType === 'support') {
+                    versus = '10';
+                } else { // It's an attack
+                    versus = 'guard';
+                }
+            } else {
+                 console.warn('Failed to parse deed type line -> ', typeLineRaw);
+                 return null;
+            }
+        }
         
         let lineIndex = 2;
         let target = '';
@@ -70,7 +86,7 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
         const effectLines = lines.slice(lineIndex);
 
         // Parse Effects
-        const effects: DeedData['effects'] = { hit: '' };
+        const effects: DeedData['effects'] = {};
         let currentEffectKey: keyof DeedData['effects'] | null = null;
         
         for (const line of effectLines) {
@@ -88,11 +104,6 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
                  effects.hit = (effects.hit ? `${effects.hit}\n` : '') + line;
                  currentEffectKey = 'hit';
              }
-        }
-
-        if (!effects.hit) {
-            console.warn('Deed has no "Hit" effect -> ', name);
-            return null; // Hit is mandatory
         }
 
         return {
