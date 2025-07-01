@@ -440,7 +440,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
                   <div>
-                    <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                    <CardTitle>{isCreatingNew ? (isMobile ? "New Encounter" : "Create a New Encounter") : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
                   </div>
                   {!isMobile && (
                     <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>

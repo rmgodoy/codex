@@ -642,7 +642,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
                   <div>
-                    <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${creatureData?.name || "..."}`}</CardTitle>
+                    <CardTitle>{isCreatingNew ? (isMobile ? "New Creature" : "Create a New Creature") : `Editing: ${creatureData?.name || "..."}`}</CardTitle>
                     <CardDescription>
                       {isCreatingNew ? "Fill out the details for your new creature." : "Make your changes and click Save."}
                     </CardDescription>

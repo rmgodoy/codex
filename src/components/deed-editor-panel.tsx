@@ -299,7 +299,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
                   <div>
-                      <CardTitle>{isCreatingNew ? "Create a New Deed" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                      <CardTitle>{isCreatingNew ? (isMobile ? "New Deed" : "Create a New Deed") : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
                       <CardDescription>
                         {isCreatingNew ? "Fill out the details for your new deed." : "Make your changes and click Save."}
                       </CardDescription>
