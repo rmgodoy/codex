@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAllEncounters, getAllCreatures } from '@/lib/idb';
-import type { Encounter, Creature } from '@/lib/types';
+import { getAllEncounters, getAllEncounterTables } from '@/lib/idb';
+import type { Encounter, EncounterTable } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,7 +49,7 @@ export default function EncounterListPanel({
   onClearFilters,
 }: EncounterListPanelProps) {
   const [encounters, setEncounters] = useState<Encounter[]>([]);
-  const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
+  const [allEncounterTables, setAllEncounterTables] = useState<EncounterTable[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -56,12 +57,12 @@ export default function EncounterListPanel({
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const [encountersData, creaturesData] = await Promise.all([
+        const [encountersData, tablesData] = await Promise.all([
           getAllEncounters(),
-          getAllCreatures()
+          getAllEncounterTables(),
         ]);
         setEncounters(encountersData);
-        setAllCreatures(creaturesData);
+        setAllEncounterTables(tablesData);
       } catch (error) {
         console.error("Error fetching encounters:", error);
         toast({ variant: "destructive", title: "Error", description: "Could not fetch encounters from database." });
@@ -73,18 +74,15 @@ export default function EncounterListPanel({
   }, [dataVersion, toast]);
 
   const filteredAndSortedEncounters = useMemo(() => {
-    const creatureTRMap = new Map(allCreatures.map(c => [c.id, c.TR]));
-
-    let encountersWithTR = encounters.map(enc => {
-      // Use saved TR if available, otherwise calculate it for backward compatibility
-      const totalTR = enc.totalTR ?? (enc.monsterGroups || []).reduce((acc, group) => {
-          const tr = creatureTRMap.get(group.monsterId) || 0;
-          return acc + (tr * group.quantity);
-      }, 0);
-      return { ...enc, totalTR };
+    const encountersWithCorrectTR = encounters.map(enc => {
+      if (enc.encounterTableId) {
+          const table = allEncounterTables.find(t => t.id === enc.encounterTableId);
+          return { ...enc, totalTR: table?.totalTR || enc.totalTR || 0 };
+      }
+      return { ...enc, totalTR: enc.totalTR || 0 };
     });
 
-    let filtered = encountersWithTR.filter(encounter => {
+    let filtered = encountersWithCorrectTR.filter(encounter => {
       const matchesSearch = encounter.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
       
       let matchesTags = true;
@@ -119,7 +117,7 @@ export default function EncounterListPanel({
     }
     
     return sorted;
-  }, [encounters, allCreatures, filters]);
+  }, [encounters, allEncounterTables, filters]);
 
   return (
     <div className="flex flex-col h-full">

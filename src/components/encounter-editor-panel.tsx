@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -158,7 +158,7 @@ const defaultValues: EncounterFormData = {
   monsterGroups: [],
   tags: [],
   totalTR: 0,
-  encounterTableId: "",
+  encounterTableId: "none",
 };
 
 export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter, onFilterByClick, onBack, dataVersion }: EncounterEditorPanelProps) {
@@ -180,107 +180,108 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   const { fields: playerFields, append: appendPlayer, remove: removePlayer } = useFieldArray({ control: form.control, name: "players" });
   const { fields: monsterGroupFields, append: appendMonsterGroup, remove: removeMonsterGroup, update: updateMonsterGroup, replace: replaceMonsterGroups } = useFieldArray({ control: form.control, name: "monsterGroups" });
   
-  const watchedEncounterTableId = form.watch("encounterTableId");
-  const watchedMonsterGroups = form.watch("monsterGroups");
-  
   const creatureTRMap = useMemo(() => new Map(allCreatures.map(c => [c.id, c.TR])), [allCreatures]);
-
-  const watchedMonsterGroupsString = JSON.stringify(watchedMonsterGroups);
+  
+  const watchedEncounterTableId = form.watch("encounterTableId");
+  const watchedMonsterGroupsString = JSON.stringify(form.watch("monsterGroups"));
 
   useEffect(() => {
-    const currentMonsterGroups: MonsterEncounterGroup[] = JSON.parse(watchedMonsterGroupsString);
-    if (watchedEncounterTableId) {
+    if (watchedEncounterTableId && watchedEncounterTableId !== 'none') {
       const table = allEncounterTables.find(t => t.id === watchedEncounterTableId);
-      form.setValue('totalTR', table?.totalTR || 0);
+      if (table && table.totalTR !== form.getValues('totalTR')) {
+        form.setValue('totalTR', table.totalTR);
+      }
       if (form.getValues('monsterGroups').length > 0) {
         replaceMonsterGroups([]);
       }
     } else {
+      const currentMonsterGroups: MonsterEncounterGroup[] = JSON.parse(watchedMonsterGroupsString);
       const newTotalTR = currentMonsterGroups.reduce((acc: number, group: MonsterEncounterGroup) => {
         const tr = creatureTRMap.get(group.monsterId) || 0;
         return acc + (tr * group.quantity);
       }, 0);
-      form.setValue('totalTR', newTotalTR);
+      if (newTotalTR !== form.getValues('totalTR')) {
+          form.setValue('totalTR', newTotalTR);
+      }
     }
   }, [watchedMonsterGroupsString, watchedEncounterTableId, allEncounterTables, creatureTRMap, form, replaceMonsterGroups]);
-  
+
+  const fetchEncounterData = useCallback(async () => {
+    if (isCreatingNew) {
+      form.reset(defaultValues);
+      setEncounterData(null);
+      setIsEditing(true);
+      setLoading(false);
+      const tables = await getAllEncounterTables();
+      setAllEncounterTables(tables);
+      return;
+    }
+    
+    if (!encounterId) {
+      setIsEditing(false);
+      setLoading(false);
+      setEncounterData(null);
+      return;
+    }
+
+    setLoading(true);
+    setIsEditing(false);
+    try {
+      const [encounterFromDb, tables, creatures] = await Promise.all([
+        getEncounterById(encounterId),
+        getAllEncounterTables(),
+        getAllCreatures()
+      ]);
+
+      setAllEncounterTables(tables);
+      setAllCreatures(creatures);
+
+      if (encounterFromDb) {
+         let table;
+         let currentTR = encounterFromDb.totalTR || 0;
+         if (encounterFromDb.encounterTableId) {
+            table = tables.find(t => t.id === encounterFromDb.encounterTableId);
+            if (table) {
+                currentTR = table.totalTR;
+            }
+         }
+        
+         const displayData = { ...encounterFromDb, totalTR: currentTR };
+         setEncounterData(displayData);
+
+         const formData = {
+          ...encounterFromDb,
+          tags: encounterFromDb.tags || [],
+          encounterTableId: encounterFromDb.encounterTableId || "none",
+          totalTR: currentTR,
+        };
+        form.reset(formData);
+        
+        const monsterIds = (encounterFromDb.monsterGroups || []).map(g => g.monsterId);
+        const creaturesForView = creatures.filter(c => monsterIds.includes(c.id));
+        const creaturesMap = new Map(creaturesForView.map(c => [c.id, c]));
+        setViewModeDetails({ monsters: creaturesMap, table });
+        
+      } else {
+        setEncounterData(null);
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not load encounter data." });
+    } finally {
+      setLoading(false);
+    }
+  }, [encounterId, isCreatingNew, form, toast]);
+
   useEffect(() => {
-    const fetchData = async () => {
-        const [creatures, tables] = await Promise.all([
-            getAllCreatures(),
-            getAllEncounterTables()
-        ]);
-        setAllCreatures(creatures);
-        setAllEncounterTables(tables);
-    };
-    fetchData();
-
-    window.addEventListener('focus', fetchData);
-    return () => {
-        window.removeEventListener('focus', fetchData);
-    };
-  }, [dataVersion]);
-
+    fetchEncounterData();
+    window.addEventListener('focus', fetchEncounterData);
+    return () => window.removeEventListener('focus', fetchEncounterData);
+  }, [fetchEncounterData, dataVersion]);
+  
   const monsterDetailsMap = useMemo(() => {
     return new Map(allCreatures.map(c => [c.id, c]));
   }, [allCreatures]);
 
-  useEffect(() => {
-    const fetchEncounterData = async () => {
-      if (isCreatingNew) {
-        form.reset(defaultValues);
-        setEncounterData(null);
-        setIsEditing(true);
-        setLoading(false);
-        return;
-      }
-      
-      if (!encounterId) {
-        setIsEditing(false);
-        setLoading(false);
-        setEncounterData(null);
-        return;
-      }
-
-      setLoading(true);
-      setIsEditing(false);
-      try {
-        const encounterFromDb = await getEncounterById(encounterId);
-        if (encounterFromDb) {
-           const formData = {
-            ...encounterFromDb,
-            tags: encounterFromDb.tags || [],
-            encounterTableId: encounterFromDb.encounterTableId || "",
-          };
-          form.reset(formData);
-          setEncounterData(encounterFromDb);
-          
-          let table: EncounterTable | undefined;
-          if (encounterFromDb.encounterTableId) {
-            table = allEncounterTables.find(t => t.id === encounterFromDb.encounterTableId);
-          }
-          
-          const monsterIds = (encounterFromDb.monsterGroups || []).map(g => g.monsterId);
-          if (monsterIds.length > 0) {
-            const creatures = await getCreaturesByIds(monsterIds);
-            const creaturesMap = new Map(creatures.map(c => [c.id, c]));
-            setViewModeDetails({ monsters: creaturesMap, table });
-          } else {
-            setViewModeDetails({ monsters: new Map(), table });
-          }
-          
-        } else {
-          setEncounterData(null);
-        }
-      } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Could not load encounter data." });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchEncounterData();
-  }, [encounterId, isCreatingNew, form, toast, allEncounterTables]);
-  
   const handleCancel = () => {
     if (isCreatingNew) {
         onEditCancel();
@@ -288,7 +289,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         const formData = {
             ...encounterData,
             tags: encounterData.tags || [],
-            encounterTableId: encounterData.encounterTableId || "",
+            encounterTableId: encounterData.encounterTableId || "none",
         };
         form.reset(formData);
         setIsEditing(false);
@@ -297,12 +298,13 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   const onSubmit = async (data: EncounterFormData) => {
     try {
+      const tableId = data.encounterTableId === 'none' ? undefined : data.encounterTableId;
       const encounterToSave: Omit<Encounter, 'id'> | Encounter = {
         ...data,
         tags: data.tags || [],
         totalTR: data.totalTR,
-        encounterTableId: data.encounterTableId || undefined,
-        monsterGroups: data.encounterTableId ? [] : data.monsterGroups,
+        encounterTableId: tableId,
+        monsterGroups: tableId ? [] : data.monsterGroups,
       };
 
       const tagsToSave = data.tags || [];
@@ -310,15 +312,19 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         await addTags(tagsToSave);
       }
 
+      let savedId: string;
       if (isCreatingNew) {
-        const newId = await addEncounter(encounterToSave as Omit<Encounter, 'id'>);
+        savedId = await addEncounter(encounterToSave as Omit<Encounter, 'id'>);
         toast({ title: "Encounter Created!", description: `${data.name} has been saved.` });
-        onEncounterSaveSuccess(newId);
       } else if (encounterId) {
+        savedId = encounterId;
         await updateEncounter({ ...encounterToSave, id: encounterId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
-        onEncounterSaveSuccess(encounterId);
+      } else {
+        return;
       }
+      onEncounterSaveSuccess(savedId);
+      setIsEditing(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
@@ -561,8 +567,8 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                       <FormItem>
                         <FormLabel>Encounter Table (Optional)</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}
-                          value={field.value ? (field.value === '' ? 'none' : field.value) : 'none'}
+                          onValueChange={(value) => field.onChange(value)}
+                          value={field.value || "none"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -583,7 +589,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                     )}
                   />
 
-                  {!watchedEncounterTableId && (
+                  {(!watchedEncounterTableId || watchedEncounterTableId === 'none') && (
                     <div className="mt-4">
                       <div className="flex justify-end items-center mb-2">
                           <MonsterSelectionDialog onAddCreatures={addMonsters} />
