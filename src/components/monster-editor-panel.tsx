@@ -494,12 +494,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
   if (!isCreatingNew && !creatureId && !loading) {
     return (
-      <Card className="h-full flex items-center justify-center min-h-[300px]">
-        <CardContent className="text-center pt-6">
-            <p className="text-xl text-muted-foreground">Select a creature to view</p>
-            <p className="text-muted-foreground">or create a new one.</p>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-5xl mx-auto">
+        <Card className="h-full flex items-center justify-center min-h-[300px]">
+          <CardContent className="text-center pt-6">
+              <p className="text-xl text-muted-foreground">Select a creature to view</p>
+              <p className="text-muted-foreground">or create a new one.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
   
@@ -611,322 +613,324 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   }
 
   return (
-    <Card>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <CardHeader className="flex flex-row justify-between items-start">
-            <div>
-              <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${creatureData?.name || "..."}`}</CardTitle>
-              <CardDescription>
-                {isCreatingNew ? "Fill out the details for your new creature." : "Make your changes and click Save."}
-              </CardDescription>
-            </div>
-            <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
-              <X className="h-5 w-5" />
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-8 pt-0">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <FormField name="name" control={form.control} render={({ field }) => (
-                <FormItem className="lg:col-span-2">
-                  <FormLabel>Name</FormLabel>
-                  <FormControl><Input placeholder="e.g., Gloomfang Serpent" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-               <FormField name="level" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Level</FormLabel>
-                  <FormControl><Input type="number" min="1" max="10" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField name="TR" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>TR</FormLabel>
-                  <FormControl><Input type="number" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <FormField name="template" control={form.control} render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Template</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                              {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                  </FormItem>
-              )} />
-              <FormField name="role" control={form.control} render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                              {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                  </FormItem>
-              )} />
-            </div>
-            
-            <Separator />
-            
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-                <FormField name="attributes.HP" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Heart className="h-4 w-4 text-accent" />HP</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
+    <div className="w-full max-w-5xl mx-auto">
+      <Card>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <CardHeader className="flex flex-row justify-between items-start">
+              <div>
+                <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${creatureData?.name || "..."}`}</CardTitle>
+                <CardDescription>
+                  {isCreatingNew ? "Fill out the details for your new creature." : "Make your changes and click Save."}
+                </CardDescription>
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-8 pt-0">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <FormField name="name" control={form.control} render={({ field }) => (
+                  <FormItem className="lg:col-span-2">
+                    <FormLabel>Name</FormLabel>
+                    <FormControl><Input placeholder="e.g., Gloomfang Serpent" {...field} /></FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                <FormField name="attributes.Speed" control={form.control} render={({ field }) => (
+                <FormField name="level" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Rabbit className="h-4 w-4 text-accent" />Speed</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormLabel>Level</FormLabel>
+                    <FormControl><Input type="number" min="1" max="10" {...field} /></FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
-                <FormField name="attributes.Initiative" control={form.control} render={({ field }) => (
+                <FormField name="TR" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Zap className="h-4 w-4 text-accent" />Initiative</FormLabel>
+                    <FormLabel>TR</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField name="attributes.Accuracy" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Crosshair className="h-4 w-4 text-accent" />Accuracy</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                 <FormField name="attributes.Guard" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Shield className="h-4 w-4 text-accent" />Guard</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                <FormField name="attributes.Resist" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2"><ShieldHalf className="h-4 w-4 text-accent" />Resist</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                 <FormField name="attributes.rollBonus" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Dice5 className="h-4 w-4 text-accent" />Roll Bonus</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                  </FormItem>
-                )} />
-                 <FormField name="attributes.DMG" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Sword className="h-4 w-4 text-accent" />DMG</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
                   </FormItem>
                 )} />
               </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
-                  <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
-                    <Plus className="h-4 w-4 mr-2" /> Create New
-                  </Button>
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField name="template" control={form.control} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Template</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField name="role" control={form.control} render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                  <FormField name="attributes.HP" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Heart className="h-4 w-4 text-accent" />HP</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.Speed" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Rabbit className="h-4 w-4 text-accent" />Speed</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.Initiative" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Zap className="h-4 w-4 text-accent" />Initiative</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.Accuracy" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Crosshair className="h-4 w-4 text-accent" />Accuracy</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.Guard" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Shield className="h-4 w-4 text-accent" />Guard</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.Resist" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><ShieldHalf className="h-4 w-4 text-accent" />Resist</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.rollBonus" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Dice5 className="h-4 w-4 text-accent" />Roll Bonus</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField name="attributes.DMG" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2"><Sword className="h-4 w-4 text-accent" />DMG</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                    </FormItem>
+                  )} />
                 </div>
               </div>
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                    <Collapsible key={field.id} defaultOpen={!form.getValues(`deeds.${index}.name`)} className="border bg-card-foreground/5 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                            <CollapsibleTrigger asChild>
-                                <button type="button" className="flex items-center gap-3 text-left w-full">
-                                    <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
-                                    <span className="text-lg font-semibold text-primary-foreground">
-                                        {watchedData.deeds?.[index]?.name || "New Deed"}
-                                    </span>
-                                    {watchedData.deeds?.[index]?.id && <span className="text-xs text-muted-foreground">(from library)</span>}
-                                </button>
-                            </CollapsibleTrigger>
-                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <CollapsibleContent className="mt-6 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Deed Name</FormLabel>
-                                        <FormControl><Input placeholder="e.g., Inferno" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tier</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id || watchedTemplate === 'Underling'}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="light">Light</SelectItem>
-                                                <SelectItem value="heavy">Heavy</SelectItem>
-                                                <SelectItem value="mighty">Mighty</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
 
-                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField name={`deeds.${index}.deedType`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Deed Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                 {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField name={`deeds.${index}.actionType`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Action Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField name={`deeds.${index}.versus`} control={form.control} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Versus</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Versus" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                 {DEED_VERSUS.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
+              <Separator />
 
-                            <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Target</FormLabel>
-                                    <FormControl><Input placeholder="e.g., 1 Creature | Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
+                      <Plus className="h-4 w-4 mr-2" /> Create New
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {fields.map((field, index) => (
+                      <Collapsible key={field.id} defaultOpen={!form.getValues(`deeds.${index}.name`)} className="border bg-card-foreground/5 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                              <CollapsibleTrigger asChild>
+                                  <button type="button" className="flex items-center gap-3 text-left w-full">
+                                      <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
+                                      <span className="text-lg font-semibold text-primary-foreground">
+                                          {watchedData.deeds?.[index]?.name || "New Deed"}
+                                      </span>
+                                      {watchedData.deeds?.[index]?.id && <span className="text-xs text-muted-foreground">(from library)</span>}
+                                  </button>
+                              </CollapsibleTrigger>
+                              <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </div>
+                          <CollapsibleContent className="mt-6 space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <FormField name={`deeds.${index}.name`} control={form.control} render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Deed Name</FormLabel>
+                                          <FormControl><Input placeholder="e.g., Inferno" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )} />
+                                  <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Tier</FormLabel>
+                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id || watchedTemplate === 'Underling'}>
+                                              <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
+                                              <SelectContent>
+                                                  <SelectItem value="light">Light</SelectItem>
+                                                  <SelectItem value="heavy">Heavy</SelectItem>
+                                                  <SelectItem value="mighty">Mighty</SelectItem>
+                                              </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )} />
+                              </div>
 
-                            <div className="mt-4 space-y-4">
-                            <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>
-                            <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                </FormItem>
-                            )} />
-                            <FormField name={`deeds.${index}.effects.base`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                </FormItem>
-                            )} />
-                                <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Hit <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )} />
-                                <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Shadow (Critical) <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )} />
-                                <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
-                                    <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
-                                </FormItem>
-                                )} />
-                            </div>
-                        </CollapsibleContent>
-                    </Collapsible>
-                ))}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <FormField name={`deeds.${index}.deedType`} control={form.control} render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Deed Type</FormLabel>
+                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                              <FormControl><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
+                                              <SelectContent>
+                                                  {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                              </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )} />
+                                  <FormField name={`deeds.${index}.actionType`} control={form.control} render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Action Type</FormLabel>
+                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                              <FormControl><SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger></FormControl>
+                                              <SelectContent>
+                                                  {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                              </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )} />
+                                  <FormField name={`deeds.${index}.versus`} control={form.control} render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Versus</FormLabel>
+                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                              <FormControl><SelectTrigger><SelectValue placeholder="Versus" /></SelectTrigger></FormControl>
+                                              <SelectContent>
+                                                  {DEED_VERSUS.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                                              </SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )} />
+                              </div>
+
+                              <FormField name={`deeds.${index}.target`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Target</FormLabel>
+                                      <FormControl><Input placeholder="e.g., 1 Creature | Blast 4" {...field} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )} />
+
+                              <div className="mt-4 space-y-4">
+                              <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>
+                              <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormControl><Textarea placeholder="Effect when a creature starts its turn in an area..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                  </FormItem>
+                              )} />
+                              <FormField name={`deeds.${index}.effects.base`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                  </FormItem>
+                              )} />
+                                  <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Hit <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                                  )} />
+                                  <FormField name={`deeds.${index}.effects.shadow`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Shadow (Critical) <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormControl><Textarea placeholder="The enhanced effect on a critical success..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                                  )} />
+                                  <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                  </FormItem>
+                                  )} />
+                              </div>
+                          </CollapsibleContent>
+                      </Collapsible>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <Separator />
+              <Separator />
 
-            <FormField name="abilities" control={form.control} render={({ field }) => (
+              <FormField name="abilities" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Abilities</FormLabel>
+                    <FormControl><Textarea placeholder="Special abilities, separated by commas..." {...field} /></FormControl>
+                  </FormItem>
+                )} />
+              <FormField name="description" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl><Textarea placeholder="A short description of the creature..." rows={5} {...field} /></FormControl>
+                  </FormItem>
+                )} />
+              <FormField name="tags" control={form.control} render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Abilities</FormLabel>
-                  <FormControl><Textarea placeholder="Special abilities, separated by commas..." {...field} /></FormControl>
+                  <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                  <FormControl><Input placeholder="e.g. undead, magical, small" {...field} /></FormControl>
+                  <FormMessage />
                 </FormItem>
               )} />
-            <FormField name="description" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl><Textarea placeholder="A short description of the creature..." rows={5} {...field} /></FormControl>
-                </FormItem>
-              )} />
-            <FormField name="tags" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                <FormControl><Input placeholder="e.g. undead, magical, small" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            
-          </CardContent>
-          <CardFooter className="flex items-center gap-2">
-            {!isCreatingNew && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete "{form.getValues("name")}". This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            <div className="flex-grow" />
-            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-            <Button type="submit">{isCreatingNew ? "Create Creature" : "Save Changes"}</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+              
+            </CardContent>
+            <CardFooter className="flex items-center gap-2">
+              {!isCreatingNew && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <div className="flex-grow" />
+              <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+              <Button type="submit">{isCreatingNew ? "Create Creature" : "Save Changes"}</Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+    </div>
   );
 }

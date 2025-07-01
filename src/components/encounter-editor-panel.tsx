@@ -310,12 +310,14 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   
   if (!encounterId && !isCreatingNew) {
     return (
-      <Card className="h-full flex items-center justify-center min-h-[300px]">
-        <CardContent className="text-center pt-6">
-            <p className="text-xl text-muted-foreground">Select an encounter to view</p>
-            <p className="text-muted-foreground">or create a new one.</p>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-5xl mx-auto">
+        <Card className="h-full flex items-center justify-center min-h-[300px]">
+          <CardContent className="text-center pt-6">
+              <p className="text-xl text-muted-foreground">Select an encounter to view</p>
+              <p className="text-muted-foreground">or create a new one.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -413,86 +415,88 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   }
 
   return (
-    <Card>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <CardHeader className="flex flex-row justify-between items-start">
-            <div>
-              <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
-            </div>
-             <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Encounter Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField name="tags" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                <FormControl><Input placeholder="e.g. random, boss-fight, exploration" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <FormField name="sceneDescription" control={form.control} render={({ field }) => (<FormItem><FormLabel>Scene Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
-            <FormField name="gmNotes" control={form.control} render={({ field }) => (<FormItem><FormLabel>GM Notes (Private)</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
-            
-            <Separator />
-            
-            <div>
-              <h3 className="text-lg font-semibold text-primary-foreground mb-4">Combatants</h3>
-              
-              {/* Players */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-semibold text-muted-foreground">Players</h4>
-                    <Button type="button" size="sm" variant="outline" onClick={addPlayer}><UserPlus className="h-4 w-4 mr-2" /> Add Player</Button>
-                </div>
-                <div className="space-y-2">
-                    {playerFields.map((field, index) => (
-                        <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card-foreground/5">
-                            <FormField name={`players.${index}.name`} control={form.control} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removePlayer(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                    ))}
-                    {playerFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No players added.</p>}
-                </div>
-              </div>
-              
-              {/* Monsters */}
+    <div className="w-full max-w-5xl mx-auto">
+      <Card>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <CardHeader className="flex flex-row justify-between items-start">
               <div>
-                <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-semibold text-muted-foreground">Monsters</h4>
-                    <MonsterSelectionDialog onAddCreatures={addMonsters} />
+                <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Encounter Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField name="tags" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                  <FormControl><Input placeholder="e.g. random, boss-fight, exploration" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField name="sceneDescription" control={form.control} render={({ field }) => (<FormItem><FormLabel>Scene Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
+              <FormField name="gmNotes" control={form.control} render={({ field }) => (<FormItem><FormLabel>GM Notes (Private)</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-lg font-semibold text-primary-foreground mb-4">Combatants</h3>
+                
+                {/* Players */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold text-muted-foreground">Players</h4>
+                      <Button type="button" size="sm" variant="outline" onClick={addPlayer}><UserPlus className="h-4 w-4 mr-2" /> Add Player</Button>
+                  </div>
+                  <div className="space-y-2">
+                      {playerFields.map((field, index) => (
+                          <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card-foreground/5">
+                              <FormField name={`players.${index}.name`} control={form.control} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removePlayer(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                      ))}
+                      {playerFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No players added.</p>}
+                  </div>
                 </div>
-                 <div className="space-y-2">
-                    {monsterGroupFields.map((field, index) => {
-                        const monster = monsterDetailsMap.get(field.monsterId);
-                        return (
-                             <div key={field.id} className="flex items-center gap-3 p-2 border rounded-lg bg-card-foreground/5">
-                                <p className="flex-1 font-semibold">{monster?.name || 'Unknown Monster'}</p>
-                                <FormField name={`monsterGroups.${index}.quantity`} control={form.control} render={({ field: quantityField }) => (
-                                <FormItem className="flex items-center gap-2">
-                                    <Label>Qty</Label>
-                                    <FormControl><Input type="number" min="1" {...quantityField} className="w-20 h-8" /></FormControl>
-                                </FormItem>
-                                )} />
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeMonsterGroup(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                        )
-                    })}
-                    {monsterGroupFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No monsters added.</p>}
+                
+                {/* Monsters */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold text-muted-foreground">Monsters</h4>
+                      <MonsterSelectionDialog onAddCreatures={addMonsters} />
+                  </div>
+                  <div className="space-y-2">
+                      {monsterGroupFields.map((field, index) => {
+                          const monster = monsterDetailsMap.get(field.monsterId);
+                          return (
+                              <div key={field.id} className="flex items-center gap-3 p-2 border rounded-lg bg-card-foreground/5">
+                                  <p className="flex-1 font-semibold">{monster?.name || 'Unknown Monster'}</p>
+                                  <FormField name={`monsterGroups.${index}.quantity`} control={form.control} render={({ field: quantityField }) => (
+                                  <FormItem className="flex items-center gap-2">
+                                      <Label>Qty</Label>
+                                      <FormControl><Input type="number" min="1" {...quantityField} className="w-20 h-8" /></FormControl>
+                                  </FormItem>
+                                  )} />
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => removeMonsterGroup(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+                              </div>
+                          )
+                      })}
+                      {monsterGroupFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No monsters added.</p>}
+                  </div>
                 </div>
+
               </div>
 
-            </div>
-
-          </CardContent>
-          <CardFooter className="flex items-center gap-2">
-            {!isCreatingNew && (<AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{form.getValues("name")}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
-            <div className="flex-grow" />
-            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-            <Button type="submit">{isCreatingNew ? "Create Encounter" : "Save Changes"}</Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
+            </CardContent>
+            <CardFooter className="flex items-center gap-2">
+              {!isCreatingNew && (<AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{form.getValues("name")}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
+              <div className="flex-grow" />
+              <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+              <Button type="submit">{isCreatingNew ? "Create Encounter" : "Save Changes"}</Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+    </div>
   );
 }
