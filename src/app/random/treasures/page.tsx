@@ -1,22 +1,180 @@
 
 "use client";
 
-import MainLayout from "@/components/main-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dices } from "lucide-react";
+import { useState, useEffect } from 'react';
+import MainLayout from '@/components/main-layout';
+import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
+import type { Treasure } from '@/lib/types';
+import TreasureListPanel from '@/components/treasure-list-panel';
+import TreasureEditorPanel from '@/components/treasure-editor-panel';
+
+type SortByType = 'name' | 'value';
 
 export default function TreasuresPage() {
+  const [selectedTreasureId, setSelectedTreasureId] = useState<string | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [minValue, setMinValue] = useState('');
+  const [maxValue, setMaxValue] = useState('');
+  const [sortBy, setSortBy] = useState<SortByType>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const [isClient, setIsClient] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const filters = {
+    searchTerm,
+    tagFilter,
+    minValue,
+    maxValue,
+    sortBy,
+    sortOrder,
+  };
+
+  const setFilters = {
+    setSearchTerm,
+    setTagFilter,
+    setMinValue,
+    setMaxValue,
+    setSortBy,
+    setSortOrder,
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTagFilter('');
+    setMinValue('');
+    setMaxValue('');
+    setSortBy('name');
+    setSortOrder('asc');
+  };
+
+  const refreshList = () => setDataVersion(v => v + 1);
+
+  const handleSelectTreasure = (id: string | null) => {
+    setSelectedTreasureId(id);
+    setIsCreatingNew(false);
+    if (isMobile) {
+      setMobileView('editor');
+    }
+  };
+
+  const handleNewTreasure = () => {
+    setSelectedTreasureId(null);
+    setIsCreatingNew(true);
+    if (isMobile) {
+      setMobileView('editor');
+    }
+  };
+
+  const onSaveSuccess = (id: string) => {
+    refreshList();
+    setSelectedTreasureId(id);
+    setIsCreatingNew(false);
+    if (isMobile) {
+      setMobileView('editor');
+    }
+  };
+
+  const onDeleteSuccess = () => {
+    refreshList();
+    setSelectedTreasureId(null);
+    setIsCreatingNew(false);
+    if (isMobile) {
+      setMobileView('list');
+    }
+  };
+
+  const handleBack = () => {
+    setMobileView('list');
+    setSelectedTreasureId(null);
+    setIsCreatingNew(false);
+  };
+  
+  const onEditCancel = () => {
+    if (isCreatingNew) {
+      setIsCreatingNew(false);
+      setSelectedTreasureId(null);
+      if (isMobile) {
+        setMobileView('list');
+      }
+    }
+  };
+
+  if (!isClient) {
+    return null;
+  }
+
+  if (isMobile) {
+    return (
+      <MainLayout showSidebarTrigger={false}>
+        <div className="h-full w-full">
+          {mobileView === 'list' ? (
+            <TreasureListPanel
+              onSelectTreasure={handleSelectTreasure}
+              onNewTreasure={handleNewTreasure}
+              selectedTreasureId={selectedTreasureId}
+              dataVersion={dataVersion}
+              filters={filters}
+              setFilters={setFilters}
+              onClearFilters={clearFilters}
+            />
+          ) : (
+            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
+              <TreasureEditorPanel
+                key={selectedTreasureId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                treasureId={selectedTreasureId}
+                isCreatingNew={isCreatingNew}
+                onSaveSuccess={onSaveSuccess}
+                onDeleteSuccess={onDeleteSuccess}
+                onEditCancel={onEditCancel}
+                onBack={handleBack}
+              />
+            </div>
+          )}
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
-    <MainLayout>
-      <div className="p-4 sm:p-6 md:p-8">
-        <Card className="h-full flex items-center justify-center min-h-[300px]">
-            <CardContent className="text-center pt-6">
-                <Dices className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <CardTitle className="text-2xl">Treasures</CardTitle>
-                <p className="text-lg text-muted-foreground mt-2">This page is under construction.</p>
-            </CardContent>
-        </Card>
-      </div>
-    </MainLayout>
+    <SidebarProvider>
+      <MainLayout>
+        <div className="flex w-full h-full overflow-hidden">
+          <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
+            <TreasureListPanel
+              onSelectTreasure={handleSelectTreasure}
+              onNewTreasure={handleNewTreasure}
+              selectedTreasureId={selectedTreasureId}
+              dataVersion={dataVersion}
+              filters={filters}
+              setFilters={setFilters}
+              onClearFilters={clearFilters}
+            />
+          </Sidebar>
+          <SidebarInset className="flex-1 overflow-y-auto">
+            <div className="bg-background/50 p-4 sm:p-6 md:p-8 h-full w-full">
+              <TreasureEditorPanel
+                key={selectedTreasureId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                treasureId={selectedTreasureId}
+                isCreatingNew={isCreatingNew}
+                onSaveSuccess={onSaveSuccess}
+                onDeleteSuccess={onDeleteSuccess}
+                onEditCancel={onEditCancel}
+              />
+            </div>
+          </SidebarInset>
+        </div>
+      </MainLayout>
+    </SidebarProvider>
   );
 }

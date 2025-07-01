@@ -157,3 +157,18 @@ export interface EncounterTable {
   totalTR: number;
   entries: EncounterTableEntry[];
 }
+
+// Treasure Types
+export interface Treasure {
+  id: string;
+  name: string;
+  description: string;
+  value: number;
+  slots: string;
+  material: string;
+  gemstone: string;
+  tags: string[];
+  isGenerated: boolean;
+}
+
+export type NewTreasure = Omit<Treasure, 'id'>;
