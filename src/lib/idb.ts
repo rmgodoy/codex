@@ -283,6 +283,11 @@ export const addTag = async (tag: Tag): Promise<void> => {
     });
 };
 
+export const addTags = async (tagNames: string[]): Promise<void> => {
+    if (!tagNames || tagNames.length === 0) return;
+    await Promise.all(tagNames.map(name => addTag({ name })));
+};
+
 
 // Import/Export
 export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[] }> => {

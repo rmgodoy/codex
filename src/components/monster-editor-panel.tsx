@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds } from "@/lib/idb";
+import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds, addTags } from "@/lib/idb";
 import { ROLES, getStatsForRoleAndLevel, getTR, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
 import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate } from "@/lib/types";
@@ -48,7 +48,7 @@ const deedSchema = z.object({
   actionType: z.enum(DEED_ACTION_TYPES),
   deedType: z.enum(DEED_TYPES),
   versus: z.enum(DEED_VERSUS),
-  target: z.string().min(1, "Target is required"),
+  target: z.string(),
   effects: deedEffectsSchema,
   tags: z.array(z.string()).optional(),
 });
@@ -375,6 +375,11 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
         tags: data.tags || [],
         deeds: deedIds,
       };
+
+      const tagsToSave = data.tags || [];
+      if (tagsToSave.length > 0) {
+        await addTags(tagsToSave);
+      }
 
       if (isCreatingNew) {
         const newId = await addCreature(creatureToSave as Omit<Creature, 'id'>);

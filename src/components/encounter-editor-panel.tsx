@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, getDeedsByIds, getCreaturesByIds, getCreatureById } from "@/lib/idb";
+import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, getDeedsByIds, getCreaturesByIds, getCreatureById, addTags } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { Encounter, Creature, CreatureWithDeeds, Deed, MonsterEncounterGroup, PlayerEncounterEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -260,6 +260,11 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         tags: data.tags || [],
         totalTR,
       };
+
+      const tagsToSave = data.tags || [];
+      if (tagsToSave.length > 0) {
+        await addTags(tagsToSave);
+      }
 
       if (isCreatingNew) {
         const newId = await addEncounter(encounterToSave as Omit<Encounter, 'id'>);

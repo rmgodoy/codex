@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
-import { getAllTags, addTag as addTagToDb } from '@/lib/idb';
-import { cn } from '@/lib/utils';
+import { getAllTags } from '@/lib/idb';
 import { ScrollArea } from './scroll-area';
 
 interface TagInputProps {
@@ -45,15 +44,10 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
     }
   }, [inputValue, allTags, value]);
   
-  const addTag = async (tag: string) => {
+  const addTag = (tag: string) => {
     const newTag = tag.trim();
     if (newTag && !value.includes(newTag)) {
       onChange([...value, newTag]);
-      // Add to global tag list if it's new
-      if (!allTags.includes(newTag)) {
-        await addTagToDb({ name: newTag });
-        setAllTags([...allTags, newTag]);
-      }
     }
     setInputValue('');
     setIsPopoverOpen(false);
@@ -74,28 +68,30 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
 
   return (
     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-        <PopoverAnchor className="flex w-full flex-wrap items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background has-[input:focus-visible]:outline-none has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2">
-            {value.map(tag => (
-                <Badge key={tag} variant="secondary">
-                {tag}
-                <button
-                    type="button"
-                    className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    onClick={() => removeTag(tag)}
-                >
-                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                </button>
-                </Badge>
-            ))}
-            <Input
-                ref={inputRef}
-                type="text"
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                className="flex-1 border-0 bg-transparent p-0 text-base shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
-            />
+        <PopoverAnchor asChild>
+          <div className="flex w-full flex-wrap items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background has-[input:focus-visible]:outline-none has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2">
+              {value.map(tag => (
+                  <Badge key={tag} variant="secondary">
+                  {tag}
+                  <button
+                      type="button"
+                      className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      onClick={() => removeTag(tag)}
+                  >
+                      <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                  </Badge>
+              ))}
+              <Input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  className="flex-1 border-0 bg-transparent p-0 text-base shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
+              />
+          </div>
         </PopoverAnchor>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
         <ScrollArea className="max-h-40">

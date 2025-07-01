@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getDeedById, addDeed, updateDeed, deleteDeed } from "@/lib/idb";
+import { getDeedById, addDeed, updateDeed, deleteDeed, addTags } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { Deed, DeedData } from "@/lib/types";
 import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
@@ -38,7 +38,7 @@ const deedSchema = z.object({
   actionType: z.enum(DEED_ACTION_TYPES),
   deedType: z.enum(DEED_TYPES),
   versus: z.enum(DEED_VERSUS),
-  target: z.string().min(1, "Target is required"),
+  target: z.string(),
   effects: deedEffectsSchema,
   tags: z.array(z.string()).optional(),
 });
@@ -139,6 +139,11 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
         ...data,
         tags: data.tags || [],
       };
+
+      const tagsToSave = data.tags || [];
+      if (tagsToSave.length > 0) {
+        await addTags(tagsToSave);
+      }
 
       if (isCreatingNew) {
         const newId = await addDeed(deedToSave as DeedData);
