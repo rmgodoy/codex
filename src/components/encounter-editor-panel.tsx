@@ -147,6 +147,7 @@ interface EncounterEditorPanelProps {
   onRunEncounter: (id: string) => void;
   onFilterByClick: (updates: Partial<{ minTR: number; maxTR: number; tagFilter: string }>, e: React.MouseEvent) => void;
   onBack?: () => void;
+  dataVersion: number;
 }
 
 const defaultValues: EncounterFormData = {
@@ -160,7 +161,7 @@ const defaultValues: EncounterFormData = {
   encounterTableId: "",
 };
 
-export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter, onFilterByClick, onBack }: EncounterEditorPanelProps) {
+export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter, onFilterByClick, onBack, dataVersion }: EncounterEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!encounterId);
@@ -213,7 +214,12 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         setAllEncounterTables(tables);
     };
     fetchData();
-  }, []);
+
+    window.addEventListener('focus', fetchData);
+    return () => {
+        window.removeEventListener('focus', fetchData);
+    };
+  }, [dataVersion]);
 
   const monsterDetailsMap = useMemo(() => {
     return new Map(allCreatures.map(c => [c.id, c]));

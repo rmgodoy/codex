@@ -200,6 +200,7 @@ export default function EncountersPage() {
                 onRunEncounter={handleRunEncounter}
                 onFilterByClick={handleFilterByClick}
                 onBack={handleBack}
+                dataVersion={dataVersion}
               />
             </div>
           )}
@@ -234,6 +235,7 @@ export default function EncountersPage() {
                 onEditCancel={onEditCancel}
                 onRunEncounter={handleRunEncounter}
                 onFilterByClick={handleFilterByClick}
+                dataVersion={dataVersion}
               />
             </div>
           </SidebarInset>
