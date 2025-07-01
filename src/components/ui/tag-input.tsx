@@ -40,11 +40,13 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
         .filter(tag => !value.includes(tag))
         .slice(0, 10);
       setSuggestions(filtered);
-      setIsPopoverOpen(filtered.length > 0);
-      setActiveIndex(-1);
+      const hasSuggestions = filtered.length > 0;
+      setIsPopoverOpen(hasSuggestions);
+      setActiveIndex(hasSuggestions ? 0 : -1);
     } else {
       setIsPopoverOpen(false);
       setSuggestions([]);
+      setActiveIndex(-1);
     }
   }, [inputValue, allTags, value]);
   
@@ -66,7 +68,7 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
     if (isPopoverOpen && suggestions.length > 0) {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setActiveIndex(prev => (prev === suggestions.length - 1 ? 0 : prev + 1));
+            setActiveIndex(prev => (prev >= suggestions.length - 1 ? 0 : prev + 1));
             return;
         }
         if (e.key === 'ArrowUp') {
