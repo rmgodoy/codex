@@ -60,10 +60,6 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
     setActiveIndex(-1);
   };
   
-  const removeTag = (tagToRemove: string) => {
-    onChange(value.filter(tag => tag !== tagToRemove));
-  };
-  
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (isPopoverOpen && suggestions.length > 0) {
         if (e.key === 'ArrowDown') {
@@ -90,7 +86,7 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
       addTag(inputValue);
     } else if (e.key === 'Backspace' && inputValue === '') {
         if (value.length > 0) {
-            removeTag(value[value.length - 1]);
+            onChange(value.slice(0, -1));
         }
     }
   };
@@ -105,7 +101,10 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
                   <button
                       type="button"
                       className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      onClick={() => removeTag(tag)}
+                      onClick={() => {
+                        onChange(value.filter(t => t !== tag));
+                        inputRef.current?.focus();
+                      }}
                   >
                       <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                   </button>
