@@ -31,7 +31,7 @@ const getExpectedQuantity = (quantityStr: string): number => {
   if (q.startsWith('d')) {
     const dieSize = parseInt(q.substring(1), 10);
     if (!isNaN(dieSize) && dieSize > 0) {
-      return (dieSize + 1) / 2;
+      return Math.floor(dieSize / 2);
     }
   } else {
     const fixedQty = parseInt(q, 10);
@@ -155,6 +155,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
 
   const { fields: entryFields, append: appendEntry, remove: removeEntry } = useFieldArray({ control: form.control, name: "entries" });
   const watchedEntries = form.watch("entries");
+  
   const watchedEntriesString = useMemo(() => JSON.stringify(watchedEntries), [watchedEntries]);
   
   useEffect(() => {
@@ -163,12 +164,14 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
 
   useEffect(() => {
     const entries = JSON.parse(watchedEntriesString);
+    if (!entries || entries.length === 0) {
+        if (form.getValues('totalTR') !== 0) form.setValue('totalTR', 0);
+        return;
+    }
     const totalWeight = entries.reduce((sum: number, entry: { weight: number; }) => sum + (Number(entry.weight) || 0), 0);
 
     if (totalWeight === 0) {
-        if (form.getValues('totalTR') !== 0) {
-            form.setValue('totalTR', 0);
-        }
+        if (form.getValues('totalTR') !== 0) form.setValue('totalTR', 0);
         return;
     }
 
@@ -178,7 +181,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
         return sum + ((creature?.TR || 0) * expectedQuantity * (Number(entry.weight) || 0));
     }, 0);
     
-    const newTR = Math.round(weightedTRSum / totalWeight);
+    const newTR = Math.floor(weightedTRSum / totalWeight);
 
     if (form.getValues('totalTR') !== newTR) {
         form.setValue('totalTR', newTR);
@@ -203,7 +206,6 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
       }
 
       setLoading(true);
-      setIsEditing(false);
       try {
         const tableFromDb = await getEncounterTableById(tableId);
         if (tableFromDb) {
@@ -238,16 +240,19 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
         await addTags(tagsToSave);
       }
       
+      let savedId: string;
       if (isCreatingNew) {
-        const newId = await addEncounterTable(tableToSave);
+        savedId = await addEncounterTable(tableToSave);
         toast({ title: "Table Created!", description: `${data.name} has been saved.` });
-        onSaveSuccess(newId);
       } else if (tableId) {
+        savedId = tableId;
         await updateEncounterTable({ ...tableToSave, id: tableId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
-        onSaveSuccess(tableId);
+      } else {
+        return; // Should not happen
       }
       setIsEditing(false);
+      onSaveSuccess(savedId);
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
@@ -458,3 +463,5 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
     </div>
   );
 }
+
+    
