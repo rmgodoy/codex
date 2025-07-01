@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { getAllTags } from '@/lib/idb';
 import { ScrollArea } from './scroll-area';
+import { cn } from '@/lib/utils';
 
 interface TagInputProps {
   value: string[];
@@ -21,6 +22,7 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
   const [allTags, setAllTags] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -39,8 +41,10 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
         .slice(0, 10);
       setSuggestions(filtered);
       setIsPopoverOpen(filtered.length > 0);
+      setActiveIndex(-1);
     } else {
       setIsPopoverOpen(false);
+      setSuggestions([]);
     }
   }, [inputValue, allTags, value]);
   
@@ -51,6 +55,7 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
     }
     setInputValue('');
     setIsPopoverOpen(false);
+    setActiveIndex(-1);
   };
   
   const removeTag = (tagToRemove: string) => {
@@ -58,11 +63,33 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if (isPopoverOpen && suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev === suggestions.length - 1 ? 0 : prev + 1));
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+            return;
+        }
+        if (e.key === 'Enter' || e.key === 'Tab') {
+            if (activeIndex > -1) {
+                e.preventDefault();
+                addTag(suggestions[activeIndex]);
+                return;
+            }
+        }
+    }
+
+    if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
       e.preventDefault();
       addTag(inputValue);
     } else if (e.key === 'Backspace' && inputValue === '') {
-      removeTag(value[value.length - 1]);
+        if (value.length > 0) {
+            removeTag(value[value.length - 1]);
+        }
     }
   };
 
@@ -97,11 +124,14 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
         <ScrollArea className="max-h-40">
           {suggestions.length > 0 && (
             <div className="p-1">
-              {suggestions.map(suggestion => (
+              {suggestions.map((suggestion, index) => (
                 <Button
                   key={suggestion}
                   variant="ghost"
-                  className="w-full justify-start font-normal"
+                  className={cn(
+                    "w-full justify-start font-normal",
+                    activeIndex === index && "bg-accent"
+                  )}
                   onClick={() => addTag(suggestion)}
                 >
                   {suggestion}
