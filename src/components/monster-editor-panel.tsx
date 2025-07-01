@@ -506,105 +506,107 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   if (!isEditing && creatureId && creatureData) {
     const sortedDeeds = [...creatureData.deeds].sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
-                    <div className="mt-2 text-sm text-muted-foreground flex flex-col items-start gap-1">
-                        <p>
-                            <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                                Lvl {creatureData.level} {creatureData.template} {creatureData.role}
-                            </button>
-                        </p>
-                        <p>
-                            <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                                TR {creatureData.TR}
-                            </button>
-                        </p>
-                        {creatureData.tags && creatureData.tags.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2 pt-1">
-                                {creatureData.tags.map(tag => (
-                                    <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
-                                        <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
-                                    </button>
-                                ))}
-                            </div>
+        <div className="w-full max-w-5xl mx-auto">
+            <Card>
+                <CardHeader className="flex flex-row items-start justify-between">
+                    <div>
+                        <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
+                        <div className="mt-2 text-sm text-muted-foreground flex flex-col items-start gap-1">
+                            <p>
+                                <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                    Lvl {creatureData.level} {creatureData.template} {creatureData.role}
+                                </button>
+                            </p>
+                            <p>
+                                <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                    TR {creatureData.TR}
+                                </button>
+                            </p>
+                            {creatureData.tags && creatureData.tags.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    {creatureData.tags.map(tag => (
+                                        <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                            <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
+                        <Copy className="h-4 w-4"/>
+                        <span className="hidden sm:inline">Template</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                        <Edit className="h-4 w-4"/>
+                        <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Separator className="my-6"/>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-x-6 gap-y-4">
+                        <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
+                        <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
+                        <div className="flex items-center gap-2"><Zap className="h-5 w-5 text-accent"/><div><Label>Initiative</Label><p className="text-lg font-bold">{creatureData.attributes.Initiative}</p></div></div>
+                        <div className="flex items-center gap-2"><Crosshair className="h-5 w-5 text-accent"/><div><Label>Accuracy</Label><p className="text-lg font-bold">{creatureData.attributes.Accuracy}</p></div></div>
+                        <div className="flex items-center gap-2"><Shield className="h-5 w-5 text-accent"/><div><Label>Guard</Label><p className="text-lg font-bold">{creatureData.attributes.Guard}</p></div></div>
+                        <div className="flex items-center gap-2"><ShieldHalf className="h-5 w-5 text-accent"/><div><Label>Resist</Label><p className="text-lg font-bold">{creatureData.attributes.Resist}</p></div></div>
+                        <div className="flex items-center gap-2"><Dice5 className="h-5 w-5 text-accent"/><div><Label>Roll Bonus</Label><p className="text-lg font-bold">{creatureData.attributes.rollBonus > 0 ? `+${creatureData.attributes.rollBonus}` : creatureData.attributes.rollBonus}</p></div></div>
+                        <div className="flex items-center gap-2"><Sword className="h-5 w-5 text-accent"/><div><Label>DMG</Label><p className="text-lg font-bold">{creatureData.attributes.DMG}</p></div></div>
+                      </div>
+                    </div>
+                    <Separator className="my-6"/>
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
+                        {sortedDeeds.length > 0 ? (
+                            sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed} dmgReplacement={creatureData.attributes.DMG} />)
+                        ) : (
+                            <p className="text-muted-foreground">No deeds defined.</p>
                         )}
                     </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
-                    <Copy className="h-4 w-4"/>
-                    <span className="hidden sm:inline">Template</span>
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit className="h-4 w-4"/>
-                    <span className="hidden sm:inline">Edit</span>
-                  </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <Separator className="my-6"/>
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-x-6 gap-y-4">
-                    <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
-                    <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
-                    <div className="flex items-center gap-2"><Zap className="h-5 w-5 text-accent"/><div><Label>Initiative</Label><p className="text-lg font-bold">{creatureData.attributes.Initiative}</p></div></div>
-                    <div className="flex items-center gap-2"><Crosshair className="h-5 w-5 text-accent"/><div><Label>Accuracy</Label><p className="text-lg font-bold">{creatureData.attributes.Accuracy}</p></div></div>
-                    <div className="flex items-center gap-2"><Shield className="h-5 w-5 text-accent"/><div><Label>Guard</Label><p className="text-lg font-bold">{creatureData.attributes.Guard}</p></div></div>
-                    <div className="flex items-center gap-2"><ShieldHalf className="h-5 w-5 text-accent"/><div><Label>Resist</Label><p className="text-lg font-bold">{creatureData.attributes.Resist}</p></div></div>
-                    <div className="flex items-center gap-2"><Dice5 className="h-5 w-5 text-accent"/><div><Label>Roll Bonus</Label><p className="text-lg font-bold">{creatureData.attributes.rollBonus > 0 ? `+${creatureData.attributes.rollBonus}` : creatureData.attributes.rollBonus}</p></div></div>
-                    <div className="flex items-center gap-2"><Sword className="h-5 w-5 text-accent"/><div><Label>DMG</Label><p className="text-lg font-bold">{creatureData.attributes.DMG}</p></div></div>
-                  </div>
-                </div>
-                <Separator className="my-6"/>
-                <div>
-                    <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
-                    {sortedDeeds.length > 0 ? (
-                        sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed} dmgReplacement={creatureData.attributes.DMG} />)
-                    ) : (
-                        <p className="text-muted-foreground">No deeds defined.</p>
+                    {(creatureData.abilities || creatureData.description) && <Separator className="my-6"/>}
+                    {creatureData.abilities && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Abilities</h3>
+                            <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.abilities}</p>
+                        </div>
                     )}
-                </div>
-                {(creatureData.abilities || creatureData.description) && <Separator className="my-6"/>}
-                {creatureData.abilities && (
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Abilities</h3>
-                        <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.abilities}</p>
-                    </div>
-                )}
-                {creatureData.description && (
-                    <div className="mt-4">
-                        <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Description</h3>
-                        <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.description}</p>
-                    </div>
-                )}
-            </CardContent>
-            <CardFooter>
-                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete "{form.getValues("name")}". This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </CardFooter>
-        </Card>
+                    {creatureData.description && (
+                        <div className="mt-4">
+                            <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Description</h3>
+                            <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.description}</p>
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter>
+                     <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteCreature} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
+            </Card>
+        </div>
     );
   }
 
@@ -847,7 +849,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             )} />
                                 <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Hit</FormLabel>
+                                    <FormLabel>Hit <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                                     <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
