@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { CreatureAttributes, CreatureTemplate } from './types';
@@ -128,7 +127,7 @@ export const TR_TABLE: Record<CreatureTemplate, number[]> = {
   Tyrant: [40, 80, 120, 160, 200, 240, 280, 320, 360, 400],
 };
 
-const DAMAGE_DICE_TIERS: readonly string[] = ['d4', 'd6', 'd8', 'd10', 'd12'];
+const DAMAGE_DICE_TIERS: readonly string[] = ['d6', 'd8', 'd10', 'd12'];
 
 export function stepDownDamageDie(die: string): string {
     const currentIndex = DAMAGE_DICE_TIERS.indexOf(die);
