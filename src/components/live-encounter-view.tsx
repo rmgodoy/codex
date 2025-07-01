@@ -20,6 +20,31 @@ interface LiveEncounterViewProps {
 
 type PerilState = { roll: number; text: string };
 
+const rollQuantity = (quantityStr: string): number => {
+    if (!quantityStr) return 1;
+    const q = quantityStr.toLowerCase().trim();
+
+    const diceMatch = q.match(/(\d*)d(\d+)/);
+    if (diceMatch) {
+        const numDice = diceMatch[1] ? parseInt(diceMatch[1], 10) : 1;
+        const dieSize = parseInt(diceMatch[2], 10);
+        if (!isNaN(numDice) && !isNaN(dieSize) && dieSize > 0) {
+            let total = 0;
+            for (let i = 0; i < numDice; i++) {
+                total += Math.floor(Math.random() * dieSize) + 1;
+            }
+            return total;
+        }
+    }
+
+    const fixedQty = parseInt(q, 10);
+    if (!isNaN(fixedQty) && fixedQty > 0) {
+        return fixedQty;
+    }
+
+    return 1;
+};
+
 export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEncounterViewProps) {
   const [combatantsByRound, setCombatantsByRound] = useState<Record<number, Combatant[]>>({});
   const [loading, setLoading] = useState(true);
@@ -137,20 +162,8 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     break;
                 }
             }
-
-            const quantityStr = chosenEntry.quantity || '1';
-            let quantity = 1;
-            if (quantityStr.toLowerCase().startsWith('d')) {
-                const dieValue = parseInt(quantityStr.substring(1), 10);
-                if (!isNaN(dieValue) && dieValue > 0) {
-                    quantity = Math.floor(Math.random() * dieValue) + 1;
-                }
-            } else {
-                const fixedQty = parseInt(quantityStr, 10);
-                if (!isNaN(fixedQty) && fixedQty > 0) {
-                    quantity = fixedQty;
-                }
-            }
+            
+            const quantity = rollQuantity(chosenEntry.quantity || '1');
             
             monsterGroups = [{ monsterId: chosenEntry.creatureId, quantity }];
         }

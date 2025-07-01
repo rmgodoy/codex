@@ -28,17 +28,21 @@ import { Label } from "./ui/label";
 const getExpectedQuantity = (quantityStr: string): number => {
   if (!quantityStr) return 1;
   const q = quantityStr.toLowerCase().trim();
-  if (q.startsWith('d')) {
-    const dieSize = parseInt(q.substring(1), 10);
-    if (!isNaN(dieSize) && dieSize > 0) {
-      return Math.floor(dieSize / 2);
-    }
-  } else {
-    const fixedQty = parseInt(q, 10);
-    if (!isNaN(fixedQty)) {
-      return fixedQty;
+
+  const diceMatch = q.match(/(\d*)d(\d+)/);
+  if (diceMatch) {
+    const numDice = diceMatch[1] ? parseInt(diceMatch[1], 10) : 1;
+    const dieSize = parseInt(diceMatch[2], 10);
+    if (!isNaN(numDice) && !isNaN(dieSize) && dieSize > 0) {
+      return numDice * Math.floor(dieSize / 2);
     }
   }
+
+  const fixedQty = parseInt(q, 10);
+  if (!isNaN(fixedQty)) {
+    return fixedQty;
+  }
+  
   return 1;
 };
 
@@ -156,27 +160,28 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
 
   const { control, watch, setValue } = form;
   const { fields: entryFields, append: appendEntry, remove: removeEntry } = useFieldArray({ control, name: "entries" });
-  const watchedEntries = watch("entries");
-  const watchedEntriesString = JSON.stringify(watchedEntries);
+  const watchedEntriesString = JSON.stringify(watch("entries"));
 
   useEffect(() => {
     getAllCreatures().then(setAllCreatures);
   }, []);
 
   useEffect(() => {
-    if (!watchedEntries || creatureMap.size === 0) {
+    const currentEntries = JSON.parse(watchedEntriesString);
+    
+    if (!currentEntries || currentEntries.length === 0 || creatureMap.size === 0) {
       if (form.getValues('totalTR') !== 0) setValue('totalTR', 0);
       return;
     };
 
-    const totalWeight = watchedEntries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
+    const totalWeight = currentEntries.reduce((sum: number, entry: any) => sum + (Number(entry.weight) || 0), 0);
 
     if (totalWeight === 0) {
         if (form.getValues('totalTR') !== 0) setValue('totalTR', 0);
         return;
     }
 
-    const weightedTRSum = watchedEntries.reduce((sum, entry) => {
+    const weightedTRSum = currentEntries.reduce((sum: number, entry: any) => {
         const creature = creatureMap.get(entry.creatureId);
         const expectedQuantity = getExpectedQuantity(entry.quantity || '1');
         const weight = Number(entry.weight) || 0;
@@ -377,7 +382,8 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
     );
   }
   
-  const totalWeight = watchedEntries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
+  const watchedEntries = JSON.parse(watchedEntriesString);
+  const totalWeight = watchedEntries.reduce((sum: number, entry: any) => sum + (Number(entry.weight) || 0), 0);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
