@@ -100,7 +100,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
 
   if (combatant.type === 'player') {
     return (
-      <div className="w-full">
+      <div className="w-full max-w-5xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl sm:text-4xl font-bold">{combatant.name}</CardTitle>
@@ -179,7 +179,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-5xl mx-auto">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -337,6 +337,16 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
             </div>
           </div>
           
+          {combatant.type === 'monster' && combatant.abilities && (
+            <>
+                <Separator/>
+                <div>
+                    <h3 className="text-xl font-semibold text-primary-foreground my-4">Abilities</h3>
+                    <p className="text-foreground/90 whitespace-pre-wrap">{combatant.abilities}</p>
+                </div>
+            </>
+          )}
+
           {combatant.type === 'monster' && combatant.deeds.length > 0 && (
             <>
                 <Separator/>
