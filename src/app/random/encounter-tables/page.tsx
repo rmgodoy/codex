@@ -49,6 +49,31 @@ export default function EncounterTablesPage() {
     setSortOrder,
   };
 
+  const handleFilterByClick = (updates: Partial<{ minTR: number; maxTR: number; tagFilter: string }>, e: React.MouseEvent) => {
+    const isAdditive = e.shiftKey;
+
+    if (!isAdditive) {
+      // Clear filters and apply the new one
+      setMinTR(updates.minTR !== undefined ? String(updates.minTR) : '');
+      setMaxTR(updates.maxTR !== undefined ? String(updates.maxTR) : '');
+      setTagFilter(updates.tagFilter || '');
+    } else {
+      // Additive filtering
+      if (updates.minTR !== undefined) setMinTR(String(updates.minTR));
+      if (updates.maxTR !== undefined) setMaxTR(String(updates.maxTR));
+      if (updates.tagFilter) {
+        setTagFilter(prev => {
+          if (!prev) return updates.tagFilter!;
+          const existingTags = prev.split(',').map(t => t.trim());
+          if (!existingTags.includes(updates.tagFilter!)) {
+            return `${prev}, ${updates.tagFilter}`;
+          }
+          return prev;
+        });
+      }
+    }
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setTagFilter('');
@@ -139,6 +164,7 @@ export default function EncounterTablesPage() {
                 onEditCancel={onEditCancel}
                 onBack={handleBack}
                 dataVersion={dataVersion}
+                onFilterByClick={handleFilterByClick}
               />
             </div>
           )}
@@ -172,6 +198,7 @@ export default function EncounterTablesPage() {
                 onDeleteSuccess={onDeleteSuccess}
                 onEditCancel={onEditCancel}
                 dataVersion={dataVersion}
+                onFilterByClick={handleFilterByClick}
               />
             </div>
           </SidebarInset>

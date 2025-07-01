@@ -128,6 +128,7 @@ interface EncounterTableEditorPanelProps {
   onEditCancel: () => void;
   onBack?: () => void;
   dataVersion: number;
+  onFilterByClick: (updates: Partial<{ minTR: number; maxTR: number; tagFilter: string }>, e: React.MouseEvent) => void;
 }
 
 const defaultValues: EncounterTableFormData = {
@@ -139,7 +140,7 @@ const defaultValues: EncounterTableFormData = {
   entries: [],
 };
 
-export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack, dataVersion }: EncounterTableEditorPanelProps) {
+export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack, dataVersion, onFilterByClick }: EncounterTableEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!tableId);
@@ -208,6 +209,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
       }
 
       setLoading(true);
+      setIsEditing(false);
       try {
         const tableFromDb = await getEncounterTableById(tableId);
         if (tableFromDb) {
@@ -297,6 +299,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
   }
 
   if (!isEditing && tableData) {
+    const totalWeight = tableData.entries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
     return (
         <div className="w-full max-w-5xl mx-auto">
             <Card>
@@ -311,7 +314,9 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                             <div>
                                 <CardTitle className="text-3xl font-bold">{tableData.name}</CardTitle>
                                 <CardDescription className="flex flex-col sm:flex-row sm:gap-4">
-                                    <span>TR {tableData.totalTR}</span>
+                                    <button onClick={(e) => onFilterByClick({ minTR: tableData.totalTR, maxTR: tableData.totalTR }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
+                                      TR {tableData.totalTR}
+                                    </button>
                                     {tableData.location && <span>Location: {tableData.location}</span>}
                                 </CardDescription>
                             </div>
@@ -334,11 +339,13 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                             <div className="space-y-3">
                                 {tableData.entries.map(entry => {
                                   const creature = creatureMap.get(entry.creatureId);
+                                  const percentage = totalWeight > 0 ? ((entry.weight / totalWeight) * 100).toFixed(1) : '0.0';
                                   return (
-                                    <div key={entry.id} className="grid grid-cols-3 items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
-                                        <p className="font-semibold col-span-2 sm:col-span-1">{creature?.name || 'Unknown'}</p>
+                                    <div key={entry.id} className="grid grid-cols-4 items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
+                                        <p className="font-semibold">{creature?.name || 'Unknown'}</p>
                                         <p className="text-center">x {entry.quantity}</p>
                                         <p className="text-center">Weight: {entry.weight}</p>
+                                        <p className="text-center text-muted-foreground">{percentage}%</p>
                                     </div>
                                   )
                                 })}
@@ -348,7 +355,9 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                             <div className="mt-4 pt-3 border-t border-border/50">
                                 <div className="flex flex-wrap gap-2">
                                     {tableData.tags.map(tag => (
-                                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                                        <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                          <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                        </button>
                                     ))}
                                 </div>
                             </div>
@@ -368,6 +377,8 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
         </div>
     );
   }
+  
+  const totalWeight = watchedEntries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -425,8 +436,9 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                 <div className="space-y-3">
                   {entryFields.map((field, index) => {
                     const creature = creatureMap.get(field.creatureId);
+                    const percentage = totalWeight > 0 ? ((field.weight / totalWeight) * 100).toFixed(1) : '0.0';
                     return (
-                      <div key={field.id} className="grid grid-cols-2 md:grid-cols-4 items-end gap-3 p-3 border rounded-lg bg-card-foreground/5">
+                      <div key={field.id} className="grid grid-cols-2 md:grid-cols-5 items-end gap-3 p-3 border rounded-lg bg-card-foreground/5">
                         <div className="col-span-2 md:col-span-1">
                           <Label>Creature</Label>
                           <p className="font-semibold truncate" title={creature?.name}>{creature?.name || 'Unknown'}</p>
@@ -444,7 +456,11 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                             <FormControl><Input type="number" min="1" {...weightField} value={weightField.value ?? ''} /></FormControl>
                           </FormItem>
                         )}/>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEntry(index)} className="text-muted-foreground hover:text-destructive place-self-end"><Trash2 className="h-4 w-4" /></Button>
+                        <div>
+                           <Label>Chance</Label>
+                           <p className="font-semibold text-muted-foreground h-10 flex items-center">{percentage}%</p>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEntry(index)} className="text-muted-foreground hover:text-destructive place-self-end md:place-self-auto"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     )
                   })}
