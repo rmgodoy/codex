@@ -520,38 +520,36 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   if (!isEditing && creatureId && creatureData) {
     const sortedDeeds = [...creatureData.deeds].sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
     return (
-        <div className="w-full max-w-5xl mx-auto">
+        <div className="relative w-full max-w-5xl mx-auto">
+            {isMobile && onBack && (
+                <Button variant="ghost" size="icon" onClick={onBack} className="absolute left-[-0.5rem] top-7 z-10">
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
+            )}
             <Card>
                 <CardHeader className="flex flex-row items-start justify-between">
-                    <div className="flex items-center gap-2">
-                        {isMobile && onBack && (
-                            <Button variant="ghost" size="icon" onClick={onBack}>
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        )}
-                        <div>
-                            <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
-                            <div className="mt-2 text-sm text-muted-foreground flex flex-col items-start gap-1">
-                                <p>
-                                    <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                                        Lvl {creatureData.level} {creatureData.template} {creatureData.role}
-                                    </button>
-                                </p>
-                                <p>
-                                    <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                                        TR {creatureData.TR}
-                                    </button>
-                                </p>
-                                {creatureData.tags && creatureData.tags.length > 0 && (
-                                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                                        {creatureData.tags.map(tag => (
-                                            <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
-                                                <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                    <div>
+                        <CardTitle className="text-3xl font-bold">{creatureData.name}</CardTitle>
+                        <div className="mt-2 text-sm text-muted-foreground flex flex-col items-start gap-1">
+                            <p>
+                                <button onClick={(e) => onFilterByClick({ templateFilter: creatureData.template, roleFilter: creatureData.role, minLevel: creatureData.level, maxLevel: creatureData.level }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                    Lvl {creatureData.level} {creatureData.template} {creatureData.role}
+                                </button>
+                            </p>
+                            <p>
+                                <button onClick={(e) => onFilterByClick({ minTR: creatureData.TR, maxTR: creatureData.TR }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                    TR {creatureData.TR}
+                                </button>
+                            </p>
+                            {creatureData.tags && creatureData.tags.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    {creatureData.tags.map(tag => (
+                                        <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                            <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -632,25 +630,23 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="relative w-full max-w-5xl mx-auto">
+        {isMobile && onBack && (
+            <Button type="button" variant="ghost" size="icon" onClick={onEditCancel} className="absolute left-[-0.5rem] top-7 z-10">
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+        )}
       <Card>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
-                <div className="flex items-center gap-2">
-                  {isMobile && onBack && (
-                      <Button type="button" variant="ghost" size="icon" onClick={onEditCancel}>
-                          <ArrowLeft className="h-5 w-5" />
-                      </Button>
-                  )}
                   <div>
                     <CardTitle>{isCreatingNew ? "Create a New Creature" : `Editing: ${creatureData?.name || "..."}`}</CardTitle>
                     <CardDescription>
                       {isCreatingNew ? "Fill out the details for your new creature." : "Make your changes and click Save."}
                     </CardDescription>
                   </div>
-                </div>
                 {!isMobile && (
                   <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
                     <X className="h-5 w-5" />

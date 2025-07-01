@@ -331,25 +331,23 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   if (!isEditing && encounterData) {
     return (
-        <div className="w-full max-w-5xl mx-auto">
+        <div className="relative w-full max-w-5xl mx-auto">
+            {isMobile && onBack && (
+                <Button variant="ghost" size="icon" onClick={onBack} className="absolute left-[-0.5rem] top-7 z-10">
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
+            )}
             <Card>
                 <CardHeader className="flex flex-row items-start justify-between">
-                    <div className="flex items-center gap-2">
-                        {isMobile && onBack && (
-                            <Button variant="ghost" size="icon" onClick={onBack}>
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        )}
-                        <div>
-                            <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
-                            <CardDescription>
-                              <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
-                                  <span className="hidden sm:inline">Total Threat Rating (TR): </span>
-                                  <span className="inline sm:hidden">TR: </span>
-                                  {encounterData.totalTR || 0}
-                              </button>
-                            </CardDescription>
-                        </div>
+                    <div>
+                        <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
+                        <CardDescription>
+                            <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
+                                <span className="hidden sm:inline">Total Threat Rating (TR): </span>
+                                <span className="inline sm:hidden">TR: </span>
+                                {encounterData.totalTR || 0}
+                            </button>
+                        </CardDescription>
                     </div>
                      <div className="flex flex-wrap justify-end gap-2">
                         <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
@@ -430,21 +428,19 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="relative w-full max-w-5xl mx-auto">
+        {isMobile && onBack && (
+            <Button type="button" variant="ghost" size="icon" onClick={onEditCancel} className="absolute left-[-0.5rem] top-7 z-10">
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+        )}
       <Card>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
-                  <div className="flex items-center gap-2">
-                      {isMobile && onBack && (
-                          <Button type="button" variant="ghost" size="icon" onClick={onEditCancel}>
-                              <ArrowLeft className="h-5 w-5" />
-                          </Button>
-                      )}
-                      <div>
-                        <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
-                      </div>
+                  <div>
+                    <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
                   </div>
                   {!isMobile && (
                     <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>
