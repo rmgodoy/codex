@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -21,8 +20,9 @@ import { Skeleton } from "./ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TagInput } from "./ui/tag-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
+import { Label } from "./ui/label";
 
 const getExpectedQuantity = (quantityStr: string): number => {
   if (!quantityStr) return 1;
@@ -234,6 +234,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
         onSaveSuccess(tableId);
       }
+      setIsEditing(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
@@ -407,7 +408,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                     return (
                       <div key={field.id} className="grid grid-cols-2 md:grid-cols-4 items-end gap-3 p-3 border rounded-lg bg-card-foreground/5">
                         <div className="col-span-2 md:col-span-1">
-                          <FormLabel>Creature</FormLabel>
+                          <Label>Creature</Label>
                           <p className="font-semibold truncate" title={creature?.name}>{creature?.name || 'Unknown'}</p>
                           <p className="text-xs text-muted-foreground">Lvl {creature?.level} (TR {creature?.TR})</p>
                         </div>
@@ -420,7 +421,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                         <FormField name={`entries.${index}.weight`} control={form.control} render={({ field: weightField }) => (
                           <FormItem>
                             <FormLabel>Weight</FormLabel>
-                            <FormControl><Input type="number" min="1" {...weightField} /></FormControl>
+                            <FormControl><Input type="number" min="1" {...weightField} value={weightField.value ?? ''} /></FormControl>
                           </FormItem>
                         )}/>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removeEntry(index)} className="text-muted-foreground hover:text-destructive place-self-end"><Trash2 className="h-4 w-4" /></Button>
