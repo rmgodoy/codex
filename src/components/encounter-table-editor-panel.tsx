@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -126,6 +127,7 @@ interface EncounterTableEditorPanelProps {
   onDeleteSuccess: () => void;
   onEditCancel: () => void;
   onBack?: () => void;
+  dataVersion: number;
 }
 
 const defaultValues: EncounterTableFormData = {
@@ -137,7 +139,7 @@ const defaultValues: EncounterTableFormData = {
   entries: [],
 };
 
-export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack }: EncounterTableEditorPanelProps) {
+export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack, dataVersion }: EncounterTableEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!tableId);
@@ -153,24 +155,35 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
 
   const { fields: entryFields, append: appendEntry, remove: removeEntry } = useFieldArray({ control: form.control, name: "entries" });
   const watchedEntries = form.watch("entries");
+  const watchedEntriesString = useMemo(() => JSON.stringify(watchedEntries), [watchedEntries]);
   
   useEffect(() => {
     getAllCreatures().then(setAllCreatures);
   }, []);
 
   useEffect(() => {
-    const totalWeight = watchedEntries.reduce((sum, entry) => sum + (entry.weight || 0), 0);
+    const entries = JSON.parse(watchedEntriesString);
+    const totalWeight = entries.reduce((sum: number, entry: { weight: number; }) => sum + (Number(entry.weight) || 0), 0);
+
     if (totalWeight === 0) {
-      form.setValue('totalTR', 0);
-      return;
+        if (form.getValues('totalTR') !== 0) {
+            form.setValue('totalTR', 0);
+        }
+        return;
     }
-    const weightedTRSum = watchedEntries.reduce((sum, entry) => {
-      const creature = creatureMap.get(entry.creatureId);
-      const expectedQuantity = getExpectedQuantity(entry.quantity || '1');
-      return sum + ((creature?.TR || 0) * expectedQuantity * (entry.weight || 0));
+
+    const weightedTRSum = entries.reduce((sum: number, entry: { creatureId: string; quantity: string; weight: number; }) => {
+        const creature = creatureMap.get(entry.creatureId);
+        const expectedQuantity = getExpectedQuantity(entry.quantity || '1');
+        return sum + ((creature?.TR || 0) * expectedQuantity * (Number(entry.weight) || 0));
     }, 0);
-    form.setValue('totalTR', Math.round(weightedTRSum / totalWeight));
-  }, [watchedEntries, creatureMap, form]);
+    
+    const newTR = Math.round(weightedTRSum / totalWeight);
+
+    if (form.getValues('totalTR') !== newTR) {
+        form.setValue('totalTR', newTR);
+    }
+  }, [watchedEntriesString, creatureMap, form]);
 
   useEffect(() => {
     const fetchTableData = async () => {
@@ -206,7 +219,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
       }
     };
     fetchTableData();
-  }, [tableId, isCreatingNew, form, toast]);
+  }, [tableId, isCreatingNew, form, toast, dataVersion]);
   
   const handleCancel = () => {
     if (isCreatingNew) {

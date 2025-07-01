@@ -138,6 +138,7 @@ export default function EncounterTablesPage() {
                 onDeleteSuccess={onDeleteSuccess}
                 onEditCancel={onEditCancel}
                 onBack={handleBack}
+                dataVersion={dataVersion}
               />
             </div>
           )}
@@ -170,6 +171,7 @@ export default function EncounterTablesPage() {
                 onSaveSuccess={onSaveSuccess}
                 onDeleteSuccess={onDeleteSuccess}
                 onEditCancel={onEditCancel}
+                dataVersion={dataVersion}
               />
             </div>
           </SidebarInset>
