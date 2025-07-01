@@ -154,7 +154,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
     defaultValues,
   });
 
-  const { control, watch, getValues, setValue } = form;
+  const { control, watch, setValue } = form;
   const { fields: entryFields, append: appendEntry, remove: removeEntry } = useFieldArray({ control, name: "entries" });
   const watchedEntries = watch("entries");
   const watchedEntriesString = JSON.stringify(watchedEntries);
@@ -164,20 +164,19 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
   }, []);
 
   useEffect(() => {
-    const currentEntries = getValues('entries');
-    if (!currentEntries || creatureMap.size === 0) {
-      if (getValues('totalTR') !== 0) setValue('totalTR', 0);
+    if (!watchedEntries || creatureMap.size === 0) {
+      if (form.getValues('totalTR') !== 0) setValue('totalTR', 0);
       return;
     };
 
-    const totalWeight = currentEntries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
+    const totalWeight = watchedEntries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
 
     if (totalWeight === 0) {
-        if (getValues('totalTR') !== 0) setValue('totalTR', 0);
+        if (form.getValues('totalTR') !== 0) setValue('totalTR', 0);
         return;
     }
 
-    const weightedTRSum = currentEntries.reduce((sum, entry) => {
+    const weightedTRSum = watchedEntries.reduce((sum, entry) => {
         const creature = creatureMap.get(entry.creatureId);
         const expectedQuantity = getExpectedQuantity(entry.quantity || '1');
         const weight = Number(entry.weight) || 0;
@@ -186,10 +185,10 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
     
     const newTR = Math.floor(weightedTRSum / totalWeight);
 
-    if (getValues('totalTR') !== newTR) {
+    if (form.getValues('totalTR') !== newTR) {
         setValue('totalTR', newTR, { shouldValidate: false });
     }
-  }, [watchedEntriesString, creatureMap, getValues, setValue]);
+  }, [watchedEntriesString, creatureMap, form, setValue]);
 
   useEffect(() => {
     const fetchTableData = async () => {
@@ -253,10 +252,10 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
         await updateEncounterTable({ ...tableToSave, id: tableId });
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
       } else {
-        return; // Should not happen
+        return; 
       }
-      setIsEditing(false);
       onSaveSuccess(savedId);
+      setIsEditing(false);
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
@@ -436,7 +435,8 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                 <div className="space-y-3">
                   {entryFields.map((field, index) => {
                     const creature = creatureMap.get(field.creatureId);
-                    const percentage = totalWeight > 0 ? ((field.weight / totalWeight) * 100).toFixed(1) : '0.0';
+                    const currentWeight = Number(watchedEntries[index]?.weight) || 0;
+                    const percentage = totalWeight > 0 ? ((currentWeight / totalWeight) * 100).toFixed(1) : '0.0';
                     return (
                       <div key={field.id} className="grid grid-cols-2 md:grid-cols-5 items-end gap-3 p-3 border rounded-lg bg-card-foreground/5">
                         <div className="col-span-2 md:col-span-1">
