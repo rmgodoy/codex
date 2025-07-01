@@ -207,65 +207,67 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
 
   if (!isEditing && deedData) {
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
-                    <CardDescription className="mt-1 capitalize">
-                       <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                         {deedData.tier}
-                       </button>
-                    </CardDescription>
-                </div>
-                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
-                        <Copy className="h-4 w-4"/>
-                        <span className="hidden sm:inline">Template</span>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <Edit className="h-4 w-4"/>
-                        <span className="hidden sm:inline">Edit</span>
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <DeedDisplay deed={deedData} />
-                 {deedData.tags && deedData.tags.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-border/50">
-                        <div className="flex flex-wrap gap-2">
-                            {deedData.tags.map(tag => (
-                                <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
-                                    <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
-                                </button>
-                            ))}
-                        </div>
+        <div className="w-full max-w-5xl mx-auto">
+            <Card>
+                <CardHeader className="flex flex-row items-start justify-between">
+                    <div>
+                        <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
+                        <CardDescription className="mt-1 capitalize">
+                           <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                             {deedData.tier}
+                           </button>
+                        </CardDescription>
                     </div>
-                )}
-            </CardContent>
-            <CardFooter>
-                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete "{form.getValues("name")}". This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteDeed} className="bg-destructive hover:bg-destructive/90">
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </CardFooter>
-        </Card>
+                     <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
+                            <Copy className="h-4 w-4"/>
+                            <span className="hidden sm:inline">Template</span>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                            <Edit className="h-4 w-4"/>
+                            <span className="hidden sm:inline">Edit</span>
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <DeedDisplay deed={deedData} />
+                     {deedData.tags && deedData.tags.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-border/50">
+                            <div className="flex flex-wrap gap-2">
+                                {deedData.tags.map(tag => (
+                                    <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                        <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter>
+                     <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{form.getValues("name")}". This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteDeed} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
+            </Card>
+        </div>
     );
   }
 
@@ -380,7 +382,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             )} />
             <FormField name="effects.hit" control={form.control} render={({ field }) => (
             <FormItem>
-                <FormLabel>Hit</FormLabel>
+                <FormLabel>Hit <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                 <FormControl><Textarea placeholder="The primary effect on a successful hit..." {...field} rows={3} /></FormControl>
                 <FormMessage />
             </FormItem>

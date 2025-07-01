@@ -321,92 +321,94 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   if (!isEditing && encounterData) {
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
-                    <CardDescription>
-                      <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
-                          <span className="hidden sm:inline">Total Threat Rating (TR): </span>
-                          <span className="inline sm:hidden">TR: </span>
-                          {encounterData.totalTR || 0}
-                      </button>
-                    </CardDescription>
-                </div>
-                 <div className="flex flex-wrap justify-end gap-2">
-                    <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
-                        <Swords className="h-4 w-4"/>
-                        <span className="hidden sm:inline">Run Encounter</span>
-                        <span className="inline sm:hidden">Run</span>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <Edit className="h-4 w-4"/>
-                        <span className="hidden sm:inline">Edit</span>
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-6">
+        <div className="w-full max-w-5xl mx-auto">
+            <Card>
+                <CardHeader className="flex flex-row items-start justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-primary-foreground mb-2">Scene</h3>
-                      <p className="text-foreground/80 whitespace-pre-wrap">{encounterData.sceneDescription || "No scene description."}</p>
+                        <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
+                        <CardDescription>
+                          <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
+                              <span className="hidden sm:inline">Total Threat Rating (TR): </span>
+                              <span className="inline sm:hidden">TR: </span>
+                              {encounterData.totalTR || 0}
+                          </button>
+                        </CardDescription>
                     </div>
-                     <div>
-                      <h3 className="text-lg font-semibold text-primary-foreground mb-2">GM Notes</h3>
-                      <p className="text-foreground/80 whitespace-pre-wrap">{encounterData.gmNotes || "No GM notes."}</p>
+                     <div className="flex flex-wrap justify-end gap-2">
+                        <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
+                            <Swords className="h-4 w-4"/>
+                            <span className="hidden sm:inline">Run Encounter</span>
+                            <span className="inline sm:hidden">Run</span>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                            <Edit className="h-4 w-4"/>
+                            <span className="hidden sm:inline">Edit</span>
+                        </Button>
                     </div>
-                    <Separator/>
-                     <div>
-                      <h3 className="text-lg font-semibold text-primary-foreground mb-2">Combatants</h3>
-                        <div className="space-y-3">
-                            <h4 className="font-semibold text-muted-foreground">Players ({(encounterData.players || []).length})</h4>
-                            <ul className="space-y-2 pl-4">
-                                {(encounterData.players || []).map(p => (
-                                <li key={p.id} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
-                                    <User className="h-5 w-5 text-accent" />
-                                    <span className="font-semibold flex-1">{p.name}</span>
-                                </li>
-                                ))}
-                            </ul>
-                            <h4 className="font-semibold text-muted-foreground">Monsters</h4>
-                            <ul className="space-y-2 pl-4">
-                                {(encounterData.monsterGroups || []).map(g => {
-                                  const monster = viewModeDetails.monsters.get(g.monsterId);
-                                  return (
-                                    <li key={g.monsterId} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
-                                        <Bot className="h-5 w-5 text-accent" />
-                                        <span className="font-semibold flex-1">{monster?.name || 'Unknown Monster'}</span>
-                                        <span className="text-sm text-muted-foreground">x {g.quantity}</span>
-                                        {monster && <span className="text-sm text-muted-foreground">Lvl {monster.level} {monster.role}</span>}
-                                    </li>
-                                  )
-                                })}
-                            </ul>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Scene</h3>
+                          <p className="text-foreground/80 whitespace-pre-wrap">{encounterData.sceneDescription || "No scene description."}</p>
                         </div>
-                    </div>
-                    {encounterData.tags && encounterData.tags.length > 0 && (
-                        <div className="mt-4 pt-3 border-t border-border/50">
-                            <div className="flex flex-wrap gap-2">
-                                {encounterData.tags.map(tag => (
-                                    <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
-                                        <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
-                                    </button>
-                                ))}
+                         <div>
+                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">GM Notes</h3>
+                          <p className="text-foreground/80 whitespace-pre-wrap">{encounterData.gmNotes || "No GM notes."}</p>
+                        </div>
+                        <Separator/>
+                         <div>
+                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Combatants</h3>
+                            <div className="space-y-3">
+                                <h4 className="font-semibold text-muted-foreground">Players ({(encounterData.players || []).length})</h4>
+                                <ul className="space-y-2 pl-4">
+                                    {(encounterData.players || []).map(p => (
+                                    <li key={p.id} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
+                                        <User className="h-5 w-5 text-accent" />
+                                        <span className="font-semibold flex-1">{p.name}</span>
+                                    </li>
+                                    ))}
+                                </ul>
+                                <h4 className="font-semibold text-muted-foreground">Monsters</h4>
+                                <ul className="space-y-2 pl-4">
+                                    {(encounterData.monsterGroups || []).map(g => {
+                                      const monster = viewModeDetails.monsters.get(g.monsterId);
+                                      return (
+                                        <li key={g.monsterId} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
+                                            <Bot className="h-5 w-5 text-accent" />
+                                            <span className="font-semibold flex-1">{monster?.name || 'Unknown Monster'}</span>
+                                            <span className="text-sm text-muted-foreground">x {g.quantity}</span>
+                                            {monster && <span className="text-sm text-muted-foreground">Lvl {monster.level} {monster.role}</span>}
+                                        </li>
+                                      )
+                                    })}
+                                </ul>
                             </div>
                         </div>
-                    )}
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <AlertDialog>
-                  <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{encounterData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </CardFooter>
-        </Card>
+                        {encounterData.tags && encounterData.tags.length > 0 && (
+                            <div className="mt-4 pt-3 border-t border-border/50">
+                                <div className="flex flex-wrap gap-2">
+                                    {encounterData.tags.map(tag => (
+                                        <button key={tag} onClick={(e) => onFilterByClick({ tagFilter: tag }, e)} className="bg-transparent border-none p-0 m-0">
+                                            <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">{tag}</Badge>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+                <CardFooter>
+                     <AlertDialog>
+                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{encounterData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
+            </Card>
+        </div>
     );
   }
 

@@ -75,6 +75,13 @@ export default function EncounterListPanel({
     fetchAllData();
   }, [dataVersion, toast]);
   
+  const handleNewEncounter = () => {
+    onNewEncounter();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const handleSelectEncounter = (id: string) => {
     onSelectEncounter(id);
     if (isMobile) {
@@ -134,7 +141,7 @@ export default function EncounterListPanel({
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={onNewEncounter} className="w-full">
+        <Button onClick={handleNewEncounter} className="w-full">
           <PlusCircle /> New Encounter
         </Button>
         <div className="relative">

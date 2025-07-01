@@ -133,6 +133,12 @@ export default function CreatureListPanel({
     return sorted;
   }, [creatures, filters]);
 
+  const handleNewCreature = () => {
+    onNewCreature();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const handleSelectCreature = (id: string) => {
     onSelectCreature(id);
@@ -144,7 +150,7 @@ export default function CreatureListPanel({
   return (
     <div className="border-r border-border bg-card flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={onNewCreature} className="w-full">
+        <Button onClick={handleNewCreature} className="w-full">
           <PlusCircle /> New Creature
         </Button>
         <div className="relative">

@@ -68,6 +68,9 @@ export default function DeedListPanel({
   
   const handleNewDeed = () => {
     onNewDeed();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   const handleSelectDeed = (id: string) => {
