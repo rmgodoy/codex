@@ -184,19 +184,24 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   
   const creatureTRMap = useMemo(() => new Map(allCreatures.map(c => [c.id, c.TR])), [allCreatures]);
 
+  const watchedMonsterGroupsString = JSON.stringify(watchedMonsterGroups);
+
   useEffect(() => {
+    const currentMonsterGroups: MonsterEncounterGroup[] = JSON.parse(watchedMonsterGroupsString);
     if (watchedEncounterTableId) {
-      replaceMonsterGroups([]);
       const table = allEncounterTables.find(t => t.id === watchedEncounterTableId);
       form.setValue('totalTR', table?.totalTR || 0);
+      if (form.getValues('monsterGroups').length > 0) {
+        replaceMonsterGroups([]);
+      }
     } else {
-      const newTotalTR = watchedMonsterGroups.reduce((acc, group) => {
+      const newTotalTR = currentMonsterGroups.reduce((acc: number, group: MonsterEncounterGroup) => {
         const tr = creatureTRMap.get(group.monsterId) || 0;
         return acc + (tr * group.quantity);
       }, 0);
       form.setValue('totalTR', newTotalTR);
     }
-  }, [watchedMonsterGroups, watchedEncounterTableId, allEncounterTables, creatureTRMap, form, replaceMonsterGroups]);
+  }, [watchedMonsterGroupsString, watchedEncounterTableId, allEncounterTables, creatureTRMap, form, replaceMonsterGroups]);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -551,7 +556,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                         <FormLabel>Encounter Table (Optional)</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}
-                          value={field.value === '' ? 'none' : field.value || undefined}
+                          value={field.value ? (field.value === '' ? 'none' : field.value) : 'none'}
                         >
                           <FormControl>
                             <SelectTrigger>
