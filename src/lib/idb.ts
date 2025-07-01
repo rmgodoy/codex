@@ -1,14 +1,15 @@
 
 "use client";
 
-import type { Creature, Deed, DeedData, Encounter, NewCreature, Tag } from '@/lib/types';
+import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag } from '@/lib/types';
 
 const DB_NAME = 'TresspasserBestiaryDB';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const CREATURES_STORE_NAME = 'creatures';
 const DEEDS_STORE_NAME = 'deeds';
 const ENCOUNTERS_STORE_NAME = 'encounters';
 const TAGS_STORE_NAME = 'tags';
+const ENCOUNTER_TABLES_STORE_NAME = 'encounterTables';
 
 const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -30,8 +31,11 @@ const getDb = (): Promise<IDBDatabase> => {
       if (!db.objectStoreNames.contains(ENCOUNTERS_STORE_NAME)) {
         db.createObjectStore(ENCOUNTERS_STORE_NAME, { keyPath: 'id' });
       }
-       if (!db.objectStoreNames.contains(TAGS_STORE_NAME)) {
+      if (!db.objectStoreNames.contains(TAGS_STORE_NAME)) {
         db.createObjectStore(TAGS_STORE_NAME, { keyPath: 'name' });
+      }
+      if (!db.objectStoreNames.contains(ENCOUNTER_TABLES_STORE_NAME)) {
+        db.createObjectStore(ENCOUNTER_TABLES_STORE_NAME, { keyPath: 'id' });
       }
     };
 
@@ -255,6 +259,61 @@ export const deleteEncounter = async (id: string): Promise<void> => {
     });
 };
 
+
+// Encounter Table Functions
+export const getAllEncounterTables = async (): Promise<EncounterTable[]> => {
+    const db = await getDb();
+    const store = db.transaction(ENCOUNTER_TABLES_STORE_NAME, 'readonly').objectStore(ENCOUNTER_TABLES_STORE_NAME);
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const getEncounterTableById = async (id: string): Promise<EncounterTable | undefined> => {
+    const db = await getDb();
+    const store = db.transaction(ENCOUNTER_TABLES_STORE_NAME, 'readonly').objectStore(ENCOUNTER_TABLES_STORE_NAME);
+    const request = store.get(id);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const addEncounterTable = async (tableData: Omit<EncounterTable, 'id'>): Promise<string> => {
+    const db = await getDb();
+    const store = db.transaction(ENCOUNTER_TABLES_STORE_NAME, 'readwrite').objectStore(ENCOUNTER_TABLES_STORE_NAME);
+    const id = generateId();
+    const tableWithId = { ...tableData, id };
+    const request = store.add(tableWithId);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(id);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const updateEncounterTable = async (table: EncounterTable): Promise<void> => {
+    const db = await getDb();
+    const store = db.transaction(ENCOUNTER_TABLES_STORE_NAME, 'readwrite').objectStore(ENCOUNTER_TABLES_STORE_NAME);
+    const request = store.put(table);
+    return new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const deleteEncounterTable = async (id: string): Promise<void> => {
+    const db = await getDb();
+    const store = db.transaction(ENCOUNTER_TABLES_STORE_NAME, 'readwrite').objectStore(ENCOUNTER_TABLES_STORE_NAME);
+    const request = store.delete(id);
+    return new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+
 // Tag Functions
 export const getAllTags = async (): Promise<Tag[]> => {
     const db = await getDb();
@@ -290,9 +349,9 @@ export const addTags = async (tagNames: string[]): Promise<void> => {
 
 
 // Import/Export
-export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[] }> => {
+export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[] }> => {
     const db = await getDb();
-    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME], 'readonly');
+    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME], 'readonly');
     
     const creaturesPromise = new Promise<Creature[]>((resolve, reject) => {
         const req = transaction.objectStore(CREATURES_STORE_NAME).getAll();
@@ -318,27 +377,35 @@ export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: D
         req.onerror = () => reject(req.error);
     });
 
-    const [creatures, deeds, encounters, tags] = await Promise.all([creaturesPromise, deedsPromise, encountersPromise, tagsPromise]);
-    return { creatures, deeds, encounters, tags };
+    const encounterTablesPromise = new Promise<EncounterTable[]>((resolve, reject) => {
+        const req = transaction.objectStore(ENCOUNTER_TABLES_STORE_NAME).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+
+    const [creatures, deeds, encounters, tags, encounterTables] = await Promise.all([creaturesPromise, deedsPromise, encountersPromise, tagsPromise, encounterTablesPromise]);
+    return { creatures, deeds, encounters, tags, encounterTables };
 };
 
 export const importData = async (data: any): Promise<void> => {
     const db = await getDb();
 
-    if (typeof data !== 'object' || data === null || (!Array.isArray(data.creatures) && !Array.isArray(data.deeds) && !Array.isArray(data.encounters))) {
-        return Promise.reject(new Error("Invalid import file format. Expected an object with 'creatures', 'deeds', and/or 'encounters' arrays."));
+    if (typeof data !== 'object' || data === null) {
+        return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
 
-    const tx = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME], 'readwrite');
+    const tx = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME], 'readwrite');
     const creatureStore = tx.objectStore(CREATURES_STORE_NAME);
     const deedStore = tx.objectStore(DEEDS_STORE_NAME);
     const encounterStore = tx.objectStore(ENCOUNTERS_STORE_NAME);
     const tagStore = tx.objectStore(TAGS_STORE_NAME);
+    const encounterTableStore = tx.objectStore(ENCOUNTER_TABLES_STORE_NAME);
 
     creatureStore.clear();
     deedStore.clear();
     encounterStore.clear();
     tagStore.clear();
+    encounterTableStore.clear();
 
     if (data.creatures && Array.isArray(data.creatures)) {
         data.creatures.forEach((creature: Creature) => creatureStore.put(creature));
@@ -351,6 +418,9 @@ export const importData = async (data: any): Promise<void> => {
     }
     if (data.tags && Array.isArray(data.tags)) {
         data.tags.forEach((tag: Tag) => tagStore.put(tag));
+    }
+    if (data.encounterTables && Array.isArray(data.encounterTables)) {
+        data.encounterTables.forEach((table: EncounterTable) => encounterTableStore.put(table));
     }
     
     return new Promise<void>((resolve, reject) => {

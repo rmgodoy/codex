@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -76,6 +76,9 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
   };
   
   const pageTitle = useMemo(() => {
+    if (pathname.startsWith('/random/encounter-tables')) return 'Encounter Tables';
+    if (pathname.startsWith('/random/treasures')) return 'Treasures';
+    if (pathname.startsWith('/random/commoners')) return 'Commoners';
     switch (pathname) {
       case '/':
         return 'Bestiary';
@@ -91,10 +94,14 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
   const navLinks = [
     { href: '/deeds', label: 'Creature Deeds', group: 'Compendium' },
     { href: '/', label: 'Bestiary', group: 'Compendium' },
+    { href: '/random/encounter-tables', label: 'Encounter Tables', group: 'Random' },
+    { href: '/random/treasures', label: 'Treasures', group: 'Random' },
+    { href: '/random/commoners', label: 'Commoners', group: 'Random' },
     { href: '/encounters', label: 'Encounters' },
   ];
 
   const compendiumLinks = navLinks.filter(link => link.group === 'Compendium');
+  const randomLinks = navLinks.filter(link => link.group === 'Random');
   const otherLinks = navLinks.filter(link => !link.group);
 
   const desktopNav = (
@@ -105,6 +112,18 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {compendiumLinks.map(link => (
+            <Link href={link.href} key={link.href} passHref>
+              <DropdownMenuItem>{link.label}</DropdownMenuItem>
+            </Link>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+       <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost">Random</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {randomLinks.map(link => (
             <Link href={link.href} key={link.href} passHref>
               <DropdownMenuItem>{link.label}</DropdownMenuItem>
             </Link>
@@ -141,6 +160,13 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
             </Link>
           ))}
           <Separator className="my-2" />
+           <p className="font-bold text-lg">Random</p>
+          {randomLinks.map(link => (
+            <Link href={link.href} key={link.href} passHref>
+              <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+            </Link>
+          ))}
+          <Separator className="my-2" />
           {otherLinks.map(link => (
             <Link href={link.href} key={link.href} passHref>
               <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
@@ -155,7 +181,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters') && showSidebarTrigger && <SidebarTrigger />}
+          {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters' || pathname.startsWith('/random')) && showSidebarTrigger && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">

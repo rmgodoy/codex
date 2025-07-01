@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { Encounter, Combatant, MonsterCombatant, PlayerCombatant, Creature, Deed } from "@/lib/types";
-import { getCreaturesByIds, getDeedsByIds } from "@/lib/idb";
+import type { Encounter, Combatant, MonsterCombatant, PlayerCombatant, Creature, Deed, MonsterEncounterGroup } from "@/lib/types";
+import { getCreaturesByIds, getDeedsByIds, getEncounterTableById } from "@/lib/idb";
 import InitiativeTracker from "./initiative-tracker";
 import CombatantDashboard from "./combatant-dashboard";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "./ui/sidebar";
@@ -11,7 +11,7 @@ import { Button } from "./ui/button";
 import { Swords } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Separator } from "./ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 interface LiveEncounterViewProps {
   encounter: Encounter;
@@ -27,6 +27,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const [round, setRound] = useState(1);
   const [perilHistory, setPerilHistory] = useState<Record<number, PerilState>>({});
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const combatants = useMemo(() => combatantsByRound[round] || [], [combatantsByRound, round]);
 
@@ -110,7 +111,40 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   useEffect(() => {
     const initializeCombatants = async () => {
         setLoading(true);
-        const monsterIds = encounter.monsterGroups.map(g => g.monsterId);
+
+        let monsterGroups: MonsterEncounterGroup[] = encounter.monsterGroups;
+
+        if (encounter.encounterTableId) {
+            const table = await getEncounterTableById(encounter.encounterTableId);
+            if (!table || table.entries.length === 0) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not find encounter table or it is empty.' });
+                onEndEncounter();
+                return;
+            }
+
+            const totalWeight = table.entries.reduce((sum, entry) => sum + entry.weight, 0);
+            if (totalWeight <= 0) {
+              toast({ variant: 'destructive', title: 'Error', description: 'Encounter table has no weight.' });
+              onEndEncounter();
+              return;
+            }
+            let random = Math.random() * totalWeight;
+            let chosenEntry = table.entries[0];
+            for (const entry of table.entries) {
+                random -= entry.weight;
+                if (random <= 0) {
+                    chosenEntry = entry;
+                    break;
+                }
+            }
+
+            const dieValue = parseInt(chosenEntry.dieSize.substring(1), 10);
+            const quantity = Math.floor(Math.random() * dieValue) + 1;
+            
+            monsterGroups = [{ monsterId: chosenEntry.creatureId, quantity }];
+        }
+
+        const monsterIds = monsterGroups.map(g => g.monsterId);
         const creaturesData = await getCreaturesByIds(monsterIds);
         const creaturesMap = new Map(creaturesData.map(c => [c.id, c]));
 
@@ -130,7 +164,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             });
         });
 
-        (encounter.monsterGroups || []).forEach(group => {
+        (monsterGroups || []).forEach(group => {
             const creature = creaturesMap.get(group.monsterId);
             if (!creature) return;
             
@@ -169,20 +203,8 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     };
 
     initializeCombatants();
-  }, [encounter, rollPerilForRound]);
+  }, [encounter, rollPerilForRound, onEndEncounter, toast]);
   
-  const getPlayerInitiativesForRound = (roundNum: number) => {
-    const playerInits: Record<string, { initiative: number; nat20?: boolean }> = {};
-    if (combatantsByRound[roundNum]) {
-      combatantsByRound[roundNum].forEach(c => {
-        if (c.type === 'player') {
-          playerInits[c.id] = { initiative: c.initiative, nat20: c.nat20 };
-        }
-      });
-    }
-    return playerInits;
-  };
-
   const nextTurn = () => {
     if (!allPlayersReady) return;
 

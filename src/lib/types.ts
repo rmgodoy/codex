@@ -136,4 +136,27 @@ export interface Encounter {
   players: PlayerEncounterEntry[];
   tags?: string[];
   totalTR?: number;
+  encounterTableId?: string;
+}
+
+
+// Encounter Table Types
+export const DIE_SIZES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
+export type DieSize = typeof DIE_SIZES[number];
+
+export interface EncounterTableEntry {
+  id: string;
+  creatureId: string;
+  dieSize: DieSize;
+  weight: number;
+}
+
+export interface EncounterTable {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  tags: string[];
+  totalTR: number;
+  entries: EncounterTableEntry[];
 }
