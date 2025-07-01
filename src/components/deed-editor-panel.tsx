@@ -217,31 +217,35 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
 
   if (!isEditing && deedData) {
     return (
-        <div className="relative w-full max-w-5xl mx-auto">
-            {isMobile && onBack && (
-                <Button variant="ghost" size="icon" onClick={onBack} className="absolute left-[-0.5rem] top-7 z-10">
-                    <ArrowLeft className="h-5 w-5" />
-                </Button>
-            )}
+        <div className="w-full max-w-5xl mx-auto">
             <Card>
-                <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
-                        <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
-                        <CardDescription className="mt-1 capitalize">
-                            <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                                {deedData.tier}
-                            </button>
-                        </CardDescription>
-                    </div>
-                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
-                            <Copy className="h-4 w-4"/>
-                            <span className="hidden sm:inline">Template</span>
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                            <Edit className="h-4 w-4"/>
-                            <span className="hidden sm:inline">Edit</span>
-                        </Button>
+                <CardHeader>
+                    <div className="flex flex-row items-start justify-between">
+                        <div className="flex items-start gap-2">
+                             {isMobile && onBack && (
+                                <Button variant="ghost" size="icon" onClick={onBack} className="-ml-4 -mt-2">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Button>
+                            )}
+                            <div>
+                                <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
+                                <CardDescription className="mt-1 capitalize">
+                                    <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                        {deedData.tier}
+                                    </button>
+                                </CardDescription>
+                            </div>
+                        </div>
+                         <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
+                                <Copy className="h-4 w-4"/>
+                                <span className="hidden sm:inline">Template</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                <Edit className="h-4 w-4"/>
+                                <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -287,22 +291,24 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
   }
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto">
-        {isMobile && onBack && (
-            <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="absolute left-[-0.5rem] top-7 z-10">
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
-        )}
+    <div className="w-full max-w-5xl mx-auto">
       <Card>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
-                  <div>
-                      <CardTitle>{isCreatingNew ? (isMobile ? "New Deed" : "Create a New Deed") : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
-                      <CardDescription>
-                        {isCreatingNew ? "Fill out the details for your new deed." : "Make your changes and click Save."}
-                      </CardDescription>
+                  <div className="flex items-center gap-1">
+                    {isMobile && onBack && (
+                        <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="-ml-4">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    )}
+                    <div>
+                        <CardTitle>{isCreatingNew ? (isMobile ? "New Deed" : "Create a New Deed") : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                        <CardDescription>
+                          {isCreatingNew ? "Fill out the details for your new deed." : "Make your changes and click Save."}
+                        </CardDescription>
+                    </div>
                   </div>
                 {!isMobile && (
                   <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">

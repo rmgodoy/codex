@@ -331,34 +331,38 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   if (!isEditing && encounterData) {
     return (
-        <div className="relative w-full max-w-5xl mx-auto">
-            {isMobile && onBack && (
-                <Button variant="ghost" size="icon" onClick={onBack} className="absolute left-[-0.5rem] top-7 z-10">
-                    <ArrowLeft className="h-5 w-5" />
-                </Button>
-            )}
+        <div className="w-full max-w-5xl mx-auto">
             <Card>
-                <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
-                        <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
-                        <CardDescription>
-                            <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
-                                <span className="hidden sm:inline">Total Threat Rating (TR): </span>
-                                <span className="inline sm:hidden">TR: </span>
-                                {encounterData.totalTR || 0}
-                            </button>
-                        </CardDescription>
-                    </div>
-                     <div className="flex flex-wrap justify-end gap-2">
-                        <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
-                            <Swords className="h-4 w-4"/>
-                            <span className="hidden sm:inline">Run Encounter</span>
-                            <span className="inline sm:hidden">Run</span>
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                            <Edit className="h-4 w-4"/>
-                            <span className="hidden sm:inline">Edit</span>
-                        </Button>
+                <CardHeader>
+                    <div className="flex flex-row items-start justify-between">
+                        <div className="flex items-start gap-2">
+                             {isMobile && onBack && (
+                                <Button variant="ghost" size="icon" onClick={onBack} className="-ml-4 -mt-2">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Button>
+                            )}
+                            <div>
+                                <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
+                                <CardDescription>
+                                    <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
+                                        <span className="hidden sm:inline">Total Threat Rating (TR): </span>
+                                        <span className="inline sm:hidden">TR: </span>
+                                        {encounterData.totalTR || 0}
+                                    </button>
+                                </CardDescription>
+                            </div>
+                        </div>
+                         <div className="flex flex-wrap justify-end gap-2">
+                            <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
+                                <Swords className="h-4 w-4"/>
+                                <span className="hidden sm:inline">Run Encounter</span>
+                                <span className="inline sm:hidden">Run</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                <Edit className="h-4 w-4"/>
+                                <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -428,19 +432,21 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   }
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto">
-        {isMobile && onBack && (
-            <Button type="button" variant="ghost" size="icon" onClick={onEditCancel} className="absolute left-[-0.5rem] top-7 z-10">
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
-        )}
+    <div className="w-full max-w-5xl mx-auto">
       <Card>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
-                  <div>
-                    <CardTitle>{isCreatingNew ? (isMobile ? "New Encounter" : "Create a New Encounter") : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                  <div className="flex items-center gap-1">
+                    {isMobile && onBack && (
+                        <Button type="button" variant="ghost" size="icon" onClick={onEditCancel} className="-ml-4">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    )}
+                    <div>
+                      <CardTitle>{isCreatingNew ? (isMobile ? "New Encounter" : "Create a New Encounter") : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                    </div>
                   </div>
                   {!isMobile && (
                     <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>
