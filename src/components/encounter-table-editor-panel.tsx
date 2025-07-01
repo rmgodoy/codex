@@ -31,7 +31,7 @@ const getExpectedQuantity = (quantityStr: string): number => {
   if (q.startsWith('d')) {
     const dieSize = parseInt(q.substring(1), 10);
     if (!isNaN(dieSize) && dieSize > 0) {
-      return Math.floor(dieSize / 2);
+      return Math.floor((dieSize + 1) / 2);
     }
   } else {
     const fixedQty = parseInt(q, 10);
@@ -155,38 +155,34 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
 
   const { fields: entryFields, append: appendEntry, remove: removeEntry } = useFieldArray({ control: form.control, name: "entries" });
   const watchedEntries = form.watch("entries");
-  
-  const watchedEntriesString = useMemo(() => JSON.stringify(watchedEntries), [watchedEntries]);
-  
+
   useEffect(() => {
     getAllCreatures().then(setAllCreatures);
   }, []);
 
   useEffect(() => {
-    const entries = JSON.parse(watchedEntriesString);
-    if (!entries || entries.length === 0) {
-        if (form.getValues('totalTR') !== 0) form.setValue('totalTR', 0);
-        return;
-    }
-    const totalWeight = entries.reduce((sum: number, entry: { weight: number; }) => sum + (Number(entry.weight) || 0), 0);
+    if (!watchedEntries || creatureMap.size === 0) return;
+
+    const totalWeight = watchedEntries.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0);
 
     if (totalWeight === 0) {
         if (form.getValues('totalTR') !== 0) form.setValue('totalTR', 0);
         return;
     }
 
-    const weightedTRSum = entries.reduce((sum: number, entry: { creatureId: string; quantity: string; weight: number; }) => {
+    const weightedTRSum = watchedEntries.reduce((sum, entry) => {
         const creature = creatureMap.get(entry.creatureId);
         const expectedQuantity = getExpectedQuantity(entry.quantity || '1');
-        return sum + ((creature?.TR || 0) * expectedQuantity * (Number(entry.weight) || 0));
+        const weight = Number(entry.weight) || 0;
+        return sum + ((creature?.TR || 0) * expectedQuantity * weight);
     }, 0);
     
     const newTR = Math.floor(weightedTRSum / totalWeight);
 
     if (form.getValues('totalTR') !== newTR) {
-        form.setValue('totalTR', newTR);
+        form.setValue('totalTR', newTR, { shouldValidate: false });
     }
-  }, [watchedEntriesString, creatureMap, form]);
+  }, [watchedEntries, creatureMap, form]);
 
   useEffect(() => {
     const fetchTableData = async () => {
@@ -463,5 +459,3 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
     </div>
   );
 }
-
-    
