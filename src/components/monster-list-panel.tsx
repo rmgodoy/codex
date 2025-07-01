@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
-import { useSidebar } from '@/components/ui/sidebar';
 
 type SortByType = 'name' | 'TR' | 'level';
 
@@ -63,7 +61,6 @@ export default function CreatureListPanel({
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { isMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => {
     const fetchCreatures = async () => {
@@ -133,24 +130,10 @@ export default function CreatureListPanel({
     return sorted;
   }, [creatures, filters]);
 
-  const handleNewCreature = () => {
-    onNewCreature();
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
-  const handleSelectCreature = (id: string) => {
-    onSelectCreature(id);
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
   return (
     <div className="border-r border-border bg-card flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={handleNewCreature} className="w-full">
+        <Button onClick={onNewCreature} className="w-full">
           <PlusCircle /> New Creature
         </Button>
         <div className="relative">
@@ -228,7 +211,7 @@ export default function CreatureListPanel({
               {filteredAndSortedCreatures.map(creature => (
                 <li key={creature.id}>
                   <button
-                    onClick={() => handleSelectCreature(creature.id)}
+                    onClick={() => onSelectCreature(creature.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
                     {creature.name} <span className="text-xs opacity-70">(Lvl {creature.level} / TR {creature.TR})</span>

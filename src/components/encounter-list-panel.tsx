@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,7 +9,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Search, Tag, ArrowUp, ArrowDown } from 'lucide-react';
-import { useSidebar } from './ui/sidebar';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -53,7 +51,6 @@ export default function EncounterListPanel({
   const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { isMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -74,20 +71,6 @@ export default function EncounterListPanel({
     };
     fetchAllData();
   }, [dataVersion, toast]);
-  
-  const handleNewEncounter = () => {
-    onNewEncounter();
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
-  const handleSelectEncounter = (id: string) => {
-    onSelectEncounter(id);
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
 
   const filteredAndSortedEncounters = useMemo(() => {
     const creatureTRMap = new Map(allCreatures.map(c => [c.id, c.TR]));
@@ -141,7 +124,7 @@ export default function EncounterListPanel({
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={handleNewEncounter} className="w-full">
+        <Button onClick={onNewEncounter} className="w-full">
           <PlusCircle /> New Encounter
         </Button>
         <div className="relative">
@@ -196,7 +179,7 @@ export default function EncounterListPanel({
               {filteredAndSortedEncounters.map(encounter => (
                 <li key={encounter.id}>
                   <button
-                    onClick={() => handleSelectEncounter(encounter.id)}
+                    onClick={() => onSelectEncounter(encounter.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedEncounterId === encounter.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
                     {encounter.name} <span className="text-xs opacity-70">(TR {encounter.totalTR})</span>

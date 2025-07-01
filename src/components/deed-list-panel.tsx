@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -12,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Search, Tag, ArrowUp, ArrowDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
-import { useSidebar } from './ui/sidebar';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
@@ -48,7 +46,6 @@ export default function DeedListPanel({
   const [deeds, setDeeds] = useState<Deed[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { isMobile, setOpenMobile } = useSidebar();
 
   useEffect(() => {
     const fetchDeeds = async () => {
@@ -66,20 +63,6 @@ export default function DeedListPanel({
     fetchDeeds();
   }, [dataVersion, toast]);
   
-  const handleNewDeed = () => {
-    onNewDeed();
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
-  const handleSelectDeed = (id: string) => {
-    onSelectDeed(id);
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
   const filteredAndSortedDeeds = useMemo(() => {
     let filtered = deeds.filter(deed => {
         const matchesSearch = deed.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
@@ -115,7 +98,7 @@ export default function DeedListPanel({
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={handleNewDeed} className="w-full">
+        <Button onClick={onNewDeed} className="w-full">
           <PlusCircle /> New Deed
         </Button>
         <div className="relative">
@@ -177,7 +160,7 @@ export default function DeedListPanel({
               {filteredAndSortedDeeds.map(deed => (
                 <li key={deed.id}>
                   <button
-                    onClick={() => handleSelectDeed(deed.id)}
+                    onClick={() => onSelectDeed(deed.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedDeedId === deed.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
                     {deed.name} <span className="text-xs opacity-70">({deed.tier})</span>
