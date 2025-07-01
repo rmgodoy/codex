@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from "@/components/main-layout";
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import EncounterListPanel from '@/components/encounter-list-panel';
@@ -10,6 +10,7 @@ import LiveEncounterView from '@/components/live-encounter-view';
 import type { Encounter } from '@/lib/types';
 import { getEncounterById } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type EncounterViewMode = 'preparation' | 'live';
 type SortByType = 'name' | 'TR';
@@ -27,6 +28,14 @@ export default function EncountersPage() {
   const [maxTR, setMaxTR] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const [isClient, setIsClient] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const filters = {
     searchTerm,
@@ -85,29 +94,50 @@ export default function EncountersPage() {
   const handleSelectEncounter = (id: string | null) => {
     setSelectedEncounterId(id);
     setIsCreatingNew(false);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const handleNewEncounter = () => {
     setSelectedEncounterId(null);
     setIsCreatingNew(true);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const onEncounterSaveSuccess = (id: string) => {
     refreshList();
     setSelectedEncounterId(id);
     setIsCreatingNew(false);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const onEncounterDeleteSuccess = () => {
     refreshList();
     setSelectedEncounterId(null);
     setIsCreatingNew(false);
+    if (isMobile) {
+      setMobileView('list');
+    }
   };
 
+  const handleBack = () => {
+    setMobileView('list');
+    setSelectedEncounterId(null);
+    setIsCreatingNew(false);
+  };
+  
   const onEditCancel = () => {
     if (isCreatingNew) {
       setIsCreatingNew(false);
       setSelectedEncounterId(null);
+      if (isMobile) {
+        setMobileView('list');
+      }
     }
   };
 
@@ -137,6 +167,44 @@ export default function EncountersPage() {
         encounter={liveEncounter}
         onEndEncounter={handleEndEncounter}
       />
+    );
+  }
+  
+  if (!isClient) {
+    return null;
+  }
+
+  if (isMobile) {
+    return (
+      <MainLayout showSidebarTrigger={false}>
+        <div className="h-full w-full">
+          {mobileView === 'list' ? (
+            <EncounterListPanel
+              onSelectEncounter={handleSelectEncounter}
+              onNewEncounter={handleNewEncounter}
+              selectedEncounterId={selectedEncounterId}
+              dataVersion={dataVersion}
+              filters={filters}
+              setFilters={setFilters}
+              onClearFilters={clearFilters}
+            />
+          ) : (
+            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
+              <EncounterEditorPanel
+                key={selectedEncounterId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                encounterId={selectedEncounterId}
+                isCreatingNew={isCreatingNew}
+                onEncounterSaveSuccess={onEncounterSaveSuccess}
+                onEncounterDeleteSuccess={onEncounterDeleteSuccess}
+                onEditCancel={onEditCancel}
+                onRunEncounter={handleRunEncounter}
+                onFilterByClick={handleFilterByClick}
+                onBack={handleBack}
+              />
+            </div>
+          )}
+        </div>
+      </MainLayout>
     );
   }
 

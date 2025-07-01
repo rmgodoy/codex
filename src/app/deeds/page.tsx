@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DeedListPanel from '@/components/deed-list-panel';
 import DeedEditorPanel from '@/components/deed-editor-panel';
 import MainLayout from '@/components/main-layout';
 import type { Deed } from '@/lib/types';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type SortByType = 'name' | 'tier';
 
@@ -21,6 +22,14 @@ export default function DeedsPage() {
   const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const [isClient, setIsClient] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const filters = {
     searchTerm,
@@ -73,12 +82,18 @@ export default function DeedsPage() {
     setSelectedDeedId(id);
     setIsCreatingNew(false);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const handleNewDeed = () => {
     setSelectedDeedId(null);
     setIsCreatingNew(true);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const handleUseAsTemplate = (deedData: Deed) => {
@@ -89,6 +104,9 @@ export default function DeedsPage() {
     setSelectedDeedId(null);
     setIsCreatingNew(true);
     setTemplateData(template);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const onDeedSaveSuccess = (id: string) => {
@@ -96,6 +114,9 @@ export default function DeedsPage() {
     setSelectedDeedId(id);
     setIsCreatingNew(false);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const onDeedDeleteSuccess = () => {
@@ -103,14 +124,67 @@ export default function DeedsPage() {
     setSelectedDeedId(null);
     setIsCreatingNew(false);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('list');
+    }
   };
 
+  const handleBack = () => {
+    setMobileView('list');
+    setSelectedDeedId(null);
+    setIsCreatingNew(false);
+    setTemplateData(null);
+  };
+  
   const onEditCancel = () => {
     if (isCreatingNew) {
       setIsCreatingNew(false);
       setSelectedDeedId(null);
+      if (isMobile) {
+        setMobileView('list');
+      }
     }
   };
+
+  if (!isClient) {
+    return null;
+  }
+
+  if (isMobile) {
+    return (
+      <MainLayout showSidebarTrigger={false}>
+        <div className="h-full w-full">
+          {mobileView === 'list' ? (
+            <DeedListPanel
+              onSelectDeed={handleSelectDeed}
+              onNewDeed={handleNewDeed}
+              selectedDeedId={selectedDeedId}
+              dataVersion={dataVersion}
+              filters={filters}
+              setFilters={setFilters}
+              onClearFilters={clearFilters}
+            />
+          ) : (
+            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
+              <DeedEditorPanel
+                key={selectedDeedId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                deedId={selectedDeedId}
+                isCreatingNew={isCreatingNew}
+                template={templateData}
+                onDeedSaveSuccess={onDeedSaveSuccess}
+                onDeedDeleteSuccess={onDeedDeleteSuccess}
+                onUseAsTemplate={handleUseAsTemplate}
+                onEditCancel={onEditCancel}
+                dataVersion={dataVersion}
+                onFilterByClick={handleFilterByClick}
+                onBack={handleBack}
+              />
+            </div>
+          )}
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <SidebarProvider>

@@ -18,11 +18,12 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Tag, Copy, X } from "lucide-react";
+import { Trash2, Edit, Tag, Copy, X, ArrowLeft } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { DeedDisplay } from "./deed-display";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -38,7 +39,7 @@ const deedSchema = z.object({
   actionType: z.enum(DEED_ACTION_TYPES),
   deedType: z.enum(DEED_TYPES),
   versus: z.enum(DEED_VERSUS),
-  target: z.string(),
+  target: z.string().optional(),
   effects: deedEffectsSchema,
   tags: z.array(z.string()).optional(),
 });
@@ -55,6 +56,7 @@ interface DeedEditorPanelProps {
   onEditCancel: () => void;
   dataVersion: number;
   onFilterByClick: (updates: { tierFilter?: 'light' | 'heavy' | 'mighty', tagFilter?: string }, e: React.MouseEvent) => void;
+  onBack?: () => void;
 }
 
 const defaultValues: DeedFormData = {
@@ -68,11 +70,12 @@ const defaultValues: DeedFormData = {
   tags: [],
 };
 
-export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion, onFilterByClick }: DeedEditorPanelProps) {
+export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion, onFilterByClick, onBack }: DeedEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!deedId);
   const [deedData, setDeedData] = useState<Deed | null>(null);
+  const isMobile = useIsMobile();
 
   const form = useForm<DeedFormData>({
     resolver: zodResolver(deedSchema),
@@ -217,13 +220,20 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
         <div className="w-full max-w-5xl mx-auto">
             <Card>
                 <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
-                        <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
-                        <CardDescription className="mt-1 capitalize">
-                           <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
-                             {deedData.tier}
-                           </button>
-                        </CardDescription>
+                    <div className="flex items-center gap-2">
+                        {isMobile && onBack && (
+                            <Button variant="ghost" size="icon" onClick={onBack}>
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        )}
+                        <div>
+                            <CardTitle className="text-3xl font-bold">{deedData.name}</CardTitle>
+                            <CardDescription className="mt-1 capitalize">
+                               <button onClick={(e) => onFilterByClick({ tierFilter: deedData.tier }, e)} className="hover:underline p-0 bg-transparent text-inherit">
+                                 {deedData.tier}
+                               </button>
+                            </CardDescription>
+                        </div>
                     </div>
                      <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={handleUseAsTemplate}>
@@ -283,16 +293,27 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
       <Card>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CardHeader className="flex flex-row justify-between items-start">
-              <div>
-                <CardTitle>{isCreatingNew ? "Create a New Deed" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
-                <CardDescription>
-                  {isCreatingNew ? "Fill out the details for your new deed." : "Make your changes and click Save."}
-                </CardDescription>
+            <CardHeader>
+              <div className="flex flex-row justify-between items-start">
+                  <div className="flex items-center gap-2">
+                      {isMobile && onBack && (
+                          <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
+                              <ArrowLeft className="h-5 w-5" />
+                          </Button>
+                      )}
+                      <div>
+                          <CardTitle>{isCreatingNew ? "Create a New Deed" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                          <CardDescription>
+                            {isCreatingNew ? "Fill out the details for your new deed." : "Make your changes and click Save."}
+                          </CardDescription>
+                      </div>
+                  </div>
+                {!isMobile && (
+                  <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-5 w-5" />
+                  </Button>
+                )}
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </Button>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -445,7 +466,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                   </AlertDialog>
               )}
               <div className="flex-grow" />
-              <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+              {!isMobile && <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>}
               <Button type="submit">{isCreatingNew ? "Create Deed" : "Save Changes"}</Button>
             </CardFooter>
           </form>

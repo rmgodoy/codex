@@ -21,7 +21,7 @@ import { importData, exportAllData } from '@/lib/idb';
 import { importLegacyData } from '@/lib/importer';
 
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({ children, showSidebarTrigger = true }: { children: React.ReactNode, showSidebarTrigger?: boolean }) {
   const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const legacyFileInputRef = useRef<HTMLInputElement>(null);
@@ -189,7 +189,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters') && <SidebarTrigger />}
+          {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters') && showSidebarTrigger && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">

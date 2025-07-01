@@ -18,13 +18,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, X, UserPlus, Swords, Bot, User, Tag } from "lucide-react";
+import { Trash2, Edit, X, UserPlus, Swords, Bot, User, Tag, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { TagInput } from "./ui/tag-input";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const playerEncounterEntrySchema = z.object({
   id: z.string(),
@@ -144,6 +145,7 @@ interface EncounterEditorPanelProps {
   onEditCancel: () => void;
   onRunEncounter: (id: string) => void;
   onFilterByClick: (updates: Partial<{ minTR: number; maxTR: number; tagFilter: string }>, e: React.MouseEvent) => void;
+  onBack?: () => void;
 }
 
 const defaultValues: EncounterFormData = {
@@ -156,11 +158,12 @@ const defaultValues: EncounterFormData = {
   totalTR: 0,
 };
 
-export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter, onFilterByClick }: EncounterEditorPanelProps) {
+export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEncounterSaveSuccess, onEncounterDeleteSuccess, onEditCancel, onRunEncounter, onFilterByClick, onBack }: EncounterEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!encounterId);
   const [encounterData, setEncounterData] = useState<Encounter | null>(null);
+  const isMobile = useIsMobile();
   
   // For view mode display
   const [viewModeDetails, setViewModeDetails] = useState<{ monsters: Map<string, Creature> }>({ monsters: new Map() });
@@ -331,15 +334,22 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         <div className="w-full max-w-5xl mx-auto">
             <Card>
                 <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
-                        <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
-                        <CardDescription>
-                          <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
-                              <span className="hidden sm:inline">Total Threat Rating (TR): </span>
-                              <span className="inline sm:hidden">TR: </span>
-                              {encounterData.totalTR || 0}
-                          </button>
-                        </CardDescription>
+                    <div className="flex items-center gap-2">
+                        {isMobile && onBack && (
+                            <Button variant="ghost" size="icon" onClick={onBack}>
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        )}
+                        <div>
+                            <CardTitle className="text-3xl font-bold">{encounterData.name}</CardTitle>
+                            <CardDescription>
+                              <button onClick={(e) => onFilterByClick({ minTR: encounterData.totalTR || 0, maxTR: encounterData.totalTR || 0 }, e)} className="hover:underline p-0 bg-transparent text-inherit text-sm">
+                                  <span className="hidden sm:inline">Total Threat Rating (TR): </span>
+                                  <span className="inline sm:hidden">TR: </span>
+                                  {encounterData.totalTR || 0}
+                              </button>
+                            </CardDescription>
+                        </div>
                     </div>
                      <div className="flex flex-wrap justify-end gap-2">
                         <Button variant="default" size="sm" onClick={() => onRunEncounter(encounterData.id)}>
@@ -424,11 +434,22 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
       <Card>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CardHeader className="flex flex-row justify-between items-start">
-              <div>
-                <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+            <CardHeader>
+              <div className="flex flex-row justify-between items-start">
+                  <div className="flex items-center gap-2">
+                      {isMobile && onBack && (
+                          <Button type="button" variant="ghost" size="icon" onClick={onEditCancel}>
+                              <ArrowLeft className="h-5 w-5" />
+                          </Button>
+                      )}
+                      <div>
+                        <CardTitle>{isCreatingNew ? "Create a New Encounter" : `Editing: ${form.getValues("name") || "..."}`}</CardTitle>
+                      </div>
+                  </div>
+                  {!isMobile && (
+                    <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>
+                  )}
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Encounter Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -506,7 +527,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             <CardFooter className="flex items-center gap-2">
               {!isCreatingNew && (<AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{form.getValues("name")}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
               <div className="flex-grow" />
-              <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+              {!isMobile && <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>}
               <Button type="submit">{isCreatingNew ? "Create Encounter" : "Save Changes"}</Button>
             </CardFooter>
           </form>

@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CreatureWithDeeds, Role, CreatureTemplate } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import MainLayout from "@/components/main-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SortByType = 'name' | 'TR' | 'level';
 
@@ -26,6 +27,14 @@ export default function Home() {
   const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const [isClient, setIsClient] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const filters = {
     searchTerm,
@@ -105,12 +114,18 @@ export default function Home() {
     setSelectedCreatureId(id);
     setIsCreatingNew(false);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const handleNewCreature = () => {
     setSelectedCreatureId(null);
     setIsCreatingNew(true);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const handleUseAsTemplate = (creatureData: CreatureWithDeeds) => {
@@ -121,6 +136,9 @@ export default function Home() {
     setSelectedCreatureId(null);
     setIsCreatingNew(true);
     setTemplateData(template);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const onCreatureSaveSuccess = (id: string) => {
@@ -128,6 +146,9 @@ export default function Home() {
     setSelectedCreatureId(id);
     setIsCreatingNew(false);
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('editor');
+    }
   };
 
   const onCreatureDeleteSuccess = () => {
@@ -135,14 +156,67 @@ export default function Home() {
     setSelectedCreatureId(null);
     setIsCreatingNew(false); 
     setTemplateData(null);
+    if (isMobile) {
+      setMobileView('list');
+    }
   };
   
+  const handleBack = () => {
+    setMobileView('list');
+    setSelectedCreatureId(null);
+    setIsCreatingNew(false);
+    setTemplateData(null);
+  };
+
   const onEditCancel = () => {
     if (isCreatingNew) {
       setIsCreatingNew(false);
       setSelectedCreatureId(null);
+      if (isMobile) {
+        setMobileView('list');
+      }
     }
   };
+  
+  if (!isClient) {
+    return null;
+  }
+
+  if (isMobile) {
+    return (
+      <MainLayout showSidebarTrigger={false}>
+        <div className="h-full w-full">
+          {mobileView === 'list' ? (
+            <CreatureListPanel
+              onSelectCreature={handleSelectCreature}
+              onNewCreature={handleNewCreature}
+              selectedCreatureId={selectedCreatureId}
+              dataVersion={dataVersion}
+              filters={filters}
+              setFilters={setFilters}
+              onClearFilters={clearFilters}
+            />
+          ) : (
+            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
+              <CreatureEditorPanel
+                key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                creatureId={selectedCreatureId}
+                isCreatingNew={isCreatingNew}
+                template={templateData}
+                onCreatureSaveSuccess={onCreatureSaveSuccess}
+                onCreatureDeleteSuccess={onCreatureDeleteSuccess}
+                onUseAsTemplate={handleUseAsTemplate}
+                onEditCancel={onEditCancel}
+                dataVersion={dataVersion}
+                onFilterByClick={handleFilterByClick}
+                onBack={handleBack}
+              />
+            </div>
+          )}
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <SidebarProvider>
