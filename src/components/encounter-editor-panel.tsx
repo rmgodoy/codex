@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { TagInput } from "./ui/tag-input";
 
 const playerEncounterEntrySchema = z.object({
   id: z.string(),
@@ -41,7 +42,7 @@ const encounterSchema = z.object({
   gmNotes: z.string().optional(),
   players: z.array(playerEncounterEntrySchema),
   monsterGroups: z.array(monsterEncounterGroupSchema),
-  tags: z.string().optional(),
+  tags: z.array(z.string()).optional(),
   totalTR: z.number().optional(),
 });
 
@@ -151,7 +152,7 @@ const defaultValues: EncounterFormData = {
   gmNotes: "",
   players: [],
   monsterGroups: [],
-  tags: "",
+  tags: [],
   totalTR: 0,
 };
 
@@ -206,7 +207,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
         if (encounterFromDb) {
            const formData = {
             ...encounterFromDb,
-            tags: Array.isArray(encounterFromDb.tags) ? encounterFromDb.tags.join(', ') : '',
+            tags: encounterFromDb.tags || [],
           };
           form.reset(formData);
           setEncounterData(encounterFromDb);
@@ -238,7 +239,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
     } else if (encounterData) {
         const formData = {
             ...encounterData,
-            tags: Array.isArray(encounterData.tags) ? encounterData.tags.join(', ') : '',
+            tags: encounterData.tags || [],
         };
         form.reset(formData);
         setIsEditing(false);
@@ -247,7 +248,6 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   const onSubmit = async (data: EncounterFormData) => {
     try {
-      const tagsValue = data.tags || '';
       const monsterTRs = await getCreaturesByIds(data.monsterGroups.map(g => g.monsterId));
       const monsterTRMap = new Map(monsterTRs.map(c => [c.id, c.TR]));
       const totalTR = data.monsterGroups.reduce((acc, group) => {
@@ -257,7 +257,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
       const encounterToSave: Omit<Encounter, 'id'> | Encounter = {
         ...data,
-        tags: tagsValue.split(',').map(t => t.trim()).filter(Boolean),
+        tags: data.tags || [],
         totalTR,
       };
 
@@ -306,7 +306,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   };
 
 
-  if (loading) return <Card><CardHeader><Skeleton className="h-8 w-48" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card>;
+  if (loading) return <div className="w-full max-w-5xl mx-auto"><Card><CardHeader><Skeleton className="h-8 w-48" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
   
   if (!encounterId && !isCreatingNew) {
     return (
@@ -427,13 +427,23 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Encounter Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField name="tags" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                  <FormControl><Input placeholder="e.g. random, boss-fight, exploration" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField
+                name="tags"
+                control={form.control}
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                    <FormControl>
+                        <TagInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Add tags..."
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
               <FormField name="sceneDescription" control={form.control} render={({ field }) => (<FormItem><FormLabel>Scene Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
               <FormField name="gmNotes" control={form.control} render={({ field }) => (<FormItem><FormLabel>GM Notes (Private)</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
               

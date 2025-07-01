@@ -29,6 +29,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DeedDisplay } from "./deed-display";
 import { Badge } from "@/components/ui/badge";
+import { TagInput } from "./ui/tag-input";
 
 const TEMPLATES: CreatureTemplate[] = ['Normal', 'Underling', 'Paragon', 'Tyrant'];
 
@@ -49,7 +50,7 @@ const deedSchema = z.object({
   versus: z.enum(DEED_VERSUS),
   target: z.string().min(1, "Target is required"),
   effects: deedEffectsSchema,
-  tags: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 const creatureSchema = z.object({
@@ -71,7 +72,7 @@ const creatureSchema = z.object({
   deeds: z.array(deedSchema),
   abilities: z.string().optional(),
   description: z.string().optional(),
-  tags: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 type CreatureFormData = z.infer<typeof creatureSchema>;
@@ -98,7 +99,7 @@ const defaultValues: CreatureFormData = {
   deeds: [],
   abilities: "",
   description: "",
-  tags: "",
+  tags: [],
 };
 
 const DeedSelectionDialog = ({ onAddDeeds, allDeeds, existingDeedIds }: { onAddDeeds: (deeds: Deed[]) => void, allDeeds: Deed[], existingDeedIds: Set<string> }) => {
@@ -271,7 +272,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           abilities: initialData.abilities || '',
           description: initialData.description || '',
           template: initialData.template || 'Normal',
-          tags: Array.isArray(initialData.tags) ? initialData.tags.join(', ') : '',
+          tags: initialData.tags || [],
           deeds: (initialData.deeds || []).map(deed => ({
             ...deed,
             effects: {
@@ -281,7 +282,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               shadow: deed.effects?.shadow || '',
               end: deed.effects?.end || '',
             },
-            tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
+            tags: deed.tags || [],
           }))
         };
         if (template) delete (formData as any).id;
@@ -323,7 +324,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             abilities: fullCreatureData.abilities || '',
             description: fullCreatureData.description || '',
             template: fullCreatureData.template || 'Normal',
-            tags: Array.isArray(fullCreatureData.tags) ? fullCreatureData.tags.join(', ') : '',
+            tags: fullCreatureData.tags || [],
             deeds: deedObjects.map(deed => ({
               ...deed,
               effects: {
@@ -333,7 +334,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 shadow: deed.effects?.shadow || '',
                 end: deed.effects?.end || '',
               },
-              tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
+              tags: deed.tags || [],
             })),
           };
           form.reset(formData);
@@ -357,10 +358,10 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
       const deedPromises = data.deeds.map(deed => {
         if (!deed.id) {
-          const { id, ...deedDataWithTagString } = deed;
+          const { id, ...deedData } = deed;
           const deedToSave: DeedData = {
-              ...deedDataWithTagString,
-              tags: (deedDataWithTagString.tags || '').split(',').map(t => t.trim()).filter(Boolean),
+              ...deedData,
+              tags: deedData.tags || [],
           };
           return addDeed(deedToSave);
         }
@@ -369,10 +370,9 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
       const deedIds = await Promise.all(deedPromises);
       
-      const tagsValue = data.tags || '';
       const creatureToSave: Omit<Creature, 'id'> | Creature = {
         ...data,
-        tags: Array.isArray(tagsValue) ? tagsValue : tagsValue.split(',').map(t => t.trim()).filter(Boolean),
+        tags: data.tags || [],
         deeds: deedIds,
       };
 
@@ -415,7 +415,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           abilities: creatureData.abilities || '',
           description: creatureData.description || '',
           template: creatureData.template || 'Normal',
-          tags: Array.isArray(creatureData.tags) ? creatureData.tags.join(', ') : '',
+          tags: creatureData.tags || [],
           deeds: creatureData.deeds.map(deed => ({
             ...deed,
             effects: {
@@ -425,7 +425,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               shadow: deed.effects?.shadow || '',
               end: deed.effects?.end || '',
             },
-            tags: Array.isArray(deed.tags) ? deed.tags.join(', ') : '',
+            tags: deed.tags || [],
           })),
         };
         form.reset(formData);
@@ -441,7 +441,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   };
 
   const handleAddDeedsFromLibrary = (newDeeds: Deed[]) => {
-    const deedsToAdd = newDeeds.map(d => ({...d, tags: Array.isArray(d.tags) ? d.tags.join(', ') : ''}));
+    const deedsToAdd = newDeeds.map(d => ({...d, tags: d.tags || []}));
     
     if (getValues('template') === 'Underling') {
       const lightDeeds = deedsToAdd.filter(d => d.tier === 'light');
@@ -461,34 +461,36 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
   if (loading && !isCreatingNew) {
      return (
-       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-          <Skeleton className="h-10 w-24" />
-        </CardHeader>
-        <CardContent>
-            <Separator className="my-6"/>
-            <Skeleton className="h-6 w-32 mb-4" />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+       <div className="w-full max-w-5xl mx-auto">
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-32" />
             </div>
-            <Separator className="my-6"/>
-            <Skeleton className="h-6 w-32 mb-4" />
-            <div className="space-y-4">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-            </div>
-        </CardContent>
-       </Card>
+            <Skeleton className="h-10 w-24" />
+          </CardHeader>
+          <CardContent>
+              <Separator className="my-6"/>
+              <Skeleton className="h-6 w-32 mb-4" />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+              </div>
+              <Separator className="my-6"/>
+              <Skeleton className="h-6 w-32 mb-4" />
+              <div className="space-y-4">
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+              </div>
+          </CardContent>
+         </Card>
+       </div>
      );
   }
 
@@ -742,7 +744,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                   <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                   <div className="flex flex-wrap justify-end gap-2">
                     <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: '' })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: [] })}>
                       <Plus className="h-4 w-4 mr-2" /> Create New
                     </Button>
                   </div>
@@ -891,13 +893,23 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     <FormControl><Textarea placeholder="A short description of the creature..." rows={5} {...field} /></FormControl>
                   </FormItem>
                 )} />
-              <FormField name="tags" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                  <FormControl><Input placeholder="e.g. undead, magical, small" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+               <FormField
+                name="tags"
+                control={form.control}
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                    <FormControl>
+                        <TagInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Add tags..."
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
               
             </CardContent>
             <CardFooter className="flex items-center gap-2">

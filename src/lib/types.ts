@@ -35,6 +35,10 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty';
 
+export interface Tag {
+  name: string;
+}
+
 export interface Deed {
   id: string;
   name: string;

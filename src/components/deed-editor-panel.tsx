@@ -22,6 +22,7 @@ import { Trash2, Edit, Tag, Copy, X } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { DeedDisplay } from "./deed-display";
 import { Badge } from "./ui/badge";
+import { TagInput } from "./ui/tag-input";
 
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
@@ -39,7 +40,7 @@ const deedSchema = z.object({
   versus: z.enum(DEED_VERSUS),
   target: z.string().min(1, "Target is required"),
   effects: deedEffectsSchema,
-  tags: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 type DeedFormData = z.infer<typeof deedSchema>;
@@ -64,7 +65,7 @@ const defaultValues: DeedFormData = {
   versus: 'guard',
   target: "",
   effects: { start: '', base: '', hit: '', shadow: '', end: '' },
-  tags: '',
+  tags: [],
 };
 
 export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDeedSaveSuccess, onDeedDeleteSuccess, onUseAsTemplate, onEditCancel, dataVersion, onFilterByClick }: DeedEditorPanelProps) {
@@ -81,7 +82,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
   useEffect(() => {
     const fetchDeedData = async () => {
       if (isCreatingNew) {
-        form.reset(template || defaultValues);
+        form.reset(template ? { ...template, tags: template.tags || []} : defaultValues);
         setDeedData(template ? (template as Deed) : null);
         setIsEditing(true);
         setLoading(false);
@@ -102,7 +103,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
         if (deedFromDb) {
           const formData = {
             ...deedFromDb,
-            tags: Array.isArray(deedFromDb.tags) ? deedFromDb.tags.join(', ') : '',
+            tags: deedFromDb.tags || [],
           };
           form.reset(formData);
           setDeedData(deedFromDb);
@@ -125,7 +126,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
     } else if (deedData) {
         const formData = {
             ...deedData,
-            tags: Array.isArray(deedData.tags) ? deedData.tags.join(', ') : '',
+            tags: deedData.tags || [],
         };
         form.reset(formData);
         setIsEditing(false);
@@ -134,10 +135,9 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
 
   const onSubmit = async (data: DeedFormData) => {
     try {
-      const tagsValue = data.tags || '';
       const deedToSave: DeedData | Deed = {
         ...data,
-        tags: tagsValue.split(',').map(t => t.trim()).filter(Boolean),
+        tags: data.tags || [],
       };
 
       if (isCreatingNew) {
@@ -175,7 +175,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
   };
   
   if (loading) {
-    return <Card>
+    return <div className="w-full max-w-5xl mx-auto"><Card>
         <CardHeader>
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-32" />
@@ -191,7 +191,7 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
         </CardContent>
-    </Card>;
+    </Card></div>;
   }
   
   if (!deedId && !isCreatingNew) {
@@ -361,13 +361,23 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                   </FormItem>
               )} />
 
-              <FormField name="tags" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                  <FormControl><Input placeholder="e.g. fire, ongoing, control" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+               <FormField
+                name="tags"
+                control={form.control}
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
+                    <FormControl>
+                        <TagInput
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        placeholder="Add tags..."
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
 
               <Separator />
               <h4 className="font-semibold text-primary-foreground">Effects</h4>
