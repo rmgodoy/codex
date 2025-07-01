@@ -138,8 +138,19 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                 }
             }
 
-            const dieValue = parseInt(chosenEntry.dieSize.substring(1), 10);
-            const quantity = Math.floor(Math.random() * dieValue) + 1;
+            const quantityStr = chosenEntry.quantity || '1';
+            let quantity = 1;
+            if (quantityStr.toLowerCase().startsWith('d')) {
+                const dieValue = parseInt(quantityStr.substring(1), 10);
+                if (!isNaN(dieValue) && dieValue > 0) {
+                    quantity = Math.floor(Math.random() * dieValue) + 1;
+                }
+            } else {
+                const fixedQty = parseInt(quantityStr, 10);
+                if (!isNaN(fixedQty) && fixedQty > 0) {
+                    quantity = fixedQty;
+                }
+            }
             
             monsterGroups = [{ monsterId: chosenEntry.creatureId, quantity }];
         }

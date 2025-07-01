@@ -44,7 +44,7 @@ const encounterSchema = z.object({
   players: z.array(playerEncounterEntrySchema),
   monsterGroups: z.array(monsterEncounterGroupSchema),
   tags: z.array(z.string()).optional(),
-  totalTR: z.number().optional(),
+  totalTR: z.coerce.number().optional(),
   encounterTableId: z.string().optional(),
 });
 
@@ -180,16 +180,34 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   const { fields: monsterGroupFields, append: appendMonsterGroup, remove: removeMonsterGroup, update: updateMonsterGroup, replace: replaceMonsterGroups } = useFieldArray({ control: form.control, name: "monsterGroups" });
   
   const watchedEncounterTableId = form.watch("encounterTableId");
+  const watchedMonsterGroups = form.watch("monsterGroups");
+  
+  const creatureTRMap = useMemo(() => new Map(allCreatures.map(c => [c.id, c.TR])), [allCreatures]);
 
   useEffect(() => {
     if (watchedEncounterTableId) {
       replaceMonsterGroups([]);
+      const table = allEncounterTables.find(t => t.id === watchedEncounterTableId);
+      form.setValue('totalTR', table?.totalTR || 0);
+    } else {
+      const newTotalTR = watchedMonsterGroups.reduce((acc, group) => {
+        const tr = creatureTRMap.get(group.monsterId) || 0;
+        return acc + (tr * group.quantity);
+      }, 0);
+      form.setValue('totalTR', newTotalTR);
     }
-  }, [watchedEncounterTableId, replaceMonsterGroups]);
+  }, [watchedMonsterGroups, watchedEncounterTableId, allEncounterTables, creatureTRMap, form, replaceMonsterGroups]);
   
   useEffect(() => {
-    getAllCreatures().then(setAllCreatures);
-    getAllEncounterTables().then(setAllEncounterTables);
+    const fetchData = async () => {
+        const [creatures, tables] = await Promise.all([
+            getAllCreatures(),
+            getAllEncounterTables()
+        ]);
+        setAllCreatures(creatures);
+        setAllEncounterTables(tables);
+    };
+    fetchData();
   }, []);
 
   const monsterDetailsMap = useMemo(() => {
@@ -268,25 +286,12 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
 
   const onSubmit = async (data: EncounterFormData) => {
     try {
-      let totalTR = 0;
-      if (data.encounterTableId) {
-        const table = allEncounterTables.find(t => t.id === data.encounterTableId);
-        totalTR = table?.totalTR || 0;
-        data.monsterGroups = [];
-      } else {
-        const monsterTRs = await getCreaturesByIds(data.monsterGroups.map(g => g.monsterId));
-        const monsterTRMap = new Map(monsterTRs.map(c => [c.id, c.TR]));
-        totalTR = data.monsterGroups.reduce((acc, group) => {
-            const tr = monsterTRMap.get(group.monsterId) || 0;
-            return acc + (tr * group.quantity);
-        }, 0);
-      }
-      
       const encounterToSave: Omit<Encounter, 'id'> | Encounter = {
         ...data,
         tags: data.tags || [],
-        totalTR,
+        totalTR: data.totalTR,
         encounterTableId: data.encounterTableId || undefined,
+        monsterGroups: data.encounterTableId ? [] : data.monsterGroups,
       };
 
       const tagsToSave = data.tags || [];
@@ -529,7 +534,15 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold text-muted-foreground mb-2">Monsters</h4>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-muted-foreground">Monsters</h4>
+                    <FormField name="totalTR" control={form.control} render={({ field }) => (
+                      <FormItem className="flex items-center gap-2">
+                          <FormLabel>Total TR:</FormLabel>
+                          <FormControl><Input type="number" {...field} readOnly className="w-20 bg-muted border-none" /></FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
                   <FormField
                     name="encounterTableId"
                     control={form.control}

@@ -6,20 +6,17 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import type { EncounterTable, Creature, DieSize } from "@/lib/types";
-import { DIE_SIZES } from "@/lib/types";
+import type { EncounterTable, Creature } from "@/lib/types";
 import { getAllCreatures, addEncounterTable, getEncounterTableById, updateEncounterTable, deleteEncounterTable, addTags } from "@/lib/idb";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Tag, X, ArrowLeft, Bot, Plus } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Plus } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TagInput } from "./ui/tag-input";
@@ -27,10 +24,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "./ui/badge";
 
+const getExpectedQuantity = (quantityStr: string): number => {
+  if (!quantityStr) return 1;
+  const q = quantityStr.toLowerCase().trim();
+  if (q.startsWith('d')) {
+    const dieSize = parseInt(q.substring(1), 10);
+    if (!isNaN(dieSize) && dieSize > 0) {
+      return (dieSize + 1) / 2;
+    }
+  } else {
+    const fixedQty = parseInt(q, 10);
+    if (!isNaN(fixedQty)) {
+      return fixedQty;
+    }
+  }
+  return 1;
+};
+
 const encounterTableEntrySchema = z.object({
   id: z.string(),
   creatureId: z.string().min(1, "Creature is required"),
-  dieSize: z.enum(DIE_SIZES),
+  quantity: z.string().min(1, "Quantity is required (e.g., '3' or 'd6')"),
   weight: z.coerce.number().min(1, "Weight must be at least 1"),
 });
 
@@ -145,14 +159,15 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
   }, []);
 
   useEffect(() => {
-    const totalWeight = watchedEntries.reduce((sum, entry) => sum + entry.weight, 0);
+    const totalWeight = watchedEntries.reduce((sum, entry) => sum + (entry.weight || 0), 0);
     if (totalWeight === 0) {
       form.setValue('totalTR', 0);
       return;
     }
     const weightedTRSum = watchedEntries.reduce((sum, entry) => {
       const creature = creatureMap.get(entry.creatureId);
-      return sum + ((creature?.TR || 0) * entry.weight);
+      const expectedQuantity = getExpectedQuantity(entry.quantity || '1');
+      return sum + ((creature?.TR || 0) * expectedQuantity * (entry.weight || 0));
     }, 0);
     form.setValue('totalTR', Math.round(weightedTRSum / totalWeight));
   }, [watchedEntries, creatureMap, form]);
@@ -239,7 +254,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
     appendEntry({
       id: crypto.randomUUID(),
       creatureId: creature.id,
-      dieSize: 'd6',
+      quantity: 'd6',
       weight: 10,
     });
   };
@@ -301,7 +316,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                                   return (
                                     <div key={entry.id} className="grid grid-cols-3 items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
                                         <p className="font-semibold col-span-2 sm:col-span-1">{creature?.name || 'Unknown'}</p>
-                                        <p className="text-center">x {entry.dieSize}</p>
+                                        <p className="text-center">x {entry.quantity}</p>
                                         <p className="text-center">Weight: {entry.weight}</p>
                                     </div>
                                   )
@@ -356,9 +371,15 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Table Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField name="location" control={form.control} render={({ field }) => (<FormItem><FormLabel>Location</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="totalTR" control={form.control} render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Average TR</FormLabel>
+                      <FormControl><Input type="number" {...field} readOnly className="bg-muted" /></FormControl>
+                  </FormItem>
+                )} />
               </div>
               <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
               <FormField
@@ -386,20 +407,21 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                     return (
                       <div key={field.id} className="grid grid-cols-2 md:grid-cols-4 items-end gap-3 p-3 border rounded-lg bg-card-foreground/5">
                         <div className="col-span-2 md:col-span-1">
-                          <Label>Creature</Label>
+                          <FormLabel>Creature</FormLabel>
                           <p className="font-semibold truncate" title={creature?.name}>{creature?.name || 'Unknown'}</p>
                           <p className="text-xs text-muted-foreground">Lvl {creature?.level} (TR {creature?.TR})</p>
                         </div>
-                        <FormField name={`entries.${index}.dieSize`} control={form.control} render={({ field: dieField }) => (
-                          <FormItem><FormLabel>Quantity</FormLabel>
-                            <Select onValueChange={dieField.onChange} defaultValue={dieField.value}>
-                              <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                              <SelectContent>{DIE_SIZES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                            </Select>
+                        <FormField name={`entries.${index}.quantity`} control={form.control} render={({ field: quantityField }) => (
+                          <FormItem>
+                            <FormLabel>Quantity</FormLabel>
+                            <FormControl><Input placeholder="e.g., 3 or d8" {...quantityField} /></FormControl>
                           </FormItem>
                         )}/>
                         <FormField name={`entries.${index}.weight`} control={form.control} render={({ field: weightField }) => (
-                          <FormItem><FormLabel>Weight</FormLabel><FormControl><Input type="number" min="1" {...weightField} /></FormControl></FormItem>
+                          <FormItem>
+                            <FormLabel>Weight</FormLabel>
+                            <FormControl><Input type="number" min="1" {...weightField} /></FormControl>
+                          </FormItem>
                         )}/>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removeEntry(index)} className="text-muted-foreground hover:text-destructive place-self-end"><Trash2 className="h-4 w-4" /></Button>
                       </div>

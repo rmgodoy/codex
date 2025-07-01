@@ -141,13 +141,10 @@ export interface Encounter {
 
 
 // Encounter Table Types
-export const DIE_SIZES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
-export type DieSize = typeof DIE_SIZES[number];
-
 export interface EncounterTableEntry {
   id: string;
   creatureId: string;
-  dieSize: DieSize;
+  quantity: string;
   weight: number;
 }
 
