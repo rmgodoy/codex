@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds, addTags } from "@/lib/idb";
-import { ROLES, getStatsForRoleAndLevel, getTR, type Role } from '@/lib/roles';
+import { ROLES, getStatsForRoleAndLevel, getTR, stepDownDamageDie, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
 import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate } from "@/lib/types";
 import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
@@ -48,7 +48,7 @@ const deedSchema = z.object({
   actionType: z.enum(DEED_ACTION_TYPES),
   deedType: z.enum(DEED_TYPES),
   versus: z.enum(DEED_VERSUS),
-  target: z.string(),
+  target: z.string().optional(),
   effects: deedEffectsSchema,
   tags: z.array(z.string()).optional(),
 });
@@ -235,10 +235,12 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             const finalTr = getTR(watchedTemplate, watchedLevel);
             
             let finalHp = stats.HP;
+            let finalDmg = stats.DMG;
 
             switch(watchedTemplate) {
                 case 'Underling':
                     finalHp = 1;
+                    finalDmg = stepDownDamageDie(stats.DMG);
                     const currentDeeds = getValues('deeds');
                     replace(currentDeeds.filter(d => d.tier === 'light'));
                     break;
@@ -250,7 +252,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     break;
             }
 
-            setValue('attributes', { ...stats, HP: finalHp });
+            setValue('attributes', { ...stats, HP: finalHp, DMG: finalDmg });
             setValue('TR', finalTr);
         }
     }

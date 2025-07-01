@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { CreatureAttributes, CreatureTemplate } from './types';
@@ -126,6 +127,16 @@ export const TR_TABLE: Record<CreatureTemplate, number[]> = {
   Paragon: [20, 40, 60, 80, 100, 120, 140, 160, 180, 200],
   Tyrant: [40, 80, 120, 160, 200, 240, 280, 320, 360, 400],
 };
+
+const DAMAGE_DICE_TIERS: readonly string[] = ['d4', 'd6', 'd8', 'd10', 'd12'];
+
+export function stepDownDamageDie(die: string): string {
+    const currentIndex = DAMAGE_DICE_TIERS.indexOf(die);
+    if (currentIndex > 0) {
+        return DAMAGE_DICE_TIERS[currentIndex - 1];
+    }
+    return DAMAGE_DICE_TIERS[0]; // Return the lowest die if it's already the lowest or not found
+}
 
 export function getTR(template: CreatureTemplate, level: number): number {
     if (level < 1 || level > 10) {
