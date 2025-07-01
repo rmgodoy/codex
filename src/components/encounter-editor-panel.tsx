@@ -530,19 +530,34 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                 
                 <div>
                   <h4 className="font-semibold text-muted-foreground mb-2">Monsters</h4>
-                  <FormField name="encounterTableId" control={form.control} render={({ field }) => (
+                  <FormField
+                    name="encounterTableId"
+                    control={form.control}
+                    render={({ field }) => (
                       <FormItem>
-                          <FormLabel>Encounter Table (Optional)</FormLabel>
-                           <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Select a table to roll from" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                  <SelectItem value="">None (Manual Selection)</SelectItem>
-                                  {allEncounterTables.map(table => <SelectItem key={table.id} value={table.id}>{table.name}</SelectItem>)}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
+                        <FormLabel>Encounter Table (Optional)</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}
+                          value={field.value === '' ? 'none' : field.value || undefined}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a table to roll from" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">None (Manual Selection)</SelectItem>
+                            {allEncounterTables.map((table) => (
+                              <SelectItem key={table.id} value={table.id}>
+                                {table.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
                       </FormItem>
-                  )} />
+                    )}
+                  />
 
                   {!watchedEncounterTableId && (
                     <div className="mt-4">
