@@ -1,5 +1,5 @@
 
-import type { Commoner } from './types';
+import type { Commoner, CommonerCombatValues } from './types';
 
 type AttributeName = 'might' | 'agility' | 'intellect' | 'spirit';
 
@@ -272,12 +272,12 @@ const generateAlignment = (): string => {
   return `${alignmentType.type}: ${traits.join(' & ')}`;
 };
 
-const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName[]; skill: string; equipment: string } => {
+const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName[]; skill: string; equipment: string[]; isNoble: boolean, isRoyalty: boolean } => {
   const d20 = roll(20);
   const socialGroup = PAST_LIFE_SOCIAL_GROUPS.find(sg => d20 >= sg.range[0] && d20 <= sg.range[1]);
 
   if (!socialGroup) {
-      return { pastLife: 'Unknown', attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
+      return { pastLife: 'Unknown', attributeBonuses: [], skill: 'To be determined', equipment: [], isNoble: false, isRoyalty: false };
   }
   
   const d20SubRoll = roll(20);
@@ -285,12 +285,15 @@ const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName
   if (socialGroup.group === 'Nobility') {
       const result = FALLEN_NOBILITY_TABLE.find(entry => d20SubRoll >= entry.range[0] && d20SubRoll <= entry.range[1]);
       if (result) {
-        const possessions = NOBILITY_POSSESSIONS[roll(NOBILITY_POSSESSIONS.length) - 1];
+        const possessions = [NOBILITY_POSSESSIONS[roll(NOBILITY_POSSESSIONS.length) - 1]];
+        const isRoyalty = ['Princess / Prince', 'Queen / King'].includes(result.title);
         return {
             pastLife: result.title,
             attributeBonuses: result.attributes as AttributeName[],
             skill: result.skill,
             equipment: possessions,
+            isNoble: true,
+            isRoyalty: isRoyalty,
         }
       }
   }
@@ -304,7 +307,7 @@ const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName
       case 'Merchants': resultTable = MERCHANTS_TABLE; break;
       case 'Soldiers': resultTable = SOLDIERS_TABLE; break;
       case 'Servants': resultTable = SERVANTS_TABLE; break;
-      default: return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
+      default: return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: [], isNoble: false, isRoyalty: false };
   }
   
   const result = resultTable[d20SubRoll - 1];
@@ -312,7 +315,9 @@ const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName
       pastLife: result.pastLife,
       attributeBonuses: result.attributes as AttributeName[],
       skill: result.skill,
-      equipment: result.possessions
+      equipment: [result.possessions],
+      isNoble: false,
+      isRoyalty: false,
   };
 };
 
@@ -333,15 +338,40 @@ export const generateCommoner = (): Commoner => {
     else if (d4 === 4) attributes.spirit++;
   }
 
-  const { pastLife, attributeBonuses, skill, equipment } = generatePastLife();
+  const { pastLife, attributeBonuses, skill, equipment: initialEquipment, isNoble, isRoyalty } = generatePastLife();
 
   for (const bonus of attributeBonuses) {
       if (attributes.hasOwnProperty(bonus)) {
           attributes[bonus]++;
       }
   }
+  
+  let armorValue = 0;
+  const equipment = [...initialEquipment];
+  equipment.push('Crude weapon (melee, 2d4, topple)');
+
+  if (isNoble) {
+    equipment.push('Normal weapon of any type', 'Quilted chest armor');
+    armorValue = 1;
+    if (isRoyalty) {
+        equipment.push('Battered crown');
+    }
+  }
 
   const keyAttribute = attributes.might >= attributes.agility ? 'Might' : 'Agility';
+  
+  const combatValues: CommonerCombatValues = {
+    skillBonus: 1,
+    skillDie: 'd6',
+    hp: 5 + attributes.might,
+    speed: 5 + attributes.agility,
+    initiative: attributes.agility + 1,
+    accuracy: attributes.might + 1,
+    guard: armorValue + attributes.agility,
+    resist: attributes.spirit + 1,
+    prevail: attributes.intellect + 1,
+    tenacity: attributes.might + attributes.spirit,
+  };
 
   return {
     id: crypto.randomUUID(),
@@ -350,7 +380,8 @@ export const generateCommoner = (): Commoner => {
     alignment: generateAlignment(),
     pastLife: pastLife,
     skill: skill,
-    equipment: equipment,
+    equipment: equipment.join(', '),
+    combatValues,
   };
 };
 

@@ -175,6 +175,19 @@ export type NewTreasure = Omit<Treasure, 'id'>;
 
 
 // Commoner Type
+export interface CommonerCombatValues {
+  skillBonus: number;
+  skillDie: string;
+  hp: number;
+  speed: number;
+  initiative: number;
+  accuracy: number;
+  guard: number;
+  resist: number;
+  prevail: number;
+  tenacity: number;
+}
+
 export interface Commoner {
   id: string;
   attributes: {
@@ -188,4 +201,5 @@ export interface Commoner {
   pastLife: string;
   skill: string;
   equipment: string;
+  combatValues: CommonerCombatValues;
 }
