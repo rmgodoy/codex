@@ -95,6 +95,98 @@ const LABORERS_TABLE = [
     { pastLife: 'Rat-Catcher', attributes: ['agility', 'intellect'], skill: 'Stealth', possessions: 'rat-bashing stick' },
 ];
 
+const FARMERS_TABLE = [
+    { pastLife: 'Cabbage Farmer', attributes: ['might'], skill: 'Athletics', possessions: 'bag of cabbages' },
+    { pastLife: 'Carrot Farmer', attributes: ['might'], skill: 'Athletics', possessions: 'bag of carrots' },
+    { pastLife: 'Onion Farmer', attributes: ['might'], skill: 'Athletics', possessions: 'bag of onions' },
+    { pastLife: 'Wheat Farmer', attributes: ['agility'], skill: 'Athletics', possessions: 'scythe (weapon)' },
+    { pastLife: 'Herbalist', attributes: ['intellect'], skill: 'Nature', possessions: 'bag of herbs' },
+    { pastLife: 'Forager', attributes: ['might'], skill: 'Nature', possessions: 'pouch of berries' },
+    { pastLife: 'Miller', attributes: ['might'], skill: 'Athletics', possessions: 'bag of flour' },
+    { pastLife: 'Chicken Farmer', attributes: ['agility'], skill: 'Acrobatics', possessions: 'chicken' },
+    { pastLife: 'Shepherd', attributes: ['might'], skill: 'Perception', possessions: 'bag of wool' },
+    { pastLife: 'Cowherd', attributes: ['might'], skill: 'Nature', possessions: 'cattle prod' },
+    { pastLife: 'Swineherd', attributes: ['might'], skill: 'Nature', possessions: 'slop bucket, slop' },
+    { pastLife: 'Fowler', attributes: ['agility'], skill: 'Acrobatics', possessions: 'quail eggs' },
+    { pastLife: 'Butter Churner', attributes: ['agility'], skill: 'Athletics', possessions: 'butter churn' },
+    { pastLife: 'Fisher', attributes: ['spirit'], skill: 'Nature', possessions: 'rod and tackle' },
+    { pastLife: 'Horse Trainer', attributes: ['might'], skill: 'Nature', possessions: 'bag of carrots' },
+    { pastLife: 'Beekeeper', attributes: ['spirit'], skill: 'Nature', possessions: 'queen in a jar' },
+    { pastLife: 'Trapper', attributes: ['intellect'], skill: 'Tinkering', possessions: 'iron bear trap' },
+    { pastLife: 'Hound Keeper', attributes: ['might', 'spirit'], skill: 'Nature', possessions: 'puppy' },
+    { pastLife: 'Hunter', attributes: ['might', 'agility'], skill: 'Stealth', possessions: 'bow (d8)' },
+    { pastLife: 'Falconer', attributes: ['agility', 'spirit'], skill: 'Nature', possessions: 'trained falcon' },
+];
+
+const ARTISANS_TABLE = [
+    { pastLife: 'Carpenter', attributes: ['might'], skill: 'Crafting', possessions: 'woodworking tools' },
+    { pastLife: 'Cobbler', attributes: ['spirit'], skill: 'Tinkering', possessions: 'boots (L./+0/d6)' },
+    { pastLife: 'Wood-Carver', attributes: ['agility'], skill: 'Crafting', possessions: 'carving of a squirrel' },
+    { pastLife: 'Glassblower', attributes: ['agility'], skill: 'Crafting', possessions: '1d6 glass vials' },
+    { pastLife: 'Leather-Worker', attributes: ['might'], skill: 'Crafting', possessions: 'leather gloves (L./+1/d6)' },
+    { pastLife: 'Cook', attributes: ['spirit'], skill: 'Alchemy', possessions: 'cookware' },
+    { pastLife: 'Weaver', attributes: ['agility'], skill: 'Crafting', possessions: 'quilt' },
+    { pastLife: 'Locksmith', attributes: ['agility'], skill: 'Tinkering', possessions: 'simple lock and key' },
+    { pastLife: 'Brewer', attributes: ['spirit'], skill: 'Alchemy', possessions: 'small keg of ale' },
+    { pastLife: 'Soap-Maker', attributes: ['might'], skill: 'Alchemy', possessions: 'bag of soap bars' },
+    { pastLife: 'Tailor', attributes: ['agility'], skill: 'Crafting', possessions: 'well-maintained outfit' },
+    { pastLife: 'Tinker', attributes: ['intellect'], skill: 'Tinkering', possessions: 'wind-up toy' },
+    { pastLife: 'Candle-Maker', attributes: ['spirit'], skill: 'Alchemy', possessions: 'huge ceremonial candle' },
+    { pastLife: 'Fletcher', attributes: ['agility'], skill: 'Crafting', possessions: 'bundle of arrows' },
+    { pastLife: 'Baker', attributes: ['might'], skill: 'Nature', possessions: 'loaf of bread' },
+    { pastLife: 'Butcher', attributes: ['might'], skill: 'Nature', possessions: 'meat cleaver (1d6)' },
+    { pastLife: 'Barber', attributes: ['agility'], skill: 'Speech', possessions: 'shaving razors' },
+    { pastLife: 'Inventor', attributes: ['intellect', 'spirit'], skill: 'Crafting', possessions: 'bundle of notes' },
+    { pastLife: 'Jeweler', attributes: ['agility', 'intellect'], skill: 'Tinkering', possessions: 'tray of semi-precious gems' },
+    { pastLife: 'Blacksmith', attributes: ['might', 'spirit'], skill: 'Crafting', possessions: 'hammer' },
+];
+
+const MERCHANTS_TABLE = [
+    { pastLife: 'Fence', attributes: ['intellect'], skill: 'Magic', possessions: 'box of stolen junk' },
+    { pastLife: 'Salvage Dealer', attributes: ['might'], skill: 'Tinkering', possessions: 'broken sword hilt' },
+    { pastLife: 'Relic Peddler', attributes: ['spirit'], skill: 'Folklore', possessions: 'reliquary, fake relic' },
+    { pastLife: 'Wine Merchant', attributes: ['intellect'], skill: 'Nature', possessions: 'bottle of lowland red' },
+    { pastLife: 'Street Hawker', attributes: ['spirit'], skill: 'Speech', possessions: 'arrow-shaped sign' },
+    { pastLife: 'Bird Seller', attributes: ['spirit'], skill: 'Perception', possessions: 'fine plumes' },
+    { pastLife: 'Fishmonger', attributes: ['might'], skill: 'Athletics', possessions: 'rod and tackle' },
+    { pastLife: 'Cheesemonger', attributes: ['spirit'], skill: 'Speech', possessions: 'bucket of cheeses' },
+    { pastLife: 'Fortune Teller', attributes: ['spirit'], skill: 'Magic', possessions: 'fortune-telling cards' },
+    { pastLife: 'Tavern Server', attributes: ['might'], skill: 'Folklore', possessions: 'serving platter' },
+    { pastLife: 'Pie Seller', attributes: ['spirit'], skill: 'Perception', possessions: 'basket of meat pies' },
+    { pastLife: 'Florist', attributes: ['spirit'], skill: 'Nature', possessions: 'basket of flowers' },
+    { pastLife: 'Cartographer', attributes: ['intellect'], skill: 'Letters', possessions: 'scroll case with map' },
+    { pastLife: 'Spice Merchant', attributes: ['intellect'], skill: 'Speech', possessions: 'spice box' },
+    { pastLife: 'Shopkeeper', attributes: ['spirit'], skill: 'Speech', possessions: 'dusty ledger' },
+    { pastLife: 'Bookseller', attributes: ['intellect'], skill: 'Letters', possessions: 'tome on a useful subject' },
+    { pastLife: 'Moneylender', attributes: ['intellect'], skill: 'Letters', possessions: 'pouch of silver pieces' },
+    { pastLife: 'Apothecary', attributes: ['intellect', 'spirit'], skill: 'Nature', possessions: 'satchel of herbs' },
+    { pastLife: 'Perfumer', attributes: ['agility', 'spirit'], skill: 'Perception', possessions: 'fine perfume' },
+    { pastLife: 'Innkeeper', attributes: ['might', 'intellect'], skill: 'Speech', possessions: 'bottle of hard liquor' },
+];
+
+const SOLDIERS_TABLE = [
+    { pastLife: 'Deserter', attributes: ['intellect'], skill: 'Stealth', possessions: 'rusted helm (d6)' },
+    { pastLife: 'Mercenary', attributes: ['might'], skill: 'Stealth', possessions: 'crude sword (d6)' },
+    { pastLife: 'Bodyguard', attributes: ['might'], skill: 'Perception', possessions: 'crude crossbow (d6)' },
+    { pastLife: 'Town Guard', attributes: ['might'], skill: 'Perception', possessions: 'crude flail (d6)' },
+    { pastLife: 'Catchpole', attributes: ['intellect'], skill: 'Athletics', possessions: 'broken catchpole' },
+    { pastLife: 'Jailer', attributes: ['might'], skill: 'Perception', possessions: 'set of keys' },
+    { pastLife: 'Executioner', attributes: ['might'], skill: 'Athletics', possessions: 'crude greataxe (d8)' },
+    { pastLife: 'Sheriff', attributes: ['spirit'], skill: 'Perception', possessions: 'crude crossbow (d8)' },
+    { pastLife: 'Scout', attributes: ['agility'], skill: 'Perception', possessions: 'forest-green cloak (L./+0/d6)' },
+    { pastLife: 'Messenger', attributes: ['agility'], skill: 'Letters', possessions: 'bag of undelivered letters' },
+    { pastLife: 'Foot Soldier', attributes: ['might'], skill: 'Athletics', possessions: 'round shield (d8)' },
+    { pastLife: 'Rider', attributes: ['agility'], skill: 'Nature', possessions: 'saddle bag' },
+    { pastLife: 'Flag-Bearer', attributes: ['spirit'], skill: 'Speech', possessions: 'tattered banner (as staff)' },
+    { pastLife: 'Siege Engineer', attributes: ['intellect'], skill: 'Tinkering', possessions: 'unfinished schematic' },
+    { pastLife: 'Sapper', attributes: ['agility'], skill: 'Perception', possessions: 'grenade (deals 3d6 in a blast 3)' },
+    { pastLife: 'Archer', attributes: ['agility'], skill: 'Perception', possessions: 'shortbow (d6)' },
+    { pastLife: 'Sergeant', attributes: ['might'], skill: 'Athletics', possessions: 'child\'s drawing' },
+    { pastLife: 'Herald', attributes: ['might', 'spirit'], skill: 'Speech', possessions: 'brass horn' },
+    { pastLife: 'Lieutenant', attributes: ['might', 'intellect'], skill: 'Letters', possessions: 'medal of honor' },
+    { pastLife: 'Captain', attributes: ['might', 'spirit'], skill: 'Speech', possessions: 'battle map' },
+];
+
 const rollOddity = (): string => {
   const d8 = roll(8);
   const d6 = roll(6);
@@ -145,30 +237,40 @@ const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName
   if (!socialGroup) {
       return { pastLife: 'Unknown', attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
   }
-
-  if (socialGroup.group === 'Outcasts') {
-      const d20Outcast = roll(20);
-      const result = OUTCASTS_TABLE[d20Outcast - 1];
-      return {
-          pastLife: result.pastLife,
-          attributeBonuses: result.attributes as AttributeName[],
-          skill: result.skill,
-          equipment: result.possessions
-      };
+  
+  let resultTable;
+  switch (socialGroup.group) {
+      case 'Outcasts':
+          resultTable = OUTCASTS_TABLE;
+          break;
+      case 'Laborers':
+          resultTable = LABORERS_TABLE;
+          break;
+      case 'Farmers':
+          resultTable = FARMERS_TABLE;
+          break;
+      case 'Artisans':
+          resultTable = ARTISANS_TABLE;
+          break;
+      case 'Merchants':
+          resultTable = MERCHANTS_TABLE;
+          break;
+      case 'Soldiers':
+          resultTable = SOLDIERS_TABLE;
+          break;
+      default:
+          // For Servants, Nobility, or any other case
+          return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
   }
-
-  if (socialGroup.group === 'Laborers') {
-      const d20Laborer = roll(20);
-      const result = LABORERS_TABLE[d20Laborer - 1];
-      return {
-          pastLife: result.pastLife,
-          attributeBonuses: result.attributes as AttributeName[],
-          skill: result.skill,
-          equipment: result.possessions
-      };
-  }
-
-  return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
+  
+  const d20SubRoll = roll(20);
+  const result = resultTable[d20SubRoll - 1];
+  return {
+      pastLife: result.pastLife,
+      attributeBonuses: result.attributes as AttributeName[],
+      skill: result.skill,
+      equipment: result.possessions
+  };
 };
 
 
