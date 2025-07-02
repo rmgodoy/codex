@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { TagInput } from '@/components/ui/tag-input';
 
 type SortByType = 'name' | 'TR' | 'level';
 
@@ -177,7 +179,11 @@ export default function CreatureListPanel({
                 <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
                 <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
             </div>
-            <Input placeholder="Tags (e.g. undead, goblin)" value={filters.tagFilter} onChange={e => setFilters.setTagFilter(e.target.value)} />
+            <TagInput
+              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+              placeholder="Tags (e.g. undead, goblin)"
+            />
         </div>
 
         <div>

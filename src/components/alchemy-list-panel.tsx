@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, Tag, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { TagInput } from '@/components/ui/tag-input';
 
 type SortByType = 'name' | 'tier' | 'cost';
 
@@ -143,10 +144,11 @@ export default function AlchemyListPanel({
                     {ALCHEMY_ITEM_TIERS.map(tier => <SelectItem key={tier} value={tier} className="capitalize">{tier}</SelectItem>)}
                 </SelectContent>
             </Select>
-            <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Tags (e.g. buff, damage)" value={filters.tagFilter} onChange={e => setFilters.setTagFilter(e.target.value)} className="pl-9"/>
-            </div>
+            <TagInput
+              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+              placeholder="Tags (e.g. buff, damage)"
+            />
         </div>
          <div>
             <Label>Sort by</Label>

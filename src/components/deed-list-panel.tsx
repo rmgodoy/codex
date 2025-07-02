@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, Tag, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
+import { TagInput } from '@/components/ui/tag-input';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
@@ -126,10 +127,11 @@ export default function DeedListPanel({
                     <SelectItem value="mighty">Mighty</SelectItem>
                 </SelectContent>
             </Select>
-            <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Tags (e.g. fire, control)" value={filters.tagFilter} onChange={e => setFilters.setTagFilter(e.target.value)} className="pl-9"/>
-            </div>
+            <TagInput
+              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+              placeholder="Tags (e.g. fire, control)"
+            />
         </div>
          <div>
             <Label>Sort by</Label>
