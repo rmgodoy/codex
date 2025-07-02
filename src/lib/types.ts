@@ -172,3 +172,19 @@ export interface Treasure {
 }
 
 export type NewTreasure = Omit<Treasure, 'id'>;
+
+
+// Commoner Type
+export interface Commoner {
+  id: string;
+  attributes: {
+    might: number;
+    agility: number;
+    intellect: number;
+    spirit: number;
+  };
+  keyAttribute: 'Might' | 'Agility';
+  alignment: string;
+  pastLife: string;
+  equipment: string;
+}

@@ -1,25 +1,43 @@
 
 "use client";
 
+import { useState } from "react";
 import MainLayout from "@/components/main-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Dices } from "lucide-react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { generateFourCommoners } from "@/lib/commoner-generator";
+import type { Commoner } from "@/lib/types";
+import CommonerCard from "@/components/commoner-card";
 
 export default function CommonersPage() {
+  const [commoners, setCommoners] = useState<Commoner[]>([]);
+
+  const handleGenerate = () => {
+    setCommoners(generateFourCommoners());
+  };
+
   return (
-    <SidebarProvider>
-      <MainLayout>
-        <div className="p-4 sm:p-6 md:p-8">
-          <Card className="h-full flex items-center justify-center min-h-[300px]">
-              <CardContent className="text-center pt-6">
-                  <Dices className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <CardTitle className="text-2xl">Commoners</CardTitle>
-                  <p className="text-lg text-muted-foreground mt-2">This page is under construction.</p>
-              </CardContent>
-          </Card>
+    <MainLayout showSidebarTrigger={false}>
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="flex justify-center mb-8">
+          <Button onClick={handleGenerate} size="lg">
+            <Dices className="mr-2 h-5 w-5" />
+            Generate Commoners
+          </Button>
         </div>
-      </MainLayout>
-    </SidebarProvider>
+
+        {commoners.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {commoners.map((commoner) => (
+              <CommonerCard key={commoner.id} commoner={commoner} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground mt-16">
+            <p>Click the button to generate your first set of commoners.</p>
+          </div>
+        )}
+      </div>
+    </MainLayout>
   );
 }
