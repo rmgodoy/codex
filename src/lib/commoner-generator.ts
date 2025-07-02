@@ -187,6 +187,48 @@ const SOLDIERS_TABLE = [
     { pastLife: 'Captain', attributes: ['might', 'spirit'], skill: 'Speech', possessions: 'battle map' },
 ];
 
+const SERVANTS_TABLE = [
+    { pastLife: 'Teacher', attributes: ['intellect'], skill: 'Letters', possessions: 'history book' },
+    { pastLife: 'Troubadour', attributes: ['spirit'], skill: 'Folklore', possessions: 'book of sagas' },
+    { pastLife: 'Dancer', attributes: ['agility'], skill: 'Acrobatics', possessions: 'dancing shoes' },
+    { pastLife: 'Singer', attributes: ['spirit'], skill: 'Speech', possessions: 'whistle' },
+    { pastLife: 'Tax Collector', attributes: ['intellect'], skill: 'Letters', possessions: 'empty coffer' },
+    { pastLife: 'Physician', attributes: ['intellect'], skill: 'Alchemy', possessions: 'medicine bag' },
+    { pastLife: 'Gardener', attributes: ['might'], skill: 'Nature', possessions: 'gardening hoe' },
+    { pastLife: 'Chef', attributes: ['intellect'], skill: 'Alchemy', possessions: 'kitchen knife (as dagger)' },
+    { pastLife: 'Mortician', attributes: ['intellect'], skill: 'Letters', possessions: 'autopsy kit' },
+    { pastLife: 'Pilgrim', attributes: ['spirit'], skill: 'Folklore', possessions: 'holy text' },
+    { pastLife: 'Librarian', attributes: ['intellect'], skill: 'Letters', possessions: 'tome on a useless subject' },
+    { pastLife: 'Thespian', attributes: ['spirit'], skill: 'Speech', possessions: 'makeup kit' },
+    { pastLife: 'Circus Performer', attributes: ['agility'], skill: 'Acrobatics', possessions: 'hoop' },
+    { pastLife: 'Pigeon Fancier', attributes: ['intellect'], skill: 'Nature', possessions: 'pigeon in a cage' },
+    { pastLife: 'Painter', attributes: ['spirit'], skill: 'Perception', possessions: 'brush and paints' },
+    { pastLife: 'Philosopher', attributes: ['intellect'], skill: 'Letters', possessions: 'treatise on ethics' },
+    { pastLife: 'Astrologer', attributes: ['intellect'], skill: 'Magic', possessions: 'chart of the cosmos' },
+    { pastLife: 'Spy', attributes: ['agility', 'intellect'], skill: 'Letters', possessions: 'stolen letters' },
+    { pastLife: 'Poet', attributes: ['intellect', 'spirit'], skill: 'Letters', possessions: 'binder of notes' },
+    { pastLife: 'Jester', attributes: ['agility', 'spirit'], skill: 'Acrobatics', possessions: 'jester\'s cap (as cap)' },
+];
+
+const FALLEN_NOBILITY_TABLE = [
+  { range: [1, 4], title: 'Lady / Lord', attributes: ['might', 'agility', 'spirit'], skill: 'Letters' },
+  { range: [5, 8], title: 'Duchess / Duke', attributes: ['might', 'intellect', 'spirit'], skill: 'Letters' },
+  { range: [9, 12], title: 'Count / Countess', attributes: ['agility', 'intellect', 'spirit'], skill: 'Letters' },
+  { range: [13, 16], title: 'Baron / Baroness', attributes: ['might', 'agility', 'intellect'], skill: 'Letters' },
+  { range: [17, 18], title: 'Princess / Prince', attributes: ['might', 'agility', 'intellect', 'spirit'], skill: 'Letters, Speech' },
+  { range: [19, 20], title: 'Queen / King', attributes: ['might', 'agility', 'intellect', 'spirit'], skill: 'Letters, Speech' },
+];
+
+const NOBILITY_POSSESSIONS = [
+    'tattered but fine clothes',
+    'a signet ring',
+    'a deed to a forgotten land',
+    'a single, perfect pearl',
+    'a letter of introduction to a powerful figure',
+    'a portrait of a lost loved one'
+];
+
+
 const rollOddity = (): string => {
   const d8 = roll(8);
   const d6 = roll(6);
@@ -238,32 +280,33 @@ const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName
       return { pastLife: 'Unknown', attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
   }
   
+  const d20SubRoll = roll(20);
+
+  if (socialGroup.group === 'Nobility') {
+      const result = FALLEN_NOBILITY_TABLE.find(entry => d20SubRoll >= entry.range[0] && d20SubRoll <= entry.range[1]);
+      if (result) {
+        const possessions = NOBILITY_POSSESSIONS[roll(NOBILITY_POSSESSIONS.length) - 1];
+        return {
+            pastLife: result.title,
+            attributeBonuses: result.attributes as AttributeName[],
+            skill: result.skill,
+            equipment: possessions,
+        }
+      }
+  }
+
   let resultTable;
   switch (socialGroup.group) {
-      case 'Outcasts':
-          resultTable = OUTCASTS_TABLE;
-          break;
-      case 'Laborers':
-          resultTable = LABORERS_TABLE;
-          break;
-      case 'Farmers':
-          resultTable = FARMERS_TABLE;
-          break;
-      case 'Artisans':
-          resultTable = ARTISANS_TABLE;
-          break;
-      case 'Merchants':
-          resultTable = MERCHANTS_TABLE;
-          break;
-      case 'Soldiers':
-          resultTable = SOLDIERS_TABLE;
-          break;
-      default:
-          // For Servants, Nobility, or any other case
-          return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
+      case 'Outcasts': resultTable = OUTCASTS_TABLE; break;
+      case 'Laborers': resultTable = LABORERS_TABLE; break;
+      case 'Farmers': resultTable = FARMERS_TABLE; break;
+      case 'Artisans': resultTable = ARTISANS_TABLE; break;
+      case 'Merchants': resultTable = MERCHANTS_TABLE; break;
+      case 'Soldiers': resultTable = SOLDIERS_TABLE; break;
+      case 'Servants': resultTable = SERVANTS_TABLE; break;
+      default: return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
   }
   
-  const d20SubRoll = roll(20);
   const result = resultTable[d20SubRoll - 1];
   return {
       pastLife: result.pastLife,
