@@ -19,6 +19,8 @@ const AttributeDisplay = ({ label, value, isKey }: { label: string; value: numbe
 );
 
 export default function CommonerCard({ commoner }: CommonerCardProps) {
+  const [alignmentType, alignmentTraits] = commoner.alignment.split(': ');
+  
   return (
     <Card>
       <CardHeader>
@@ -37,7 +39,7 @@ export default function CommonerCard({ commoner }: CommonerCardProps) {
         <Separator />
         <div>
             <Label>Alignment</Label>
-            <p className="text-muted-foreground">{commoner.alignment}</p>
+            <p className="text-foreground/90"><span className="font-bold text-primary-foreground">{alignmentType}:</span> {alignmentTraits}</p>
         </div>
         <div>
             <Label>Past Life</Label>
