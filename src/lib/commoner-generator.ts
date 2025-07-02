@@ -36,6 +36,17 @@ const ODDITIES = [
   ['Stoic', 'Cheerful', 'Regal', 'Ambitious', 'Reliable', 'Vengeful'], // d8=8
 ];
 
+const PAST_LIFE_SOCIAL_GROUPS = [
+  { range: [1, 3], group: 'Outcasts' },
+  { range: [4, 6], group: 'Laborers' },
+  { range: [7, 9], group: 'Farmers' },
+  { range: [10, 12], group: 'Artisans' },
+  { range: [13, 15], group: 'Merchants' },
+  { range: [16, 17], group: 'Soldiers' },
+  { range: [18, 19], group: 'Servants' },
+  { range: [20, 20], group: 'Nobility' },
+];
+
 const rollOddity = (): string => {
   const d8 = roll(8);
   const d6 = roll(6);
@@ -79,6 +90,12 @@ const generateAlignment = (): string => {
   return `${alignmentType.type}: ${traits.join(' & ')}`;
 };
 
+const generatePastLife = (): string => {
+  const d20 = roll(20);
+  const socialGroup = PAST_LIFE_SOCIAL_GROUPS.find(sg => d20 >= sg.range[0] && d20 <= sg.range[1]);
+  return socialGroup ? socialGroup.group : 'Unknown';
+};
+
 export const generateCommoner = (): Commoner => {
   const attributes = {
     might: 0,
@@ -102,7 +119,7 @@ export const generateCommoner = (): Commoner => {
     attributes,
     keyAttribute,
     alignment: generateAlignment(),
-    pastLife: 'To be determined',
+    pastLife: generatePastLife(),
     equipment: 'To be determined',
   };
 };
