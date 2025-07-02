@@ -203,3 +203,22 @@ export interface Commoner {
   equipment: string;
   combatValues: CommonerCombatValues;
 }
+
+// Alchemy Types
+export const ALCHEMY_ITEM_TYPES = ['potion', 'powder', 'oil', 'bomb'] as const;
+export type AlchemicalItemType = (typeof ALCHEMY_ITEM_TYPES)[number];
+
+export const ALCHEMY_ITEM_TIERS = ['lesser', 'greater'] as const;
+export type AlchemicalItemTier = (typeof ALCHEMY_ITEM_TIERS)[number];
+
+export interface AlchemicalItem {
+  id: string;
+  name: string;
+  type: AlchemicalItemType;
+  tier: AlchemicalItemTier;
+  cost: number;
+  effect: string;
+  tags: string[];
+}
+
+export type NewAlchemicalItem = Omit<AlchemicalItem, 'id'>;

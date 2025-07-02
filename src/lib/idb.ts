@@ -1,16 +1,17 @@
 
 "use client";
 
-import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag, Treasure, NewTreasure } from '@/lib/types';
+import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag, Treasure, NewTreasure, AlchemicalItem, NewAlchemicalItem } from '@/lib/types';
 
 const DB_NAME = 'TresspasserBestiaryDB';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const CREATURES_STORE_NAME = 'creatures';
 const DEEDS_STORE_NAME = 'deeds';
 const ENCOUNTERS_STORE_NAME = 'encounters';
 const TAGS_STORE_NAME = 'tags';
 const ENCOUNTER_TABLES_STORE_NAME = 'encounterTables';
 const TREASURES_STORE_NAME = 'treasures';
+const ALCHEMY_ITEMS_STORE_NAME = 'alchemicalItems';
 
 const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -40,6 +41,9 @@ const getDb = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(TREASURES_STORE_NAME)) {
         db.createObjectStore(TREASURES_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(ALCHEMY_ITEMS_STORE_NAME)) {
+        db.createObjectStore(ALCHEMY_ITEMS_STORE_NAME, { keyPath: 'id' });
       }
     };
 
@@ -370,6 +374,59 @@ export const deleteTreasure = async (id: string): Promise<void> => {
     });
 };
 
+// Alchemical Item Functions
+export const getAllAlchemicalItems = async (): Promise<AlchemicalItem[]> => {
+    const db = await getDb();
+    const store = db.transaction(ALCHEMY_ITEMS_STORE_NAME, 'readonly').objectStore(ALCHEMY_ITEMS_STORE_NAME);
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const getAlchemicalItemById = async (id: string): Promise<AlchemicalItem | undefined> => {
+    const db = await getDb();
+    const store = db.transaction(ALCHEMY_ITEMS_STORE_NAME, 'readonly').objectStore(ALCHEMY_ITEMS_STORE_NAME);
+    const request = store.get(id);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const addAlchemicalItem = async (itemData: NewAlchemicalItem): Promise<string> => {
+    const db = await getDb();
+    const store = db.transaction(ALCHEMY_ITEMS_STORE_NAME, 'readwrite').objectStore(ALCHEMY_ITEMS_STORE_NAME);
+    const id = generateId();
+    const itemWithId = { ...itemData, id };
+    const request = store.add(itemWithId);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(id);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const updateAlchemicalItem = async (item: AlchemicalItem): Promise<void> => {
+    const db = await getDb();
+    const store = db.transaction(ALCHEMY_ITEMS_STORE_NAME, 'readwrite').objectStore(ALCHEMY_ITEMS_STORE_NAME);
+    const request = store.put(item);
+    return new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const deleteAlchemicalItem = async (id: string): Promise<void> => {
+    const db = await getDb();
+    const store = db.transaction(ALCHEMY_ITEMS_STORE_NAME, 'readwrite').objectStore(ALCHEMY_ITEMS_STORE_NAME);
+    const request = store.delete(id);
+    return new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
 // Tag Functions
 export const getAllTags = async (): Promise<Tag[]> => {
     const db = await getDb();
@@ -405,9 +462,9 @@ export const addTags = async (tagNames: string[]): Promise<void> => {
 
 
 // Import/Export
-export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[], treasures: Treasure[] }> => {
+export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[], treasures: Treasure[], alchemicalItems: AlchemicalItem[] }> => {
     const db = await getDb();
-    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME], 'readonly');
+    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME], 'readonly');
     
     const creaturesPromise = new Promise<Creature[]>((resolve, reject) => {
         const req = transaction.objectStore(CREATURES_STORE_NAME).getAll();
@@ -445,8 +502,14 @@ export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: D
         req.onerror = () => reject(req.error);
     });
 
-    const [creatures, deeds, encounters, tags, encounterTables, treasures] = await Promise.all([creaturesPromise, deedsPromise, encountersPromise, tagsPromise, encounterTablesPromise, treasuresPromise]);
-    return { creatures, deeds, encounters, tags, encounterTables, treasures };
+    const alchemicalItemsPromise = new Promise<AlchemicalItem[]>((resolve, reject) => {
+        const req = transaction.objectStore(ALCHEMY_ITEMS_STORE_NAME).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+
+    const [creatures, deeds, encounters, tags, encounterTables, treasures, alchemicalItems] = await Promise.all([creaturesPromise, deedsPromise, encountersPromise, tagsPromise, encounterTablesPromise, treasuresPromise, alchemicalItemsPromise]);
+    return { creatures, deeds, encounters, tags, encounterTables, treasures, alchemicalItems };
 };
 
 export const importData = async (data: any): Promise<void> => {
@@ -456,38 +519,35 @@ export const importData = async (data: any): Promise<void> => {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
 
-    const tx = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME], 'readwrite');
-    const creatureStore = tx.objectStore(CREATURES_STORE_NAME);
-    const deedStore = tx.objectStore(DEEDS_STORE_NAME);
-    const encounterStore = tx.objectStore(ENCOUNTERS_STORE_NAME);
-    const tagStore = tx.objectStore(TAGS_STORE_NAME);
-    const encounterTableStore = tx.objectStore(ENCOUNTER_TABLES_STORE_NAME);
-    const treasureStore = tx.objectStore(TREASURES_STORE_NAME);
-
-    creatureStore.clear();
-    deedStore.clear();
-    encounterStore.clear();
-    tagStore.clear();
-    encounterTableStore.clear();
-    treasureStore.clear();
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME];
+    const tx = db.transaction(storeNames, 'readwrite');
+    
+    const stores: { [key: string]: IDBObjectStore } = {};
+    storeNames.forEach(name => {
+      stores[name] = tx.objectStore(name);
+      stores[name].clear();
+    });
 
     if (data.creatures && Array.isArray(data.creatures)) {
-        data.creatures.forEach((creature: Creature) => creatureStore.put(creature));
+        data.creatures.forEach((item: Creature) => stores[CREATURES_STORE_NAME].put(item));
     }
     if (data.deeds && Array.isArray(data.deeds)) {
-        data.deeds.forEach((deed: Deed) => deedStore.put(deed));
+        data.deeds.forEach((item: Deed) => stores[DEEDS_STORE_NAME].put(item));
     }
     if (data.encounters && Array.isArray(data.encounters)) {
-        data.encounters.forEach((encounter: Encounter) => encounterStore.put(encounter));
+        data.encounters.forEach((item: Encounter) => stores[ENCOUNTERS_STORE_NAME].put(item));
     }
     if (data.tags && Array.isArray(data.tags)) {
-        data.tags.forEach((tag: Tag) => tagStore.put(tag));
+        data.tags.forEach((item: Tag) => stores[TAGS_STORE_NAME].put(item));
     }
     if (data.encounterTables && Array.isArray(data.encounterTables)) {
-        data.encounterTables.forEach((table: EncounterTable) => encounterTableStore.put(table));
+        data.encounterTables.forEach((item: EncounterTable) => stores[ENCOUNTER_TABLES_STORE_NAME].put(item));
     }
     if (data.treasures && Array.isArray(data.treasures)) {
-        data.treasures.forEach((treasure: Treasure) => treasureStore.put(treasure));
+        data.treasures.forEach((item: Treasure) => stores[TREASURES_STORE_NAME].put(item));
+    }
+    if (data.alchemicalItems && Array.isArray(data.alchemicalItems)) {
+        data.alchemicalItems.forEach((item: AlchemicalItem) => stores[ALCHEMY_ITEMS_STORE_NAME].put(item));
     }
     
     return new Promise<void>((resolve, reject) => {
