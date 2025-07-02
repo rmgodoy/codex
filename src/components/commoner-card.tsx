@@ -45,6 +45,10 @@ export default function CommonerCard({ commoner }: CommonerCardProps) {
             <Label>Past Life</Label>
             <p className="text-muted-foreground">{commoner.pastLife}</p>
         </div>
+        <div>
+            <Label>Skill</Label>
+            <p className="text-muted-foreground">{commoner.skill}</p>
+        </div>
          <div>
             <Label>Equipment</Label>
             <p className="text-muted-foreground">{commoner.equipment}</p>

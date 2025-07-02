@@ -186,5 +186,6 @@ export interface Commoner {
   keyAttribute: 'Might' | 'Agility';
   alignment: string;
   pastLife: string;
+  skill: string;
   equipment: string;
 }

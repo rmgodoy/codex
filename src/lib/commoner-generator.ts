@@ -1,6 +1,8 @@
 
 import type { Commoner } from './types';
 
+type AttributeName = 'might' | 'agility' | 'intellect' | 'spirit';
+
 const roll = (sides: number) => Math.floor(Math.random() * sides) + 1;
 
 const ALIGNMENT_TYPES = [
@@ -47,6 +49,52 @@ const PAST_LIFE_SOCIAL_GROUPS = [
   { range: [20, 20], group: 'Nobility' },
 ];
 
+const OUTCASTS_TABLE = [
+    { pastLife: 'Hermit', attributes: ['spirit'], skill: 'Nature', possessions: 'moonshine' },
+    { pastLife: 'Leper', attributes: ['spirit'], skill: 'Stealth', possessions: 'crude cloak (1d6)' },
+    { pastLife: 'Urchin', attributes: ['agility'], skill: 'Stealth', possessions: 'stuffed animal' },
+    { pastLife: 'Poacher', attributes: ['agility'], skill: 'Perception', possessions: 'bag of hides' },
+    { pastLife: 'Beggar', attributes: ['spirit'], skill: 'Folklore', possessions: 'tin cup, 5 cp' },
+    { pastLife: 'Charlatan', attributes: ['spirit'], skill: 'Speech', possessions: 'disguise kit' },
+    { pastLife: 'Graverobber', attributes: ['might'], skill: 'Perception', possessions: 'rusted shovel' },
+    { pastLife: 'Fraud', attributes: ['intellect'], skill: 'Letters', possessions: 'quill, ink, paper' },
+    { pastLife: 'Gambler', attributes: ['intellect'], skill: 'Speech', possessions: 'dice' },
+    { pastLife: 'Pickpocket', attributes: ['agility'], skill: 'Stealth', possessions: 'keys to unknown door' },
+    { pastLife: 'Arsonist', attributes: ['intellect'], skill: 'Athletics', possessions: 'crude sword (1d6)' },
+    { pastLife: 'Drunkard', attributes: ['might'], skill: 'Speech', possessions: 'empty tankard' },
+    { pastLife: 'Outlaw', attributes: ['agility'], skill: 'Stealth', possessions: 'stolen jewelry' },
+    { pastLife: 'Expelled Acolyte', attributes: ['intellect'], skill: 'Letters', possessions: 'holy texts, unread' },
+    { pastLife: 'Failed Apprentice', attributes: ['intellect'], skill: 'Magic', possessions: 'stolen spellbook' },
+    { pastLife: 'Lockpicker', attributes: ['agility'], skill: 'Tinkering', possessions: 'lockpicks' },
+    { pastLife: 'Vigilante', attributes: ['agility', 'spirit'], skill: 'Perception', possessions: 'cloak (d8)' },
+    { pastLife: 'Doomsayer', attributes: ['intellect', 'spirit'], skill: 'Magic', possessions: 'manifesto' },
+    { pastLife: 'Burglar', attributes: ['agility', 'intellect'], skill: 'Stealth', possessions: 'crowbar' },
+    { pastLife: 'Pig Thief', attributes: ['might', 'agility'], skill: 'Stealth', possessions: 'pig' },
+];
+
+const LABORERS_TABLE = [
+    { pastLife: 'Gongfarmer', attributes: ['might'], skill: 'Nature', possessions: 'dung shovel' },
+    { pastLife: 'Scavenger', attributes: ['agility'], skill: 'Tinkering', possessions: 'crude helm' },
+    { pastLife: 'Chimney Sweep', attributes: ['agility'], skill: 'Athletics', possessions: 'bag of limes' },
+    { pastLife: 'Lamplighter', attributes: ['might'], skill: 'Acrobatics', possessions: 'rope' },
+    { pastLife: 'Carver', attributes: ['agility'], skill: 'Nature', possessions: 'sextant' },
+    { pastLife: 'Roofer', attributes: ['agility'], skill: 'Acrobatics', possessions: 'ten-foot ladder (heavy)' },
+    { pastLife: 'Ferry Keeper', attributes: ['intellect'], skill: 'Folklore', possessions: 'broken oar' },
+    { pastLife: 'Boatwright', attributes: ['intellect'], skill: 'Tinkering', possessions: 'hammer and nails' },
+    { pastLife: 'Ragpicker', attributes: ['spirit'], skill: 'Stealth', possessions: 'chipped shovel' },
+    { pastLife: 'Stable Hand', attributes: ['agility'], skill: 'Nature', possessions: 'push broom' },
+    { pastLife: 'Stonemason', attributes: ['might'], skill: 'Tinkering', possessions: 'hammer and chisel' },
+    { pastLife: 'Stable Keeper', attributes: ['might'], skill: 'Nature', possessions: 'sack of horseshoes' },
+    { pastLife: 'Polisher', attributes: ['agility'], skill: 'Perception', possessions: 'silver knife (as dagger)' },
+    { pastLife: 'Wagoner', attributes: ['might'], skill: 'Folklore', possessions: 'tattered scarf, tricorn hat' },
+    { pastLife: 'Thatcher', attributes: ['agility'], skill: 'Acrobatics', possessions: 'bag of thatch' },
+    { pastLife: 'Miner', attributes: ['might'], skill: 'Athletics', possessions: 'pickaxe' },
+    { pastLife: 'Woodcutter', attributes: ['might'], skill: 'Nature', possessions: 'old axe' },
+    { pastLife: 'Tavern Guard', attributes: ['might', 'spirit'], skill: 'Folklore', possessions: 'cudgel (1d6)' },
+    { pastLife: 'Gravedigger', attributes: ['might', 'spirit'], skill: 'Athletics', possessions: 'tombstone' },
+    { pastLife: 'Rat-Catcher', attributes: ['agility', 'intellect'], skill: 'Stealth', possessions: 'rat-bashing stick' },
+];
+
 const rollOddity = (): string => {
   const d8 = roll(8);
   const d6 = roll(6);
@@ -90,14 +138,42 @@ const generateAlignment = (): string => {
   return `${alignmentType.type}: ${traits.join(' & ')}`;
 };
 
-const generatePastLife = (): string => {
+const generatePastLife = (): { pastLife: string; attributeBonuses: AttributeName[]; skill: string; equipment: string } => {
   const d20 = roll(20);
   const socialGroup = PAST_LIFE_SOCIAL_GROUPS.find(sg => d20 >= sg.range[0] && d20 <= sg.range[1]);
-  return socialGroup ? socialGroup.group : 'Unknown';
+
+  if (!socialGroup) {
+      return { pastLife: 'Unknown', attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
+  }
+
+  if (socialGroup.group === 'Outcasts') {
+      const d20Outcast = roll(20);
+      const result = OUTCASTS_TABLE[d20Outcast - 1];
+      return {
+          pastLife: result.pastLife,
+          attributeBonuses: result.attributes as AttributeName[],
+          skill: result.skill,
+          equipment: result.possessions
+      };
+  }
+
+  if (socialGroup.group === 'Laborers') {
+      const d20Laborer = roll(20);
+      const result = LABORERS_TABLE[d20Laborer - 1];
+      return {
+          pastLife: result.pastLife,
+          attributeBonuses: result.attributes as AttributeName[],
+          skill: result.skill,
+          equipment: result.possessions
+      };
+  }
+
+  return { pastLife: socialGroup.group, attributeBonuses: [], skill: 'To be determined', equipment: 'To be determined' };
 };
 
+
 export const generateCommoner = (): Commoner => {
-  const attributes = {
+  const attributes: { [key in AttributeName]: number } = {
     might: 0,
     agility: 0,
     intellect: 0,
@@ -112,6 +188,14 @@ export const generateCommoner = (): Commoner => {
     else if (d4 === 4) attributes.spirit++;
   }
 
+  const { pastLife, attributeBonuses, skill, equipment } = generatePastLife();
+
+  for (const bonus of attributeBonuses) {
+      if (attributes.hasOwnProperty(bonus)) {
+          attributes[bonus]++;
+      }
+  }
+
   const keyAttribute = attributes.might >= attributes.agility ? 'Might' : 'Agility';
 
   return {
@@ -119,8 +203,9 @@ export const generateCommoner = (): Commoner => {
     attributes,
     keyAttribute,
     alignment: generateAlignment(),
-    pastLife: generatePastLife(),
-    equipment: 'To be determined',
+    pastLife: pastLife,
+    skill: skill,
+    equipment: equipment,
   };
 };
 
