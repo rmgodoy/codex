@@ -4,6 +4,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import ReactFlow, { MiniMap, Controls, Background, useNodesState, useEdgesState, useReactFlow, ReactFlowProvider, type Node, type Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
+import ELK from 'elkjs/lib/elk.bundled.js';
+import type { ElkNode, LayoutOptions } from 'elkjs/lib/elk.bundled.js';
 
 import type { Dungeon, Room as RoomType, Encounter, Treasure, AlchemicalItem } from "@/lib/types";
 import { getAllRooms, getEncounterById, getAllTreasures, getAllAlchemicalItems, getCreatureById } from "@/lib/idb";
@@ -12,7 +14,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
-import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords } from "lucide-react";
+import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
 import FloatingEdge from './floating-edge';
@@ -35,6 +37,50 @@ const edgeTypes = {
   floating: FloatingEdge,
 };
 
+const elk = new ELK();
+
+const elkOptions: LayoutOptions = {
+  'elk.algorithm': 'force',
+  'elk.force.iterations': '1000',
+  'elk.force.alpha': '1',
+  'elk.force.gravity': '0.01',
+  'elk.force.charge': '-1200',
+  'elk.spacing.nodeNode': '150',
+};
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[]): Promise<Node[]> => {
+  const graph: ElkNode = {
+    id: 'root',
+    layoutOptions: elkOptions,
+    children: nodes.map((node) => ({
+      id: node.id,
+      width: node.style?.width as number || 150,
+      height: node.style?.height as number || 80,
+    })),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    })),
+  };
+
+  return elk
+    .layout(graph)
+    .then((layoutedGraph) => {
+      return nodes.map((node) => {
+        const layoutedNode = layoutedGraph.children?.find((n) => n.id === node.id);
+        if (layoutedNode?.x && layoutedNode?.y && layoutedNode?.width && layoutedNode?.height) {
+          node.position = { x: layoutedNode.x, y: layoutedNode.y };
+        }
+        return node;
+      });
+    })
+    .catch((e) => {
+        console.error('ELK layout error:', e);
+        return nodes;
+    });
+};
+
 function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProps) {
     const [loading, setLoading] = useState(true);
     const [runningEncounter, setRunningEncounter] = useState<Encounter | null>(null);
@@ -49,6 +95,15 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { fitView } = useReactFlow();
+
+    const onLayout = useCallback(() => {
+        getLayoutedElements(nodes, edges).then((layoutedNodes) => {
+            setNodes(layoutedNodes);
+            window.requestAnimationFrame(() => {
+                fitView({ duration: 800, padding: 0.1 });
+            });
+        });
+    }, [nodes, edges, setNodes, fitView]);
 
     const round = Math.floor(totalActions / 3) + 1;
     const actionInRound = (totalActions % 3) + 1;
@@ -124,7 +179,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
             const roomTemplate = details.rooms.get(roomInstance.roomId);
             return {
                 id: roomInstance.instanceId,
-                position: roomInstance.position,
+                position: { x: 0, y: 0 },
                 data: { label: roomTemplate?.name || 'Loading...' },
                 connectable: false,
                 style: {
@@ -159,9 +214,15 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
             };
         });
         
-        setNodes(initialNodes);
-        setEdges(initialEdges);
-    }, [dungeon, details, setNodes, setEdges]);
+        getLayoutedElements(initialNodes, initialEdges).then((layoutedNodes) => {
+            setNodes(layoutedNodes);
+            setEdges(initialEdges);
+            setTimeout(() => {
+                fitView({ duration: 800, padding: 0.1 });
+            }, 100);
+        });
+
+    }, [dungeon, details, setNodes, setEdges, fitView]);
     
     useEffect(() => {
         setNodes((nds) =>
@@ -245,6 +306,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                         <Button variant="outline" size="sm" onClick={handlePrevAction} disabled={totalActions === 0}>Prev Action</Button>
                         <Button variant="default" size="sm" onClick={handleNextAction}>Next Action</Button>
                     </div>
+                    <Button variant="outline" size="icon" onClick={onLayout} title="Auto-Layout"><RefreshCw className="h-4 w-4" /></Button>
                     <Button variant="destructive" onClick={onEndDungeon}>End Dungeon</Button>
                 </div>
             </header>
