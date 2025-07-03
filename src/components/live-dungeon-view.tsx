@@ -49,7 +49,6 @@ const elkOptions: LayoutOptions = {
   'elk.force.iterations': '1000',
   'elk.force.alpha': '1',
   'elk.force.gravity': '0.01',
-  'elk.force.charge': '-800',
   'elk.spacing.nodeNode': '120',
 };
 
@@ -192,10 +191,9 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
         fetchDetails();
     }, [dungeon]);
     
-    useEffect(() => {
-        if (!dungeon || !details) return;
-
-        const initialNodes: Node[] = dungeon.rooms.map((roomInstance): Node => {
+    const initialNodes = useMemo(() => {
+        if (!dungeon || !details) return [];
+        return dungeon.rooms.map((roomInstance): Node => {
             const roomTemplate = details.rooms.get(roomInstance.roomId);
             return {
                 id: roomInstance.instanceId,
@@ -214,8 +212,11 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 type: 'dungeonRoom',
             };
         });
+    }, [dungeon, details]);
 
-        const initialEdges = dungeon.connections.map((conn): Edge => {
+    const initialEdges = useMemo(() => {
+        if (!dungeon) return [];
+        return dungeon.connections.map((conn): Edge => {
             return {
                 id: `edge-${conn.from}-${conn.to}`,
                 source: conn.from,
@@ -227,16 +228,19 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 },
             };
         });
-        
-        getLayoutedElements(initialNodes, initialEdges).then((layoutedNodes) => {
-            setNodes(layoutedNodes);
-            setEdges(initialEdges);
-            setTimeout(() => {
-                fitView({ duration: 800, padding: 0.1 });
-            }, 100);
-        });
+    }, [dungeon]);
 
-    }, [dungeon, details, setNodes, setEdges, fitView]);
+    useEffect(() => {
+        if (initialNodes.length > 0) {
+            getLayoutedElements(initialNodes, initialEdges).then((layoutedNodes) => {
+                setNodes(layoutedNodes);
+                setEdges(initialEdges);
+                setTimeout(() => {
+                    fitView({ duration: 800, padding: 0.1 });
+                }, 100);
+            });
+        }
+    }, [initialNodes, initialEdges, setNodes, setEdges, fitView]);
     
     useEffect(() => {
         setNodes((nds) =>
@@ -327,9 +331,28 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
             <div className="flex flex-1 min-h-0">
                 {(selectedRoom || selectedEncounter) && (
                      <div className="w-[380px] border-r border-border bg-card p-4 flex flex-col">
-                        <Button variant="ghost" className="self-start mb-2 -ml-2" onClick={() => { setSelectedRoomId(null); setSelectedEncounterId(null); }}><ArrowLeft className="h-4 w-4 mr-2"/> Back to Dungeon View</Button>
+                        {selectedEncounter ? (
+                            <Button variant="ghost" className="self-start mb-2 -ml-2" onClick={() => setSelectedEncounterId(null)}>
+                                <ArrowLeft className="h-4 w-4 mr-2"/> Back to Room Details
+                            </Button>
+                        ) : (
+                            <Button variant="ghost" className="self-start mb-2 -ml-2" onClick={() => { setSelectedRoomId(null); setSelectedEncounterId(null); }}>
+                                <ArrowLeft className="h-4 w-4 mr-2"/> Back to Dungeon View
+                            </Button>
+                        )}
                         <ScrollArea className="flex-1">
-                            {selectedRoom && !selectedEncounter && (
+                            {selectedEncounter ? (
+                                 <Card>
+                                    <CardHeader>
+                                        <CardTitle>{selectedEncounter.name}</CardTitle>
+                                        <CardDescription>TR: {selectedEncounter.totalTR}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button className="w-full" onClick={() => handleRunEncounter(selectedEncounter.id)}><Swords className="h-4 w-4 mr-2"/>Run Encounter</Button>
+                                        <p className="mt-4 text-sm whitespace-pre-wrap">{selectedEncounter.sceneDescription}</p>
+                                    </CardContent>
+                                </Card>
+                            ) : selectedRoom ? (
                                 <Card>
                                     <CardHeader><CardTitle>{selectedRoom.name}</CardTitle><CardDescription>{selectedRoom.size}</CardDescription></CardHeader>
                                     <CardContent className="space-y-4">
@@ -349,19 +372,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                                         </div>
                                     </CardContent>
                                 </Card>
-                            )}
-                            {selectedEncounter && (
-                                 <Card>
-                                    <CardHeader>
-                                        <CardTitle>{selectedEncounter.name}</CardTitle>
-                                        <CardDescription>TR: {selectedEncounter.totalTR}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button className="w-full" onClick={() => handleRunEncounter(selectedEncounter.id)}><Swords className="h-4 w-4 mr-2"/>Run Encounter</Button>
-                                        <p className="mt-4 text-sm whitespace-pre-wrap">{selectedEncounter.sceneDescription}</p>
-                                    </CardContent>
-                                </Card>
-                            )}
+                            ) : null}
                         </ScrollArea>
                      </div>
                 )}
@@ -396,8 +407,3 @@ export default function LiveDungeonView(props: LiveDungeonViewProps) {
         </ReactFlowProvider>
     );
 }
-
-    
-
-
-
