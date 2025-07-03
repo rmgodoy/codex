@@ -179,7 +179,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
     defaultValues: defaultValues,
   });
   
-  const { fields: featureFields, append: appendFeature, remove: removeFeature, update: updateFeature } = useFieldArray({
+  const { fields: featureFields, append: appendFeature, remove: removeFeature } = useFieldArray({
     control: form.control,
     name: "features",
   });
@@ -431,21 +431,21 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                                     triggerButton={<Button type="button" size="sm" variant="outline"><Bot className="h-4 w-4 mr-2" /> Encounters</Button>}
                                     dialogTitle="Link Encounters"
                                     items={allEncounters.map(e => ({ id: e.id, name: e.name, value: e.totalTR || 0 }))}
-                                    onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), encounterIds: ids })}
+                                    onSelectItems={(ids) => form.setValue(`features.${index}.encounterIds`, ids)}
                                     initialSelectedIds={form.getValues(`features.${index}.encounterIds`)}
                                   />
                                   <ItemSelectionDialog
                                     triggerButton={<Button type="button" size="sm" variant="outline"><Gem className="h-4 w-4 mr-2" /> Treasures</Button>}
                                     dialogTitle="Link Treasures"
                                     items={allTreasures}
-                                    onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), treasureIds: ids })}
+                                    onSelectItems={(ids) => form.setValue(`features.${index}.treasureIds`, ids)}
                                     initialSelectedIds={form.getValues(`features.${index}.treasureIds`)}
                                   />
                                   <ItemSelectionDialog
                                     triggerButton={<Button type="button" size="sm" variant="outline"><FlaskConical className="h-4 w-4 mr-2" /> Alchemy</Button>}
                                     dialogTitle="Link Alchemical Items"
                                     items={allAlchemicalItems.map(a => ({ id: a.id, name: a.name, type: a.type }))}
-                                    onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), alchemicalItemIds: ids })}
+                                    onSelectItems={(ids) => form.setValue(`features.${index}.alchemicalItemIds`, ids)}
                                     initialSelectedIds={form.getValues(`features.${index}.alchemicalItemIds`)}
                                   />
                               </div>
