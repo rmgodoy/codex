@@ -14,7 +14,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
-import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords, RefreshCw } from "lucide-react";
+import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords, RefreshCw, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
 import FloatingEdge from './floating-edge';
@@ -117,6 +117,12 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
         const newAlert = Math.max(0, Math.min(10, currentAlert + delta));
         const newHistory = [...alertHistory];
         newHistory[totalActions] = newAlert;
+        setAlertHistory(newHistory);
+    };
+
+    const handleResetAlert = () => {
+        const newHistory = [...alertHistory];
+        newHistory[totalActions] = 0;
         setAlertHistory(newHistory);
     };
 
@@ -317,7 +323,12 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 <h1 className="text-xl md:text-3xl font-bold text-primary-foreground">{dungeon.name}</h1>
                 <div className="flex items-center gap-4">
                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground">Alert</div>
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="text-xs text-muted-foreground">Alert</div>
+                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={handleResetAlert} title="Reset Alert">
+                                <RotateCcw className="h-3 w-3" />
+                            </Button>
+                        </div>
                         <div className="text-lg font-bold flex items-center gap-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleAlertChange(-1)} disabled={currentAlert <= 0}><Minus className="h-4 w-4"/></Button>
                             {currentAlert}
