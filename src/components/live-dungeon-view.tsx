@@ -196,7 +196,6 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 id: roomInstance.instanceId,
                 position: { x: 0, y: 0 },
                 data: { label: roomTemplate?.name || 'Loading...' },
-                connectable: false,
                 style: {
                     background: 'hsl(var(--card))',
                     color: 'hsl(var(--card-foreground))',
@@ -376,6 +375,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                         onPaneClick={() => handleNodeClick(null, null)}
                         fitView
                         nodesDraggable={true}
+                        nodesConnectable={false}
                         edgeTypes={edgeTypes}
                         connectionLineComponent={FloatingConnectionLine}
                     >
@@ -398,4 +398,5 @@ export default function LiveDungeonView(props: LiveDungeonViewProps) {
 }
 
     
+
 
