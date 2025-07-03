@@ -13,6 +13,8 @@ import { Separator } from "./ui/separator";
 import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
+import { cn } from "@/lib/utils";
+
 
 interface LiveDungeonViewProps {
   dungeon: Dungeon;
@@ -33,11 +35,38 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
     const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
     const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null);
 
-    const [alert, setAlert] = useState(0);
-    const [actions, setActions] = useState(3);
-    const [round, setRound] = useState(1);
+    const [totalActions, setTotalActions] = useState(0);
+    const [alertHistory, setAlertHistory] = useState<number[]>([0]);
     
     const { toast } = useToast();
+
+    const round = Math.floor(totalActions / 3) + 1;
+    const actionInRound = (totalActions % 3) + 1;
+    const currentAlert = alertHistory[totalActions] ?? 0;
+
+    const handleAlertChange = (delta: number) => {
+        const newAlert = Math.max(0, Math.min(10, currentAlert + delta));
+        const newHistory = [...alertHistory];
+        newHistory[totalActions] = newAlert;
+        setAlertHistory(newHistory);
+    };
+
+    const handleNextAction = () => {
+        setTotalActions(prevTotal => {
+            const nextTotal = prevTotal + 1;
+            setAlertHistory(prevHistory => {
+                if (nextTotal >= prevHistory.length) {
+                    return [...prevHistory, prevHistory[prevTotal] ?? 0];
+                }
+                return prevHistory;
+            });
+            return nextTotal;
+        });
+    };
+
+    const handlePrevAction = () => {
+        setTotalActions(prevTotal => Math.max(0, prevTotal - 1));
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -100,21 +129,21 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
             <header className="py-4 px-6 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
                 <h1 className="text-xl md:text-3xl font-bold text-primary-foreground">{dungeon.name}</h1>
                 <div className="flex items-center gap-4">
-                    <div className="text-center">
+                     <div className="text-center">
                         <div className="text-xs text-muted-foreground">Alert</div>
                         <div className="text-lg font-bold flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAlert(v => Math.max(0, v-1))}><Minus className="h-4 w-4"/></Button>
-                            {alert}
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAlert(v => Math.min(10, v+1))}><Plus className="h-4 w-4"/></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleAlertChange(-1)} disabled={currentAlert <= 0}><Minus className="h-4 w-4"/></Button>
+                            {currentAlert}
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleAlertChange(1)} disabled={currentAlert >= 10}><Plus className="h-4 w-4"/></Button>
                         </div>
                     </div>
                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground">Round</div>
-                        <div className="text-lg font-bold">{round}</div>
+                        <div className="text-xs text-muted-foreground">Round / Action</div>
+                        <div className="text-lg font-bold">{round} / {actionInRound}</div>
                     </div>
-                     <div className="text-center">
-                        <div className="text-xs text-muted-foreground">Actions</div>
-                        <div className="text-lg font-bold">{actions}</div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={handlePrevAction} disabled={totalActions === 0}>Prev</Button>
+                        <Button variant="default" size="sm" onClick={handleNextAction}>Next</Button>
                     </div>
                     <Button variant="destructive" onClick={onEndDungeon}>End Dungeon</Button>
                 </div>
@@ -165,12 +194,21 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                         <svg width="100%" height="100%" className="absolute inset-0">
                             <defs>
                                 <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" /></marker>
+                                <marker id="arrow-highlight" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--primary))" /></marker>
                             </defs>
                             {dungeon.connections.map((conn, i) => {
                                 const fromNode = dungeon.rooms.find(r => r.instanceId === conn.from);
                                 const toNode = dungeon.rooms.find(r => r.instanceId === conn.to);
                                 if (!fromNode || !toNode) return null;
-                                return <line key={i} x1={fromNode.position.x + 75} y1={fromNode.position.y + 40} x2={toNode.position.x + 75} y2={toNode.position.y + 40} stroke="hsl(var(--border))" strokeWidth="2" markerEnd="url(#arrow)" />
+                                const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
+                                return <line 
+                                    key={i} 
+                                    x1={fromNode.position.x + 75} y1={fromNode.position.y + 40} 
+                                    x2={toNode.position.x + 75} y2={toNode.position.y + 40} 
+                                    strokeWidth={isHighlighted ? 3 : 2} 
+                                    className={cn("transition-all", isHighlighted ? "stroke-primary" : "stroke-border")}
+                                    markerEnd={isHighlighted ? "url(#arrow-highlight)" : "url(#arrow)"} 
+                                />
                             })}
                         </svg>
                         {dungeon.rooms.map(roomInstance => {

@@ -292,7 +292,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                 
                 <div>
                   <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground flex items-center gap-2"><Warehouse className="h-5 w-5"/>Rooms</h3><RoomSelectionDialog onAddRooms={addRooms} existingRoomIds={existingRoomInstanceIds}/></div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                  <div className="space-y-2 pr-2">
                     {roomFields.map((field, index) => (<div key={field.id} className="flex items-center gap-2 p-2 bg-card-foreground/5 rounded-md"><p className="flex-1 font-semibold">{roomMap.get(field.roomId)?.name || 'Unknown Room'}</p><Button type="button" variant="ghost" size="icon" onClick={() => removeRoom(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button></div>))}
                     {roomFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-4">No rooms added.</p>}
                   </div>
@@ -303,7 +303,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                 
                 <div>
                    <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground flex items-center gap-2"><Link2 className="h-5 w-5"/>Connections</h3><Button type="button" size="sm" variant="outline" onClick={() => appendConnection({ from: '', to: ''})} disabled={roomFields.length < 2}><Plus className="h-4 w-4 mr-2" />Add Connection</Button></div>
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    <div className="space-y-2 pr-2">
                        {connectionFields.map((field, index) => (
                          <div key={field.id} className="grid grid-cols-[1fr_auto_1fr_auto] items-start gap-2 p-2 bg-card-foreground/5 rounded-md">
                              <FormField
@@ -356,6 +356,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                              <Button type="button" variant="ghost" size="icon" onClick={() => removeConnection(index)} className="text-muted-foreground hover:text-destructive shrink-0 self-center"><Trash2 className="h-4 w-4" /></Button>
                          </div>
                        ))}
+                       {connectionFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No connections added.</p>}
                     </div>
                  </div>
             </CardContent>
