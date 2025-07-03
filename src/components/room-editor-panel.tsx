@@ -161,7 +161,6 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!roomId);
   const [roomData, setRoomData] = useState<Room | null>(null);
-  const [openFeatures, setOpenFeatures] = useState<Record<string, boolean>>({});
   
   const [allEncounters, setAllEncounters] = useState<Encounter[]>([]);
   const [allTreasures, setAllTreasures] = useState<Treasure[]>([]);
@@ -296,16 +295,14 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   };
   
   const handleAddFeature = () => {
-    const newId = crypto.randomUUID();
     appendFeature({
-      id: newId,
+      id: crypto.randomUUID(),
       title: "",
       description: "",
       encounterIds: [],
       treasureIds: [],
       alchemicalItemIds: [],
     });
-    setOpenFeatures(prev => ({...prev, [newId]: true}));
   };
 
   if (loading) return <div className="w-full max-w-5xl mx-auto"><Card><CardHeader><Skeleton className="h-8 w-48" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
@@ -413,8 +410,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                       <Collapsible 
                         key={field.id} 
                         className="border bg-card-foreground/5 rounded-lg p-3"
-                        open={openFeatures[field.id]}
-                        onOpenChange={(isOpen) => setOpenFeatures(prev => ({ ...prev, [field.id]: isOpen }))}
+                        defaultOpen={!form.watch(`features.${index}.title`)}
                       >
                           <div className="flex items-center justify-between">
                               <CollapsibleTrigger asChild>
