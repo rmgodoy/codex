@@ -228,6 +228,7 @@ export type NewAlchemicalItem = Omit<AlchemicalItem, 'id'>;
 // Room Types
 export interface RoomFeature {
   id: string;
+  title: string;
   description: string;
   encounterIds: string[];
   treasureIds: string[];

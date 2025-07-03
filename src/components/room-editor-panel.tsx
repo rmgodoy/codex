@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Link as LinkIcon, Bot, Gem, FlaskConical } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Bot, Gem, FlaskConical, ChevronsUpDown } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
@@ -24,9 +24,12 @@ import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { Checkbox } from "./ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 
 const roomFeatureSchema = z.object({
   id: z.string(),
+  title: z.string().min(1, "Feature title is required"),
   description: z.string().min(1, "Feature description is required"),
   encounterIds: z.array(z.string()),
   treasureIds: z.array(z.string()),
@@ -119,6 +122,7 @@ interface RoomEditorPanelProps {
   onEditCancel: () => void;
   onFilterByClick: (updates: { tagFilter?: string }, e: React.MouseEvent) => void;
   onBack?: () => void;
+  dataVersion: number;
 }
 
 const defaultValues: RoomFormData = {
@@ -130,7 +134,7 @@ const defaultValues: RoomFormData = {
   totalTreasureValue: 0,
 };
 
-export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onFilterByClick, onBack }: RoomEditorPanelProps) {
+export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onFilterByClick, onBack, dataVersion }: RoomEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!roomId);
@@ -222,7 +226,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
       }
     };
     fetchRoomData();
-  }, [roomId, isCreatingNew, form, toast]);
+  }, [roomId, isCreatingNew, form, toast, dataVersion]);
   
   const handleCancel = () => {
     if (isCreatingNew) {
@@ -271,6 +275,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   const handleAddFeature = () => {
     appendFeature({
       id: crypto.randomUUID(),
+      title: "",
       description: "",
       encounterIds: [],
       treasureIds: [],
@@ -319,7 +324,8 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                                 <ul className="space-y-4">
                                     {roomData.features.map(feature => (
                                         <li key={feature.id} className="p-3 bg-card-foreground/5 rounded-lg">
-                                            <p className="font-semibold">{feature.description}</p>
+                                            <p className="font-semibold">{feature.title}</p>
+                                            <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap">{feature.description}</p>
                                             {feature.encounterIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Bot className="h-4 w-4"/> Linked Encounters</h4><ul className="list-disc list-inside mt-1">{feature.encounterIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.encounters.get(id)?.name || '...'}</li>)}</ul></div>}
                                             {feature.treasureIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Gem className="h-4 w-4"/> Linked Treasures</h4><ul className="list-disc list-inside mt-1">{feature.treasureIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.treasures.get(id)?.name || '...'}</li>)}</ul></div>}
                                             {feature.alchemicalItemIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><FlaskConical className="h-4 w-4"/> Linked Alchemy</h4><ul className="list-disc list-inside mt-1">{feature.alchemicalItemIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.alchemicalItems.get(id)?.name || '...'}</li>)}</ul></div>}
@@ -380,35 +386,46 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                   <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground">Room Features</h3><Button type="button" size="sm" variant="outline" onClick={handleAddFeature}><Plus className="h-4 w-4 mr-2" /> Add Feature</Button></div>
                   <div className="space-y-3">
                     {featureFields.map((field, index) => (
-                      <div key={field.id} className="flex flex-col gap-2 p-3 border rounded-lg bg-card-foreground/5">
-                        <div className="flex items-start gap-2">
-                          <FormField name={`features.${index}.description`} control={form.control} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                          <Button type="button" variant="ghost" size="icon" onClick={() => removeFeature(index)} className="text-muted-foreground hover:text-destructive shrink-0 mt-8"><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 justify-end">
-                            <ItemSelectionDialog
-                              triggerButton={<Button type="button" size="sm" variant="outline"><Bot className="h-4 w-4 mr-2" /> Encounters</Button>}
-                              dialogTitle="Link Encounters"
-                              items={allEncounters.map(e => ({ id: e.id, name: e.name, value: e.totalTR || 0 }))}
-                              onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), encounterIds: ids })}
-                              initialSelectedIds={form.getValues(`features.${index}.encounterIds`)}
-                            />
-                            <ItemSelectionDialog
-                              triggerButton={<Button type="button" size="sm" variant="outline"><Gem className="h-4 w-4 mr-2" /> Treasures</Button>}
-                              dialogTitle="Link Treasures"
-                              items={allTreasures}
-                              onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), treasureIds: ids })}
-                              initialSelectedIds={form.getValues(`features.${index}.treasureIds`)}
-                            />
-                            <ItemSelectionDialog
-                              triggerButton={<Button type="button" size="sm" variant="outline"><FlaskConical className="h-4 w-4 mr-2" /> Alchemy</Button>}
-                              dialogTitle="Link Alchemical Items"
-                              items={allAlchemicalItems.map(a => ({ id: a.id, name: a.name, type: a.type }))}
-                              onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), alchemicalItemIds: ids })}
-                              initialSelectedIds={form.getValues(`features.${index}.alchemicalItemIds`)}
-                            />
-                        </div>
-                      </div>
+                      <Collapsible key={field.id} className="border bg-card-foreground/5 rounded-lg p-3" defaultOpen={!form.getValues(`features.${index}.title`)}>
+                          <div className="flex items-center justify-between">
+                              <CollapsibleTrigger asChild>
+                                  <button type="button" className="flex items-center gap-3 text-left w-full">
+                                      <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
+                                      <span className="text-lg font-semibold text-primary-foreground">
+                                          {form.watch(`features.${index}.title`) || "New Feature"}
+                                      </span>
+                                  </button>
+                              </CollapsibleTrigger>
+                              <Button type="button" variant="ghost" size="icon" onClick={() => removeFeature(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                          <CollapsibleContent className="mt-4 space-y-4">
+                              <FormField name={`features.${index}.title`} control={form.control} render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField name={`features.${index}.description`} control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                              <div className="flex flex-wrap gap-2 justify-end">
+                                  <ItemSelectionDialog
+                                    triggerButton={<Button type="button" size="sm" variant="outline"><Bot className="h-4 w-4 mr-2" /> Encounters</Button>}
+                                    dialogTitle="Link Encounters"
+                                    items={allEncounters.map(e => ({ id: e.id, name: e.name, value: e.totalTR || 0 }))}
+                                    onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), encounterIds: ids })}
+                                    initialSelectedIds={form.getValues(`features.${index}.encounterIds`)}
+                                  />
+                                  <ItemSelectionDialog
+                                    triggerButton={<Button type="button" size="sm" variant="outline"><Gem className="h-4 w-4 mr-2" /> Treasures</Button>}
+                                    dialogTitle="Link Treasures"
+                                    items={allTreasures}
+                                    onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), treasureIds: ids })}
+                                    initialSelectedIds={form.getValues(`features.${index}.treasureIds`)}
+                                  />
+                                  <ItemSelectionDialog
+                                    triggerButton={<Button type="button" size="sm" variant="outline"><FlaskConical className="h-4 w-4 mr-2" /> Alchemy</Button>}
+                                    dialogTitle="Link Alchemical Items"
+                                    items={allAlchemicalItems.map(a => ({ id: a.id, name: a.name, type: a.type }))}
+                                    onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), alchemicalItemIds: ids })}
+                                    initialSelectedIds={form.getValues(`features.${index}.alchemicalItemIds`)}
+                                  />
+                              </div>
+                          </CollapsibleContent>
+                      </Collapsible>
                     ))}
                     {featureFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-4">No features added to this room.</p>}
                   </div>

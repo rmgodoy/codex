@@ -150,6 +150,7 @@ export default function RoomsPage() {
                 onEditCancel={onEditCancel}
                 onFilterByClick={handleFilterByClick}
                 onBack={handleBack}
+                dataVersion={dataVersion}
               />
             </div>
           )}
@@ -183,6 +184,7 @@ export default function RoomsPage() {
                     onDeleteSuccess={onDeleteSuccess}
                     onEditCancel={onEditCancel}
                     onFilterByClick={handleFilterByClick}
+                    dataVersion={dataVersion}
                 />
             </div>
           </SidebarInset>
