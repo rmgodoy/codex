@@ -545,27 +545,60 @@ export const importData = async (data: any): Promise<void> => {
       stores[name].clear();
     });
 
+    const allTagsToCreate = new Map<string, Tag>();
+
+    const processTags = (tags: string[] | undefined, source: TagSource) => {
+        if (tags && Array.isArray(tags)) {
+            tags.forEach(tagName => {
+                const key = `${tagName}|${source}`;
+                if (!allTagsToCreate.has(key)) {
+                    allTagsToCreate.set(key, { name: tagName, source });
+                }
+            });
+        }
+    };
+
     if (data.creatures && Array.isArray(data.creatures)) {
-        data.creatures.forEach((item: Creature) => stores[CREATURES_STORE_NAME].put(item));
+        data.creatures.forEach((item: Creature) => {
+            stores[CREATURES_STORE_NAME].put(item);
+            processTags(item.tags, 'creature');
+        });
     }
     if (data.deeds && Array.isArray(data.deeds)) {
-        data.deeds.forEach((item: Deed) => stores[DEEDS_STORE_NAME].put(item));
+        data.deeds.forEach((item: Deed) => {
+            stores[DEEDS_STORE_NAME].put(item);
+            processTags(item.tags, 'deed');
+        });
     }
     if (data.encounters && Array.isArray(data.encounters)) {
-        data.encounters.forEach((item: Encounter) => stores[ENCOUNTERS_STORE_NAME].put(item));
-    }
-    if (data.tags && Array.isArray(data.tags)) {
-        data.tags.forEach((item: Tag) => stores[TAGS_STORE_NAME].put(item));
+        data.encounters.forEach((item: Encounter) => {
+            stores[ENCOUNTERS_STORE_NAME].put(item);
+            processTags(item.tags, 'encounter');
+        });
     }
     if (data.encounterTables && Array.isArray(data.encounterTables)) {
-        data.encounterTables.forEach((item: EncounterTable) => stores[ENCOUNTER_TABLES_STORE_NAME].put(item));
+        data.encounterTables.forEach((item: EncounterTable) => {
+            stores[ENCOUNTER_TABLES_STORE_NAME].put(item);
+            processTags(item.tags, 'encounterTable');
+        });
     }
     if (data.treasures && Array.isArray(data.treasures)) {
-        data.treasures.forEach((item: Treasure) => stores[TREASURES_STORE_NAME].put(item));
+        data.treasures.forEach((item: Treasure) => {
+            stores[TREASURES_STORE_NAME].put(item);
+            processTags(item.tags, 'treasure');
+        });
     }
     if (data.alchemicalItems && Array.isArray(data.alchemicalItems)) {
-        data.alchemicalItems.forEach((item: AlchemicalItem) => stores[ALCHEMY_ITEMS_STORE_NAME].put(item));
+        data.alchemicalItems.forEach((item: AlchemicalItem) => {
+            stores[ALCHEMY_ITEMS_STORE_NAME].put(item);
+            processTags(item.tags, 'alchemicalItem');
+        });
     }
+    
+    // Now add the collected tags.
+    allTagsToCreate.forEach(tag => {
+        stores[TAGS_STORE_NAME].put(tag);
+    });
     
     return new Promise<void>((resolve, reject) => {
         tx.oncomplete = () => resolve();
