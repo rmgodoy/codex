@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import ReactFlow, { MiniMap, Controls, Background, useNodesState, useEdgesState, MarkerType, type Node, type Edge } from 'reactflow';
+import ReactFlow, { MiniMap, Controls, Background, useNodesState, useEdgesState, useReactFlow, ReactFlowProvider, type Node, type Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import type { Dungeon, Room as RoomType, Encounter, Treasure, AlchemicalItem } from "@/lib/types";
@@ -30,20 +30,20 @@ type DungeonDetails = {
     alchemicalItems: Map<string, AlchemicalItem>;
 };
 
-export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonViewProps) {
+function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProps) {
     const [loading, setLoading] = useState(true);
     const [runningEncounter, setRunningEncounter] = useState<Encounter | null>(null);
     const [details, setDetails] = useState<DungeonDetails | null>(null);
     const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
     const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null);
 
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
     const [totalActions, setTotalActions] = useState(0);
     const [alertHistory, setAlertHistory] = useState<number[]>([0]);
     
     const { toast } = useToast();
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const { fitView } = useReactFlow();
 
     const round = Math.floor(totalActions / 3) + 1;
     const actionInRound = (totalActions % 3) + 1;
@@ -74,20 +74,25 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
         setTotalActions(prevTotal => Math.max(0, prevTotal - 1));
     };
     
-    const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    const handleNodeClick = useCallback((event: React.MouseEvent | null, node: Node | null) => {
+      if (!node) {
+          setSelectedRoomId(null);
+          setSelectedEncounterId(null);
+          return;
+      }
       setSelectedRoomId(node.id);
       setSelectedEncounterId(null);
-    }, []);
+      fitView({ nodes: [{ id: node.id }], duration: 600, padding: 0.2 });
+    }, [fitView, setSelectedRoomId, setSelectedEncounterId]);
 
     useEffect(() => {
         const fetchDetails = async () => {
             setLoading(true);
-            const roomIds = dungeon.rooms.map(r => r.roomId);
             const rooms = await getAllRooms();
             const roomsMap = new Map(rooms.map(r => [r.id, r]));
             
             const encounterIds = rooms.flatMap(r => r.features.flatMap(f => f.encounterIds));
-            const encounters = await Promise.all(encounterIds.map(id => getEncounterById(id)));
+            const encounters = await Promise.all(encounterIds.map(id => getEncounterById(id).catch(() => null)));
 
             const treasureIds = rooms.flatMap(r => r.features.flatMap(f => f.treasureIds));
             const treasures = await getAllTreasures();
@@ -97,7 +102,7 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
 
             setDetails({
                 rooms: roomsMap,
-                encounters: new Map(encounters.filter(Boolean).map(e => [e!.id, e!])),
+                encounters: new Map(encounters.filter((e): e is Encounter => e !== null).map(e => [e.id, e])),
                 treasures: new Map(treasures.map(t => [t.id, t])),
                 alchemicalItems: new Map(alchemicalItems.map(a => [a.id, a]))
             });
@@ -106,55 +111,53 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
         fetchDetails();
     }, [dungeon]);
     
-    useEffect(() => {
-      if (!dungeon || !details) return;
+     useEffect(() => {
+        if (!dungeon || !details) return;
 
-      const newNodes = dungeon.rooms.map((roomInstance): Node => {
-          const roomTemplate = details.rooms.get(roomInstance.roomId);
-          const isSelected = selectedRoomId === roomInstance.instanceId;
-          return {
-              id: roomInstance.instanceId,
-              position: roomInstance.position,
-              data: { label: roomTemplate?.name || 'Loading...' },
-              style: {
-                  background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--card))',
-                  color: isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--card-foreground))',
-                  border: '1px solid',
-                  borderColor: isSelected ? 'hsl(var(--ring))' : 'hsl(var(--border))',
-                  width: 150,
-                  height: 80,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  fontSize: '1rem',
-                  borderRadius: 'var(--radius)',
-              },
-          };
-      });
+        const newNodes = dungeon.rooms.map((roomInstance): Node => {
+            const roomTemplate = details.rooms.get(roomInstance.roomId);
+            const isSelected = selectedRoomId === roomInstance.instanceId;
+            return {
+                id: roomInstance.instanceId,
+                position: roomInstance.position,
+                data: { label: roomTemplate?.name || 'Loading...' },
+                style: {
+                    background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--card))',
+                    color: isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--card-foreground))',
+                    border: '2px solid',
+                    borderColor: isSelected ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+                    width: 150,
+                    height: 80,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    fontSize: '1rem',
+                    borderRadius: 'var(--radius)',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+                },
+            };
+        });
 
-      const newEdges = dungeon.connections.map((conn): Edge => {
-          const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
-          return {
-              id: `edge-${conn.from}-${conn.to}`,
-              source: conn.from,
-              target: conn.to,
-              type: 'smoothstep',
-              animated: isHighlighted,
-              markerEnd: {
-                  type: MarkerType.ArrowClosed,
-                  color: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-              },
-              style: {
-                  strokeWidth: isHighlighted ? 2.5 : 1.5,
-                  stroke: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-              },
-          };
-      });
+        const newEdges = dungeon.connections.map((conn): Edge => {
+            const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
+            return {
+                id: `edge-${conn.from}-${conn.to}`,
+                source: conn.from,
+                target: conn.to,
+                type: 'smoothstep',
+                animated: isHighlighted,
+                style: {
+                    strokeWidth: isHighlighted ? 2.5 : 1.5,
+                    stroke: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                    strokeDasharray: '6 6',
+                },
+            };
+        });
 
-      setNodes(newNodes);
-      setEdges(newEdges);
-  }, [dungeon, details, selectedRoomId, setNodes, setEdges]);
+        setNodes(newNodes);
+        setEdges(newEdges);
+    }, [dungeon, details, selectedRoomId, setNodes, setEdges]);
     
     const selectedRoom = useMemo(() => {
         if (!selectedRoomId || !details) return null;
@@ -250,22 +253,31 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                         </ScrollArea>
                      </div>
                 )}
-                <div className="flex-1 relative overflow-hidden bg-background">
+                <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-background to-muted/20">
                     <ReactFlow
-                      nodes={nodes}
-                      edges={edges}
-                      onNodesChange={onNodesChange}
-                      onEdgesChange={onEdgesChange}
-                      onNodeClick={handleNodeClick}
-                      fitView
-                      nodesDraggable={false}
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onNodeClick={handleNodeClick}
+                        onPaneClick={() => handleNodeClick(null, null)}
+                        fitView
+                        nodesDraggable={true}
                     >
-                      <Controls />
-                      <MiniMap />
-                      <Background variant="dots" gap={12} size={1} />
+                        <Controls />
+                        <MiniMap pannable zoomable nodeStrokeWidth={3} nodeColor={(n) => n.style?.background as string || '#fff'} />
+                        <Background variant="dots" gap={16} size={1} />
                     </ReactFlow>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LiveDungeonView(props: LiveDungeonViewProps) {
+    return (
+        <ReactFlowProvider>
+            <LiveDungeonViewComponent {...props} />
+        </ReactFlowProvider>
     );
 }
