@@ -142,8 +142,8 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                         <div className="text-lg font-bold">{round} / {actionInRound}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={handlePrevAction} disabled={totalActions === 0}>Prev</Button>
-                        <Button variant="default" size="sm" onClick={handleNextAction}>Next</Button>
+                        <Button variant="outline" size="sm" onClick={handlePrevAction} disabled={totalActions === 0}>Prev Action</Button>
+                        <Button variant="default" size="sm" onClick={handleNextAction}>Next Action</Button>
                     </div>
                     <Button variant="destructive" onClick={onEndDungeon}>End Dungeon</Button>
                 </div>
