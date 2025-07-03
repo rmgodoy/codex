@@ -1,10 +1,10 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { produce } from 'immer';
-import { Hex, Grid, defineHex, rectangle, hexagon } from 'honeycomb-grid';
+import { Hex, Grid, defineHex } from 'honeycomb-grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -265,4 +265,3 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
         </div>
     );
 }
-    
