@@ -1,40 +1,31 @@
 
+
 "use client";
 
-import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, TagSource } from '@/lib/types';
-import { getDb, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME } from './db';
+import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, TagSource } from '@/lib/types';
+import { getDb, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME } from './db';
 
 // Import/Export
-export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[], treasures: Treasure[], alchemicalItems: AlchemicalItem[], rooms: Room[] }> => {
+export const exportAllData = async (): Promise<any> => {
     const db = await getDb();
-    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME], 'readonly');
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME];
+    const transaction = db.transaction(storeNames, 'readonly');
     
-    const creaturesPromise = transaction.objectStore(CREATURES_STORE_NAME).getAll();
-    const deedsPromise = transaction.objectStore(DEEDS_STORE_NAME).getAll();
-    const encountersPromise = transaction.objectStore(ENCOUNTERS_STORE_NAME).getAll();
-    const tagsPromise = transaction.objectStore(TAGS_STORE_NAME).getAll();
-    const encounterTablesPromise = transaction.objectStore(ENCOUNTER_TABLES_STORE_NAME).getAll();
-    const treasuresPromise = transaction.objectStore(TREASURES_STORE_NAME).getAll();
-    const alchemicalItemsPromise = transaction.objectStore(ALCHEMY_ITEMS_STORE_NAME).getAll();
-    const roomsPromise = transaction.objectStore(ROOMS_STORE_NAME).getAll();
-
-    return new Promise((resolve, reject) => {
-        const results: any = {};
-        let completed = 0;
-        const promises = [creaturesPromise, deedsPromise, encountersPromise, tagsPromise, encounterTablesPromise, treasuresPromise, alchemicalItemsPromise, roomsPromise];
-        const names = ['creatures', 'deeds', 'encounters', 'tags', 'encounterTables', 'treasures', 'alchemicalItems', 'rooms'];
-        
-        promises.forEach((p, i) => {
-            p.onsuccess = () => {
-                results[names[i]] = p.result;
-                completed++;
-                if (completed === promises.length) {
-                    resolve(results);
-                }
-            };
-            p.onerror = () => reject(p.error);
-        });
+    const promises = storeNames.map(name => {
+      return new Promise((resolve, reject) => {
+        const request = transaction.objectStore(name).getAll();
+        request.onsuccess = () => resolve({ name, data: request.result });
+        request.onerror = () => reject(request.error);
+      });
     });
+
+    const resultsArray = await Promise.all(promises);
+    const results: Record<string, any> = {};
+    resultsArray.forEach((res: any) => {
+      results[res.name] = res.data;
+    });
+
+    return results;
 };
 
 export const importData = async (data: any): Promise<void> => {
@@ -44,7 +35,7 @@ export const importData = async (data: any): Promise<void> => {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
 
-    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME];
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME];
     const tx = db.transaction(storeNames, 'readwrite');
     
     const stores: { [key: string]: IDBObjectStore } = {};
@@ -106,6 +97,12 @@ export const importData = async (data: any): Promise<void> => {
         data.rooms.forEach((item: Room) => {
             stores[ROOMS_STORE_NAME].put(item);
             processTags(item.tags, 'room');
+        });
+    }
+    if (data.dungeons && Array.isArray(data.dungeons)) {
+        data.dungeons.forEach((item: Dungeon) => {
+            stores[DUNGEONS_STORE_NAME].put(item);
+            processTags(item.tags, 'dungeon');
         });
     }
     
