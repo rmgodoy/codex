@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import type { Combatant, PlayerCombatant } from "@/lib/types";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
-import { ChevronUp, ChevronDown, User, Bot, AlertTriangle } from "lucide-react";
+import { ChevronUp, ChevronDown, User, Bot, AlertTriangle, UserPlus } from "lucide-react";
 import { Input } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
@@ -25,6 +25,7 @@ interface InitiativeTrackerProps {
   perilText: string;
   allPlayersReady: boolean;
   turnIndex: number;
+  onAddPlayer?: () => void;
 }
 
 export default function InitiativeTracker({
@@ -39,6 +40,7 @@ export default function InitiativeTracker({
   perilText,
   allPlayersReady,
   turnIndex,
+  onAddPlayer,
 }: InitiativeTrackerProps) {
   const [localInitiatives, setLocalInitiatives] = useState<Record<string, string>>({});
 
@@ -174,8 +176,14 @@ export default function InitiativeTracker({
           <Separator className="my-2" />
         </>
       )}
-
-      <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Initiative Order</h3>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold text-primary-foreground">Initiative Order</h3>
+        {onAddPlayer && (
+          <Button variant="outline" size="sm" onClick={onAddPlayer}>
+            <UserPlus className="h-4 w-4 mr-2" /> Add Player
+          </Button>
+        )}
+      </div>
       <ScrollArea className="flex-1">
         {combatantsInTurnOrder.length > 0 ? (
           <ul className="space-y-2 pr-4">

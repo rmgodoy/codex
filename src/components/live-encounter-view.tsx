@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -56,6 +55,39 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const { toast } = useToast();
 
   const combatants = useMemo(() => combatantsByRound[round] || [], [combatantsByRound, round]);
+
+  const addDummyPlayer = useCallback(() => {
+    setCombatantsByRound(prevRounds => {
+      const currentRoundCombatants = prevRounds[round] || [];
+      const dummyPlayers = currentRoundCombatants.filter(c => c.type === 'player' && c.name.startsWith("Extra Player"));
+      const maxNum = dummyPlayers.reduce((max, p) => {
+        const num = parseInt(p.name.replace("Extra Player ", ""), 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0);
+
+      const newPlayer: PlayerCombatant = {
+        id: crypto.randomUUID(),
+        type: 'player',
+        name: `Extra Player ${maxNum + 1}`,
+        initiative: 0,
+        nat20: false,
+      };
+
+      const updatedRounds = { ...prevRounds };
+
+      if (!updatedRounds[round]) {
+        updatedRounds[round] = [];
+      }
+
+      for (const roundKey in updatedRounds) {
+        if (parseInt(roundKey) >= round) {
+          updatedRounds[roundKey] = [...updatedRounds[roundKey], newPlayer];
+        }
+      }
+
+      return updatedRounds;
+    });
+  }, [round]);
 
   const rollPerilForRound = useCallback((targetRound: number, currentCombatants: Combatant[]) => {
     setPerilHistory(prev => {
@@ -337,6 +369,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                 perilText={currentPeril.text}
                 allPlayersReady={allPlayersReady}
                 turnIndex={turnIndex}
+                onAddPlayer={addDummyPlayer}
             />
             {activeTurn ? (
               <CombatantDashboard
@@ -385,6 +418,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                       perilText={currentPeril.text}
                       allPlayersReady={allPlayersReady}
                       turnIndex={turnIndex}
+                      onAddPlayer={addDummyPlayer}
                   />
                 )}
             </Sidebar>
