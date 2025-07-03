@@ -123,11 +123,12 @@ export default function MapListPanel({
                   >
                     {map.name}
                   </button>
-                  <Link href={`/maps/${map.id}/live`} passHref>
-                    <Button variant="ghost" size="icon" asChild>
-                      <a><Play className="h-4 w-4 text-accent-foreground" /></a>
-                    </Button>
-                  </Link>
+                  <Button asChild variant="ghost" size="icon">
+                    <Link href={`/maps/${map.id}/live`}>
+                      <Play className="h-4 w-4 text-accent-foreground" />
+                      <span className="sr-only">Run map {map.name}</span>
+                    </Link>
+                  </Button>
                 </li>
               ))}
             </ul>
