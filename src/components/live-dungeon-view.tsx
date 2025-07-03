@@ -3,6 +3,9 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import ReactFlow, { MiniMap, Controls, Background, useNodesState, useEdgesState, MarkerType, type Node, type Edge } from 'reactflow';
+import 'reactflow/dist/style.css';
+
 import type { Dungeon, Room as RoomType, Encounter, Treasure, AlchemicalItem } from "@/lib/types";
 import { getAllRooms, getEncounterById, getAllTreasures, getAllAlchemicalItems, getCreatureById } from "@/lib/idb";
 import LiveEncounterView from "./live-encounter-view";
@@ -13,7 +16,6 @@ import { Separator } from "./ui/separator";
 import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
-import { cn } from "@/lib/utils";
 
 
 interface LiveDungeonViewProps {
@@ -34,6 +36,9 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
     const [details, setDetails] = useState<DungeonDetails | null>(null);
     const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
     const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null);
+
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     const [totalActions, setTotalActions] = useState(0);
     const [alertHistory, setAlertHistory] = useState<number[]>([0]);
@@ -68,6 +73,11 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
     const handlePrevAction = () => {
         setTotalActions(prevTotal => Math.max(0, prevTotal - 1));
     };
+    
+    const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+      setSelectedRoomId(node.id);
+      setSelectedEncounterId(null);
+    }, []);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -95,6 +105,56 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
         };
         fetchDetails();
     }, [dungeon]);
+    
+    useEffect(() => {
+      if (!dungeon || !details) return;
+
+      const newNodes = dungeon.rooms.map((roomInstance): Node => {
+          const roomTemplate = details.rooms.get(roomInstance.roomId);
+          const isSelected = selectedRoomId === roomInstance.instanceId;
+          return {
+              id: roomInstance.instanceId,
+              position: roomInstance.position,
+              data: { label: roomTemplate?.name || 'Loading...' },
+              style: {
+                  background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--card))',
+                  color: isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--card-foreground))',
+                  border: '1px solid',
+                  borderColor: isSelected ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+                  width: 150,
+                  height: 80,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  fontSize: '1rem',
+                  borderRadius: 'var(--radius)',
+              },
+          };
+      });
+
+      const newEdges = dungeon.connections.map((conn): Edge => {
+          const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
+          return {
+              id: `edge-${conn.from}-${conn.to}`,
+              source: conn.from,
+              target: conn.to,
+              type: 'smoothstep',
+              animated: isHighlighted,
+              markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  color: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+              },
+              style: {
+                  strokeWidth: isHighlighted ? 2.5 : 1.5,
+                  stroke: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+              },
+          };
+      });
+
+      setNodes(newNodes);
+      setEdges(newEdges);
+  }, [dungeon, details, selectedRoomId, setNodes, setEdges]);
     
     const selectedRoom = useMemo(() => {
         if (!selectedRoomId || !details) return null;
@@ -190,69 +250,20 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                         </ScrollArea>
                      </div>
                 )}
-                <div className="flex-1 relative overflow-hidden">
-                    <div className="absolute inset-0">
-                        <svg width="100%" height="100%" className="absolute inset-0">
-                            <defs>
-                                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" /></marker>
-                                <marker id="arrow-highlight" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--primary))" /></marker>
-                            </defs>
-                            {dungeon.connections.map((conn, i) => {
-                                const fromNode = dungeon.rooms.find(r => r.instanceId === conn.from);
-                                const toNode = dungeon.rooms.find(r => r.instanceId === conn.to);
-                                if (!fromNode || !toNode) return null;
-                                
-                                const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
-                                
-                                const fromX = fromNode.position.x + 75;
-                                const fromY = fromNode.position.y + 40;
-                                const toX = toNode.position.x + 75;
-                                const toY = toNode.position.y + 40;
-
-                                // Calculate a control point for a quadratic Bezier curve
-                                const midX = (fromX + toX) / 2;
-                                const midY = (fromY + toY) / 2;
-                                
-                                const dx = toX - fromX;
-                                const dy = toY - fromY;
-                                
-                                const length = Math.sqrt(dx * dx + dy * dy);
-                                if (length === 0) return null; // Avoid division by zero
-
-                                const perpX = -dy / length;
-                                const perpY = dx / length;
-                                
-                                const curveFactor = 30;
-                                
-                                const controlX = midX + curveFactor * perpX;
-                                const controlY = midY + curveFactor * perpY;
-                                
-                                const pathData = `M${fromX},${fromY} Q${controlX},${controlY} ${toX},${toY}`;
-                                
-                                return <path 
-                                    key={i} 
-                                    d={pathData}
-                                    fill="none"
-                                    strokeWidth={isHighlighted ? 3 : 2} 
-                                    className={cn("transition-all", isHighlighted ? "stroke-primary" : "stroke-border")}
-                                    markerEnd={isHighlighted ? "url(#arrow-highlight)" : "url(#arrow)"} 
-                                />
-                            })}
-                        </svg>
-                        {dungeon.rooms.map(roomInstance => {
-                            const roomTemplate = details?.rooms.get(roomInstance.roomId);
-                            return (
-                                <div key={roomInstance.instanceId} style={{ left: roomInstance.position.x, top: roomInstance.position.y, position: 'absolute' }}>
-                                    <Button
-                                        variant={selectedRoomId === roomInstance.instanceId ? 'secondary' : 'outline'}
-                                        className="w-[150px] h-[80px] flex-col items-center justify-center whitespace-normal text-center shadow-lg"
-                                        onClick={() => { setSelectedRoomId(roomInstance.instanceId); setSelectedEncounterId(null); }}>
-                                        <p className="font-bold">{roomTemplate?.name || 'Loading...'}</p>
-                                    </Button>
-                                </div>
-                            )
-                        })}
-                    </div>
+                <div className="flex-1 relative overflow-hidden bg-background">
+                    <ReactFlow
+                      nodes={nodes}
+                      edges={edges}
+                      onNodesChange={onNodesChange}
+                      onEdgesChange={onEdgesChange}
+                      onNodeClick={handleNodeClick}
+                      fitView
+                      nodesDraggable={false}
+                    >
+                      <Controls />
+                      <MiniMap />
+                      <Background variant="dots" gap={12} size={1} />
+                    </ReactFlow>
                 </div>
             </div>
         </div>
