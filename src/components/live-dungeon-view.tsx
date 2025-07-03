@@ -111,21 +111,20 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
         fetchDetails();
     }, [dungeon]);
     
-     useEffect(() => {
+    useEffect(() => {
         if (!dungeon || !details) return;
 
-        const newNodes = dungeon.rooms.map((roomInstance): Node => {
+        const initialNodes = dungeon.rooms.map((roomInstance): Node => {
             const roomTemplate = details.rooms.get(roomInstance.roomId);
-            const isSelected = selectedRoomId === roomInstance.instanceId;
             return {
                 id: roomInstance.instanceId,
                 position: roomInstance.position,
                 data: { label: roomTemplate?.name || 'Loading...' },
                 style: {
-                    background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--card))',
-                    color: isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--card-foreground))',
+                    background: 'hsl(var(--card))',
+                    color: 'hsl(var(--card-foreground))',
                     border: '2px solid',
-                    borderColor: isSelected ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+                    borderColor: 'hsl(var(--border))',
                     width: 150,
                     height: 80,
                     display: 'flex',
@@ -136,27 +135,59 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                     borderRadius: 'var(--radius)',
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
                 },
+                type: 'default',
             };
         });
 
-        const newEdges = dungeon.connections.map((conn): Edge => {
-            const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
+        const initialEdges = dungeon.connections.map((conn): Edge => {
             return {
                 id: `edge-${conn.from}-${conn.to}`,
                 source: conn.from,
                 target: conn.to,
-                type: 'default',
-                animated: isHighlighted,
+                type: 'smoothstep',
+                animated: false,
                 style: {
-                    strokeWidth: isHighlighted ? 2.5 : 1.5,
-                    stroke: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                    strokeWidth: 1.5,
+                    stroke: 'hsl(var(--border))',
                 },
             };
         });
+        
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+    }, [dungeon, details, setNodes, setEdges]);
+    
+    useEffect(() => {
+        setNodes((nds) =>
+            nds.map((node) => {
+                const isSelected = node.id === selectedRoomId;
+                return {
+                    ...node,
+                    style: {
+                        ...node.style,
+                        background: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--card))',
+                        color: isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--card-foreground))',
+                        borderColor: isSelected ? 'hsl(var(--ring))' : 'hsl(var(--border))',
+                    },
+                };
+            })
+        );
 
-        setNodes(newNodes);
-        setEdges(newEdges);
-    }, [dungeon, details, selectedRoomId, setNodes, setEdges]);
+        setEdges((eds) =>
+            eds.map((edge) => {
+                const isHighlighted = selectedRoomId && (edge.source === selectedRoomId || edge.target === selectedRoomId);
+                return {
+                    ...edge,
+                    animated: isHighlighted,
+                    style: {
+                        ...edge.style,
+                        strokeWidth: isHighlighted ? 2.5 : 1.5,
+                        stroke: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                    },
+                };
+            })
+        );
+    }, [selectedRoomId, setNodes, setEdges]);
     
     const selectedRoom = useMemo(() => {
         if (!selectedRoomId || !details) return null;
