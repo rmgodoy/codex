@@ -1,12 +1,10 @@
 
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import ReactFlow, { MiniMap, Controls, Background, Node, Edge, ReactFlowProvider, useReactFlow } from 'reactflow';
+import React, { useState, useCallback } from 'react';
+import ReactFlow, { MiniMap, Controls, ReactFlowProvider, useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { HexNode } from './hex-node';
-import { addMap } from '@/lib/idb';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,128 +12,118 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import type { MapData, HexTile, NewMapData } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import type { MapData, HexTile } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
+import { HexGridBackground } from './hex-grid-background';
+import { Settings, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
-const nodeTypes = {
-  hex: HexNode,
-};
 
-const mapSchema = z.object({
+const mapCreationSchema = z.object({
   name: z.string().min(1, "Map name is required"),
   description: z.string().optional(),
-  width: z.coerce.number().min(3).max(50),
-  height: z.coerce.number().min(3).max(50),
+  width: z.coerce.number().min(3).max(200),
+  height: z.coerce.number().min(3).max(200),
 });
-
-type MapFormData = z.infer<typeof mapSchema>;
+type MapCreationFormData = z.infer<typeof mapCreationSchema>;
 
 interface MapEditorViewProps {
   mapData: MapData | null;
   isCreatingNew: boolean;
-  onSaveSuccess: (id: string) => void;
-  onDeleteSuccess: () => void;
+  isLoading: boolean;
+  onNewMapSave: (data: MapCreationFormData) => void;
   onEditCancel: () => void;
   onSelectTile: (id: string | null) => void;
   selectedTileId: string | null;
+  onMapSettingsSave: (data: Partial<MapData>) => void;
 }
 
-const hexWidth = 100;
-const hexHeight = 86.6;
-
-const MapEditorComponent = ({ mapData, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onSelectTile, selectedTileId }: MapEditorViewProps) => {
-  const { toast } = useToast();
-  const { setNodes: setReactFlowNodes, getNodes, setEdges } = useReactFlow();
-
-  const form = useForm<MapFormData>({
-    resolver: zodResolver(mapSchema),
-    defaultValues: { name: "", description: "", width: 10, height: 10 },
+const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave }: MapEditorViewProps) => {
+  const { setViewport, getViewport } = useReactFlow();
+  
+  const form = useForm<MapCreationFormData>({
+    resolver: zodResolver(mapCreationSchema),
+    defaultValues: { name: "", description: "", width: 20, height: 20 },
   });
   
-  useEffect(() => {
-    if (mapData) {
-      const newNodes = mapData.tiles.map(tile => {
-        const x = tile.q * hexWidth * 0.75;
-        const y = (tile.r * hexHeight) + (tile.q * hexHeight / 2);
-        return {
-          id: tile.id,
-          type: 'hex',
-          position: { x, y },
-          data: {
-            color: tile.color,
-            icon: tile.icon,
-            width: hexWidth,
-            height: hexHeight
-          },
-          draggable: false,
-          selectable: true,
-        };
-      });
-      setReactFlowNodes(newNodes);
-    } else {
-      setReactFlowNodes([]);
-    }
-  }, [mapData, setReactFlowNodes]);
-
-  useEffect(() => {
-    setReactFlowNodes((nodes) =>
-      nodes.map((node) => ({
-        ...node,
-        selected: node.id === selectedTileId,
-      }))
-    );
-  }, [selectedTileId, setReactFlowNodes]);
-
-
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    onSelectTile(node.id);
-  }, [onSelectTile]);
-  
-  const onPaneClick = useCallback(() => {
+  const handlePaneClick = (e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) return; // Prevent clicks on nodes from deselecting
     onSelectTile(null);
-  }, [onSelectTile]);
+  };
+  
+  const MapSettingsDialog = () => {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const settingsForm = useForm<MapCreationFormData>({
+      resolver: zodResolver(mapCreationSchema),
+      defaultValues: {
+        name: mapData?.name,
+        description: mapData?.description,
+        width: mapData?.width,
+        height: mapData?.height,
+      },
+    });
 
-  const handleCreateMap = async (data: MapFormData) => {
-    try {
-      const tiles: HexTile[] = [];
-      for (let r = 0; r < data.height; r++) {
-        const r_offset = Math.floor(r/2);
-        for (let q = -r_offset; q < data.width - r_offset; q++) {
-          const s = -q - r;
-          tiles.push({ id: `${q},${r},${s}`, q, r, s });
-        }
-      }
-      
-      const newMap: NewMapData = { ...data, description: data.description || '', tags: [], tiles, width: data.width, height: data.height };
-      const newId = await addMap(newMap);
-      toast({ title: "Map Created", description: `${data.name} has been created.` });
-      onSaveSuccess(newId);
-    } catch (error) {
-      toast({ variant: 'destructive', title: "Error", description: "Could not create map." });
-    }
+    const onSubmit = (data: MapCreationFormData) => {
+      onMapSettingsSave(data);
+      setIsDialogOpen(false);
+    };
+
+    return (
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" title="Map Settings">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Map Settings</DialogTitle></DialogHeader>
+           <Form {...settingsForm}>
+              <form onSubmit={settingsForm.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField name="name" control={settingsForm.control} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="description" control={settingsForm.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                       <Button type="button" variant="destructive" className="w-full">Resize Map</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                       <AlertDialogHeader>
+                           <AlertTitle>Resize Map?</AlertTitle>
+                           <AlertDialogDescription>Warning: Resizing the map will delete all existing tiles and their content. This action cannot be undone. Are you sure you want to proceed?</AlertDialogDescription>
+                       </AlertDialogHeader>
+                       <div className="grid grid-cols-2 gap-4">
+                          <FormField name="width" control={settingsForm.control} render={({ field }) => (<FormItem><FormLabel>Width</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField name="height" control={settingsForm.control} render={({ field }) => (<FormItem><FormLabel>Height</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                       </div>
+                       <AlertDialogFooter>
+                           <AlertDialogCancel>Cancel</AlertDialogCancel>
+                           <AlertDialogAction type="submit">Resize and Overwrite</AlertDialogAction>
+                       </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <div className="flex justify-end pt-4">
+                  <Button type="submit">Save Settings</Button>
+                </div>
+              </form>
+            </Form>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   if (isCreatingNew) {
     return (
       <div className="p-4 sm:p-6 md:p-8 w-full max-w-lg mx-auto">
         <Card>
-          <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Create New Map</h2>
+          <CardHeader><CardTitle>Create New Map</CardTitle></CardHeader>
+          <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateMap)} className="space-y-4">
-                <FormField name="name" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField name="description" control={form.control} render={({ field }) => (
-                  <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>
-                )} />
+              <form onSubmit={form.handleSubmit(onNewMapSave)} className="space-y-4">
+                <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField name="width" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Width</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField name="height" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Height</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
+                  <FormField name="width" control={form.control} render={({ field }) => (<FormItem><FormLabel>Width</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField name="height" control={form.control} render={({ field }) => (<FormItem><FormLabel>Height</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={onEditCancel}>Cancel</Button>
@@ -149,30 +137,28 @@ const MapEditorComponent = ({ mapData, isCreatingNew, onSaveSuccess, onDeleteSuc
     );
   }
 
+  if (isLoading) {
+    return <div className="w-full h-full flex items-center justify-center"><Skeleton className="h-48 w-48" /></div>;
+  }
+  
   if (!mapData) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <Card className="p-8 text-center">
-          <p className="text-xl text-muted-foreground">Select a map to view</p>
-          <p className="text-muted-foreground">or create a new one.</p>
-        </Card>
+        <Card className="p-8 text-center"><p className="text-xl text-muted-foreground">Select a map to view or create a new one.</p></Card>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full bg-muted/30">
-      <ReactFlow
-        nodeTypes={nodeTypes}
-        onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
-        nodesConnectable={false}
-        fitView
-      >
+    <div className="w-full h-full bg-muted/30 relative">
+      <ReactFlow onPaneClick={handlePaneClick} nodesConnectable={false} fitView>
+        <HexGridBackground map={mapData} onSelectTile={onSelectTile} selectedTileId={selectedTileId} />
         <Controls />
-        <MiniMap nodeStrokeWidth={3} nodeColor={(n) => n.style?.background as string || '#fff'} />
-        <Background />
+        <MiniMap zoomable pannable />
       </ReactFlow>
+      <div className="absolute top-4 right-4 flex gap-2">
+        <MapSettingsDialog />
+      </div>
     </div>
   );
 };
