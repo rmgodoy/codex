@@ -43,7 +43,7 @@ const defaultAlchemicalItems: NewAlchemicalItem[] = [
 
   // Bombs
   { name: 'Cinders Bomb', type: 'bomb', tier: 'lesser', cost: 2, effect: 'Create a field of cinders that deals 2 terrain damage in the area of effect.', tags: ['damage', 'area of effect', 'terrain'] },
-  { name: 'Blasting Bomb', type: 'bomb', tier: 'lesser', cost: 2, effect: 'Deal {DMG} damage.', tags: ['damage', 'area of effect'] },
+  { name: 'Blasting Bomb', type: 'bomb', tier: 'lesser', cost: 2, effect: 'Deal 3 skill dice of damage', tags: ['damage', 'area of effect'] },
   { name: 'Delirium Bomb', type: 'bomb', tier: 'lesser', cost: 2, effect: 'Confer delirious 2.', tags: ['debuff', 'control', 'area of effect'] },
   { name: 'Flames Bomb', type: 'bomb', tier: 'lesser', cost: 2, effect: 'Confer burning 2.', tags: ['debuff', 'damage over time', 'area of effect'] },
   { name: 'Glue Bomb', type: 'bomb', tier: 'lesser', cost: 2, effect: 'Create a field of difficult terrain the area of effect.', tags: ['control', 'terrain', 'area of effect'] },
