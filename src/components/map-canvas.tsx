@@ -18,24 +18,35 @@ function pixelToAxial(x: number, y: number) {
 }
 
 // Rounding fractional hex coordinates to the nearest integer hex coordinates
+// using the canonical cube-coordinate-based algorithm.
 function hexRound(q: number, r: number): { q: number; r: number } {
-    const s = -q - r;
-    let rq = Math.round(q);
-    let rr = Math.round(r);
-    let rs = Math.round(s);
+  // Convert axial to cube
+  const x = q;
+  const z = r;
+  const y = -x - z;
 
-    const q_diff = Math.abs(rq - q);
-    const r_diff = Math.abs(rr - r);
-    const s_diff = Math.abs(rs - s);
+  // Round cube coordinates
+  let rx = Math.round(x);
+  let ry = Math.round(y);
+  let rz = Math.round(z);
 
-    if (q_diff > r_diff && q_diff > s_diff) {
-        rq = -rr - rs;
-    } else if (r_diff > s_diff) {
-        rr = -rq - rs;
-    }
-    
-    return { q: rq, r: rr };
+  const x_diff = Math.abs(rx - x);
+  const y_diff = Math.abs(ry - y);
+  const z_diff = Math.abs(rz - z);
+
+  // Reset the component with the largest rounding error to maintain the q+r+s=0 constraint
+  if (x_diff > y_diff && x_diff > z_diff) {
+    rx = -ry - rz;
+  } else if (y_diff > z_diff) {
+    ry = -rx - rz;
+  } else {
+    rz = -rx - ry;
+  }
+
+  // Convert the corrected cube coordinates back to axial (q=x, r=z)
+  return { q: rx, r: rz };
 }
+
 
 interface MapCanvasProps {
   mapData: MapData;
@@ -63,8 +74,12 @@ export default function MapCanvasComponent({ mapData, selectedTileId, onTileClic
   }, []);
 
   const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    // This event is on the main container div, which does not pan or zoom.
-    const { offsetX, offsetY } = event.nativeEvent;
+    if (!containerRef.current) return;
+    
+    // Use getBoundingClientRect for robust coordinate calculation
+    const rect = containerRef.current.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
     
     // Transform viewport coordinates to world coordinates
     const worldX = (offsetX - viewport.positionX) / viewport.scale;
@@ -125,3 +140,4 @@ export default function MapCanvasComponent({ mapData, selectedTileId, onTileClic
     </div>
   );
 }
+
