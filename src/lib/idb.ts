@@ -477,6 +477,48 @@ export const addTags = async (tagNames: string[], source: TagSource): Promise<vo
     await Promise.all(tagNames.map(name => addTag({ name, source })));
 };
 
+// Helper function to get all items with tags from a specific store
+const getTaggableItems = async (storeName: string, db: IDBDatabase): Promise<{ tags?: string[] }[]> => {
+    const store = db.transaction(storeName, 'readonly').objectStore(storeName);
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const getTopTagsBySource = async (source: TagSource, limit: number): Promise<string[]> => {
+    const db = await getDb();
+    let storeName: string;
+
+    switch (source) {
+        case 'creature': storeName = CREATURES_STORE_NAME; break;
+        case 'deed': storeName = DEEDS_STORE_NAME; break;
+        case 'encounter': storeName = ENCOUNTERS_STORE_NAME; break;
+        case 'encounterTable': storeName = ENCOUNTER_TABLES_STORE_NAME; break;
+        case 'treasure': storeName = TREASURES_STORE_NAME; break;
+        case 'alchemicalItem': storeName = ALCHEMY_ITEMS_STORE_NAME; break;
+        default: return [];
+    }
+
+    const items = await getTaggableItems(storeName, db);
+    
+    const tagCounts = new Map<string, number>();
+    for (const item of items) {
+        if (item.tags && Array.isArray(item.tags)) {
+            for (const tag of item.tags) {
+                tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+            }
+        }
+    }
+
+    const sortedTags = Array.from(tagCounts.entries())
+        .sort((a, b) => b[1] - a[1]) // Sort by count descending
+        .map(entry => entry[0]); // Get just the tag name
+
+    return sortedTags.slice(0, limit);
+};
+
 
 // Import/Export
 export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[], treasures: Treasure[], alchemicalItems: AlchemicalItem[] }> => {

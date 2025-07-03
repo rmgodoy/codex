@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
-import { getTagsBySource } from '@/lib/idb';
+import { getTagsBySource, getTopTagsBySource } from '@/lib/idb';
 import { ScrollArea } from './scroll-area';
 import { cn } from '@/lib/utils';
 import type { TagSource } from '@/lib/types';
@@ -38,23 +38,6 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
     fetchTags();
   }, [tagSource]);
 
-  useEffect(() => {
-    if (inputValue) {
-      const filtered = allTags
-        .filter(tag => tag.toLowerCase().includes(inputValue.toLowerCase()))
-        .filter(tag => !value.includes(tag))
-        .slice(0, 10);
-      setSuggestions(filtered);
-      const hasSuggestions = filtered.length > 0;
-      setIsPopoverOpen(hasSuggestions);
-      setActiveIndex(hasSuggestions ? 0 : -1);
-    } else {
-      setIsPopoverOpen(false);
-      setSuggestions([]);
-      setActiveIndex(-1);
-    }
-  }, [inputValue, allTags, value]);
-  
   const addTag = (tag: string) => {
     const newTag = tag.trim();
     if (newTag && !value.includes(newTag)) {
@@ -63,6 +46,7 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
     setInputValue('');
     setIsPopoverOpen(false);
     setActiveIndex(-1);
+    setSuggestions([]);
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -95,6 +79,37 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
         }
     }
   };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newInputValue = e.target.value;
+    setInputValue(newInputValue);
+
+    if (newInputValue) {
+      const filtered = allTags
+        .filter(tag => tag.toLowerCase().includes(newInputValue.toLowerCase()))
+        .filter(tag => !value.includes(tag))
+        .slice(0, 10);
+      setSuggestions(filtered);
+      setIsPopoverOpen(filtered.length > 0);
+      setActiveIndex(filtered.length > 0 ? 0 : -1);
+    } else {
+        setIsPopoverOpen(false);
+        setSuggestions([]);
+    }
+  };
+
+  const handleFocus = async () => {
+    if (!inputValue) {
+      const topTags = await getTopTagsBySource(tagSource, 3);
+      const filteredTopTags = topTags.filter(tag => !value.includes(tag));
+      if (filteredTopTags.length > 0) {
+        setSuggestions(filteredTopTags);
+        setIsPopoverOpen(true);
+        setActiveIndex(0);
+      }
+    }
+  };
+
 
   return (
     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -119,8 +134,9 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
                   ref={inputRef}
                   type="text"
                   value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  onFocus={handleFocus}
                   placeholder={placeholder}
                   className="flex-1 border-0 bg-transparent p-0 text-base shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
               />
@@ -138,7 +154,10 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
                     "w-full justify-start font-normal",
                     activeIndex === index && "bg-accent"
                   )}
-                  onClick={() => addTag(suggestion)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    addTag(suggestion);
+                  }}
                 >
                   {suggestion}
                 </Button>
