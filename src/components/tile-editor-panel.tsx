@@ -17,9 +17,9 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { produce } from 'immer';
 import { getAllDungeons } from "@/lib/idb";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "./scroll-area";
-import { Checkbox } from "./ui/checkbox";
-import { Badge } from "./ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 const tileSchema = z.object({
   title: z.string().optional(),
