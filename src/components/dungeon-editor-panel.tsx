@@ -193,14 +193,18 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
   const addRooms = (newRooms: RoomType[]) => {
     const existingRoomCount = roomFields.length;
     const roomsPerRow = 4;
-    const roomBoxWidth = 150 + 40; // width + margin
-    const roomBoxHeight = 80 + 40; // height + margin
+    const roomBoxWidth = 150 + 50;
+    const roomBoxHeight = 80 + 50;
 
     newRooms.forEach((room, index) => {
       const totalIndex = existingRoomCount + index;
-      const x = (totalIndex % roomsPerRow) * roomBoxWidth;
-      const y = Math.floor(totalIndex / roomsPerRow) * roomBoxHeight;
-      appendRoom({ instanceId: crypto.randomUUID(), roomId: room.id, position: { x: x + 20, y: y + 20 } });
+      const gridX = (totalIndex % roomsPerRow) * roomBoxWidth;
+      const gridY = Math.floor(totalIndex / roomsPerRow) * roomBoxHeight;
+      
+      const x = gridX + (Math.random() - 0.5) * 40;
+      const y = gridY + (Math.random() - 0.5) * 40;
+
+      appendRoom({ instanceId: crypto.randomUUID(), roomId: room.id, position: { x, y } });
     });
   };
   
@@ -319,7 +323,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                                              </FormControl>
                                              <SelectContent>
                                                  {roomFields.map(roomField => (
-                                                     <SelectItem key={roomField.id} value={roomField.instanceId}>
+                                                     <SelectItem key={roomField.instanceId} value={roomField.instanceId}>
                                                          {roomMap.get(roomField.roomId)?.name || '...'}
                                                      </SelectItem>
                                                  ))}
@@ -343,7 +347,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                                              </FormControl>
                                              <SelectContent>
                                                  {roomFields.map(roomField => (
-                                                     <SelectItem key={roomField.id} value={roomField.instanceId}>
+                                                     <SelectItem key={roomField.instanceId} value={roomField.instanceId}>
                                                          {roomMap.get(roomField.roomId)?.name || '...'}
                                                      </SelectItem>
                                                  ))}

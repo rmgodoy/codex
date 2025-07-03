@@ -145,12 +145,11 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 id: `edge-${conn.from}-${conn.to}`,
                 source: conn.from,
                 target: conn.to,
-                type: 'smoothstep',
+                type: 'default',
                 animated: isHighlighted,
                 style: {
                     strokeWidth: isHighlighted ? 2.5 : 1.5,
                     stroke: isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                    strokeDasharray: '6 6',
                 },
             };
         });
