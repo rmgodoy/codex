@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
 import FloatingEdge from './floating-edge';
 import FloatingConnectionLine from './floating-connection-line';
+import { DungeonRoomNode } from "./dungeon-room-node";
 
 
 interface LiveDungeonViewProps {
@@ -35,6 +36,10 @@ type DungeonDetails = {
 
 const edgeTypes = {
   floating: FloatingEdge,
+};
+
+const nodeTypes = {
+  dungeonRoom: DungeonRoomNode,
 };
 
 const elk = new ELK();
@@ -203,15 +208,10 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                     borderColor: 'hsl(var(--border))',
                     width: 150,
                     height: 80,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    fontSize: '1rem',
                     borderRadius: 'var(--radius)',
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
                 },
-                type: 'default',
+                type: 'dungeonRoom',
             };
         });
 
@@ -375,7 +375,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                         onPaneClick={() => handleNodeClick(null, null)}
                         fitView
                         nodesDraggable={true}
-                        nodesConnectable={false}
+                        nodeTypes={nodeTypes}
                         edgeTypes={edgeTypes}
                         connectionLineComponent={FloatingConnectionLine}
                     >
@@ -398,5 +398,6 @@ export default function LiveDungeonView(props: LiveDungeonViewProps) {
 }
 
     
+
 
 
