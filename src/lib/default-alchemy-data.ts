@@ -1,5 +1,5 @@
 
-import { addAlchemicalItem, getAllAlchemicalItems } from './idb';
+import { addAlchemicalItem, getAllAlchemicalItems, addTags } from './idb';
 import type { NewAlchemicalItem } from './types';
 
 const defaultAlchemicalItems: NewAlchemicalItem[] = [
@@ -63,10 +63,17 @@ export async function populateDefaultAlchemyData() {
       return; // DB already has data
     }
 
-    const transactionPromises = defaultAlchemicalItems.map(item => addAlchemicalItem(item));
-    await Promise.all(transactionPromises);
+    const itemPromises = defaultAlchemicalItems.map(item => addAlchemicalItem(item));
+    await Promise.all(itemPromises);
+
+    const allTags = defaultAlchemicalItems.flatMap(item => item.tags || []);
+    const uniqueTags = [...new Set(allTags)];
     
-    console.log(`Successfully populated ${defaultAlchemicalItems.length} default alchemical items.`);
+    if (uniqueTags.length > 0) {
+      await addTags(uniqueTags, 'alchemicalItem');
+    }
+    
+    console.log(`Successfully populated ${defaultAlchemicalItems.length} default alchemical items and their tags.`);
   } catch (error) {
     console.error('Failed to populate default alchemical items:', error);
   }
