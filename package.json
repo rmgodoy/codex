@@ -1,3 +1,4 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -45,6 +46,7 @@
     "elkjs": "^0.9.3",
     "embla-carousel-react": "^8.6.0",
     "genkit": "^1.13.0",
+    "honeycomb-grid": "^4.0.0",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
