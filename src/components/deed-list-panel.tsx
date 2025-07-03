@@ -131,6 +131,7 @@ export default function DeedListPanel({
               value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
               onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
               placeholder="Tags (e.g. fire, control)"
+              tagSource="deed"
             />
         </div>
          <div>

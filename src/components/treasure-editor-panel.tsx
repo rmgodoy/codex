@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -123,7 +124,7 @@ export default function TreasureEditorPanel({ treasureId, isCreatingNew, onSaveS
 
       const tagsToSave = data.tags || [];
       if (tagsToSave.length > 0) {
-        await addTags(tagsToSave);
+        await addTags(tagsToSave, 'treasure');
       }
 
       if (isCreatingNew) {
@@ -281,7 +282,14 @@ export default function TreasureEditorPanel({ treasureId, isCreatingNew, onSaveS
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                        <FormControl><TagInput value={field.value || []} onChange={field.onChange} placeholder="Add tags..." /></FormControl>
+                        <FormControl>
+                            <TagInput 
+                                value={field.value || []} 
+                                onChange={field.onChange} 
+                                placeholder="Add tags..." 
+                                tagSource="treasure"
+                            />
+                        </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}

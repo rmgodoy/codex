@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -7,17 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
-import { getAllTags } from '@/lib/idb';
+import { getTagsBySource } from '@/lib/idb';
 import { ScrollArea } from './scroll-area';
 import { cn } from '@/lib/utils';
+import type { TagSource } from '@/lib/types';
 
 interface TagInputProps {
   value: string[];
   onChange: (tags: string[]) => void;
   placeholder?: string;
+  tagSource: TagSource;
 }
 
-export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
+export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputProps) => {
   const [inputValue, setInputValue] = useState('');
   const [allTags, setAllTags] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -27,11 +30,13 @@ export const TagInput = ({ value, onChange, placeholder }: TagInputProps) => {
 
   useEffect(() => {
     async function fetchTags() {
-      const tagsFromDb = await getAllTags();
-      setAllTags(tagsFromDb.map(t => t.name));
+      if (tagSource) {
+        const tagsFromDb = await getTagsBySource(tagSource);
+        setAllTags(tagsFromDb.map(t => t.name));
+      }
     }
     fetchTags();
-  }, []);
+  }, [tagSource]);
 
   useEffect(() => {
     if (inputValue) {

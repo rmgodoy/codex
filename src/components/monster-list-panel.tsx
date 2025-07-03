@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -183,6 +184,7 @@ export default function CreatureListPanel({
               value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
               onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
               placeholder="Tags (e.g. undead, goblin)"
+              tagSource="creature"
             />
         </div>
 

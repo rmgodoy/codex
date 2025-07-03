@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -245,7 +246,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
       const tableToSave = { ...data, totalTR: data.totalTR || 0, tags: data.tags || [] };
       const tagsToSave = data.tags || [];
       if (tagsToSave.length > 0) {
-        await addTags(tagsToSave);
+        await addTags(tagsToSave, 'encounterTable');
       }
       
       let savedId: string;
@@ -425,7 +426,14 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
-                    <FormControl><TagInput value={field.value || []} onChange={field.onChange} placeholder="Add tags..." /></FormControl>
+                    <FormControl>
+                        <TagInput 
+                            value={field.value || []} 
+                            onChange={field.onChange} 
+                            placeholder="Add tags..." 
+                            tagSource="encounterTable"
+                        />
+                    </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}

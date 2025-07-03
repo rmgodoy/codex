@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -148,6 +149,7 @@ export default function AlchemyListPanel({
               value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
               onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
               placeholder="Tags (e.g. buff, damage)"
+              tagSource="alchemicalItem"
             />
         </div>
          <div>

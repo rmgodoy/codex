@@ -1,10 +1,11 @@
 
+
 "use client";
 
-import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag, Treasure, NewTreasure, AlchemicalItem, NewAlchemicalItem } from '@/lib/types';
+import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag, Treasure, NewTreasure, AlchemicalItem, NewAlchemicalItem, TagSource } from '@/lib/types';
 
 const DB_NAME = 'TresspasserBestiaryDB';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 const CREATURES_STORE_NAME = 'creatures';
 const DEEDS_STORE_NAME = 'deeds';
 const ENCOUNTERS_STORE_NAME = 'encounters';
@@ -33,9 +34,14 @@ const getDb = (): Promise<IDBDatabase> => {
       if (!db.objectStoreNames.contains(ENCOUNTERS_STORE_NAME)) {
         db.createObjectStore(ENCOUNTERS_STORE_NAME, { keyPath: 'id' });
       }
-      if (!db.objectStoreNames.contains(TAGS_STORE_NAME)) {
-        db.createObjectStore(TAGS_STORE_NAME, { keyPath: 'name' });
+      
+      // Recreate tags store for schema change
+      if (db.objectStoreNames.contains(TAGS_STORE_NAME)) {
+          db.deleteObjectStore(TAGS_STORE_NAME);
       }
+      const tagsStore = db.createObjectStore(TAGS_STORE_NAME, { keyPath: ['name', 'source'] });
+      tagsStore.createIndex('by_source', 'source', { unique: false });
+
       if (!db.objectStoreNames.contains(ENCOUNTER_TABLES_STORE_NAME)) {
         db.createObjectStore(ENCOUNTER_TABLES_STORE_NAME, { keyPath: 'id' });
       }
@@ -428,6 +434,17 @@ export const deleteAlchemicalItem = async (id: string): Promise<void> => {
 };
 
 // Tag Functions
+export const getTagsBySource = async (source: TagSource): Promise<Tag[]> => {
+    const db = await getDb();
+    const store = db.transaction(TAGS_STORE_NAME, 'readonly').objectStore(TAGS_STORE_NAME);
+    const index = store.index('by_source');
+    const request = index.getAll(source);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
 export const getAllTags = async (): Promise<Tag[]> => {
     const db = await getDb();
     const store = db.transaction(TAGS_STORE_NAME, 'readonly').objectStore(TAGS_STORE_NAME);
@@ -455,9 +472,9 @@ export const addTag = async (tag: Tag): Promise<void> => {
     });
 };
 
-export const addTags = async (tagNames: string[]): Promise<void> => {
+export const addTags = async (tagNames: string[], source: TagSource): Promise<void> => {
     if (!tagNames || tagNames.length === 0) return;
-    await Promise.all(tagNames.map(name => addTag({ name })));
+    await Promise.all(tagNames.map(name => addTag({ name, source })));
 };
 
 

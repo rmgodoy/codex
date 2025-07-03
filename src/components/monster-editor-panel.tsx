@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -383,7 +384,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
       const tagsToSave = data.tags || [];
       if (tagsToSave.length > 0) {
-        await addTags(tagsToSave);
+        await addTags(tagsToSave, 'creature');
       }
 
       if (isCreatingNew) {
@@ -937,9 +938,10 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     <FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel>
                     <FormControl>
                         <TagInput
-                        value={field.value || []}
-                        onChange={field.onChange}
-                        placeholder="Add tags..."
+                            value={field.value || []}
+                            onChange={field.onChange}
+                            placeholder="Add tags..."
+                            tagSource="creature"
                         />
                     </FormControl>
                     <FormMessage />
