@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { HexGrid, Layout, Hexagon } from 'react-hexgrid';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { produce } from 'immer';
@@ -25,6 +25,7 @@ interface MapEditorProps {
 
 export default function MapEditor({ initialMapData }: MapEditorProps) {
     const [mapData, setMapData] = useState(initialMapData);
+    const [lastSavedData, setLastSavedData] = useState(initialMapData);
     const debouncedMapData = useDebounce(mapData, 1000);
 
     const [activeTool, setActiveTool] = useState<Tool>('brush');
@@ -32,10 +33,11 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     const [isPainting, setIsPainting] = useState(false);
     
     useEffect(() => {
-        if (debouncedMapData && debouncedMapData !== initialMapData) {
+        if (debouncedMapData && JSON.stringify(debouncedMapData) !== JSON.stringify(lastSavedData)) {
             updateMap(debouncedMapData);
+            setLastSavedData(debouncedMapData);
         }
-    }, [debouncedMapData, initialMapData]);
+    }, [debouncedMapData, lastSavedData]);
 
     const handleHexInteraction = (q: number, r: number, s: number) => {
         if (activeTool === 'data') return;
@@ -105,13 +107,13 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     const canvasHeight = (mapData.radius * 2 + 1) * HEX_SIZE * 1.5;
 
     return (
-        <div className="w-full h-full bg-black flex relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
+        <div className="w-full h-full bg-black relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
              <TransformWrapper
                 panning={{ disabled: isPainting, activationKeys: [], excluded: ["button"], rightMouseButton: true, leftMouseButton: false }}
                 wheel={{ step: 0.1 }}
                 options={{ minScale: 0.1, maxScale: 8, limitToBounds: false }}
             >
-                <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full">
+                <TransformComponent wrapperClass="w-full h-full" contentClass="">
                     <HexGrid width={canvasWidth} height={canvasHeight} viewBox={`-50 -50 ${canvasWidth} ${canvasHeight}`}>
                         <Layout size={{ x: HEX_SIZE, y: HEX_SIZE }} flat={false} spacing={1.05} origin={{ x: 0, y: 0 }}>
                             {mapData.tiles.map(tile => (
