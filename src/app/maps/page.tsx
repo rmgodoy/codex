@@ -11,6 +11,7 @@ import type { MapData, NewMapData, HexTile } from '@/lib/types';
 import { getMapById, updateMap, addMap, deleteMap } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
 import { produce } from 'immer';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function MapsPage() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
@@ -21,6 +22,11 @@ export default function MapsPage() {
   const [mapData, setMapData] = useState<MapData | null>(null);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+
+  const [isBrushActive, setIsBrushActive] = useState(false);
+  const [brushSettings, setBrushSettings] = useState({ color: '#cccccc', icon: 'none' });
+
+  const debouncedMapData = useDebounce(mapData, 1000);
 
   useEffect(() => {
     setIsClient(true);
@@ -39,6 +45,16 @@ export default function MapsPage() {
     };
     fetchMap();
   }, [selectedMapId, dataVersion]);
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (debouncedMapData && !isCreatingNew) {
+        updateMap(debouncedMapData).catch(error => {
+            toast({ variant: "destructive", title: "Auto-save Failed", description: "Could not save map changes." });
+        });
+    }
+  }, [debouncedMapData, isCreatingNew, toast]);
+
 
   const [loading, setLoading] = useState(false);
   const refreshList = () => setDataVersion(v => v + 1);
@@ -147,16 +163,25 @@ export default function MapsPage() {
           draft.tiles[tileIndex] = updatedTile;
         }
       });
-
-      // Save to DB in the background, not tied to the state update
-      updateMap(nextState).catch(error => {
-        toast({ variant: "destructive", title: "Tile Save Failed", description: "Could not save tile change." });
-        // Reverting here could cause data loss if user keeps editing, so we just toast.
-      });
-
       return nextState;
     });
-  }, [toast]);
+  }, []);
+
+  const handleBrushPaint = useCallback((tileId: string) => {
+    setMapData(currentMapData => {
+      if (!currentMapData) return null;
+      return produce(currentMapData, draft => {
+        const tileIndex = draft.tiles.findIndex(t => t.id === tileId);
+        if (tileIndex !== -1) {
+          const tile = draft.tiles[tileIndex];
+          if (tile.color !== brushSettings.color || tile.icon !== (brushSettings.icon === 'none' ? undefined : brushSettings.icon)) {
+            tile.color = brushSettings.color;
+            tile.icon = brushSettings.icon === 'none' ? undefined : brushSettings.icon;
+          }
+        }
+      });
+    });
+  }, [brushSettings]);
 
 
   if (!isClient) return null;
@@ -173,6 +198,10 @@ export default function MapsPage() {
                 tileId={selectedTileId}
                 onBack={() => setSelectedTileId(null)}
                 onTileUpdate={handleTileUpdate}
+                isBrushActive={isBrushActive}
+                onBrushActiveChange={setIsBrushActive}
+                onBrushSettingsChange={setBrushSettings}
+                brushSettings={brushSettings}
               />
             ) : (
               <MapListPanel
@@ -195,6 +224,8 @@ export default function MapsPage() {
               onSelectTile={setSelectedTileId}
               selectedTileId={selectedTileId}
               onMapSettingsSave={handleMapSettingsSave}
+              isBrushActive={isBrushActive}
+              onBrushPaint={handleBrushPaint}
             />
           </SidebarInset>
         </div>

@@ -9,6 +9,7 @@ import ReactFlow, {
   useNodesState,
   MiniMap,
   useStore,
+  Node,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -57,15 +58,18 @@ interface MapEditorViewProps {
   onSelectTile: (id: string | null) => void;
   selectedTileId: string | null;
   onMapSettingsSave: (data: Partial<MapData>) => void;
+  isBrushActive: boolean;
+  onBrushPaint: (tileId: string) => void;
 }
 
-const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave }: MapEditorViewProps) => {
+const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave, isBrushActive, onBrushPaint }: MapEditorViewProps) => {
   const form = useForm<MapCreationFormData>({
     resolver: zodResolver(mapCreationSchema),
     defaultValues: { name: "", description: "", width: 20, height: 20 },
   });
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [isPainting, setIsPainting] = useState(false);
   
   const { width, height, transform } = useStore(s => ({ width: s.width, height: s.height, transform: s.transform }));
   const debouncedTransform = useDebounce(transform, 100);
@@ -118,6 +122,12 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
       })
     );
   }, [selectedTileId, setNodes]);
+
+  const handleNodeMouseEnter = (_event: React.MouseEvent, node: Node) => {
+    if (isPainting && isBrushActive) {
+      onBrushPaint(node.id);
+    }
+  };
 
 
   const MapSettingsDialog = () => {
@@ -218,13 +228,19 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   }
 
   return (
-    <div className="w-full h-full bg-muted/30 relative">
+    <div
+        className="w-full h-full bg-muted/30 relative"
+        onMouseDown={() => setIsPainting(true)}
+        onMouseUp={() => setIsPainting(false)}
+        onMouseLeave={() => setIsPainting(false)}
+    >
       <ReactFlow
         nodes={nodes}
         onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
         onNodeClick={(_, node) => onSelectTile(node.id)}
         onPaneClick={() => onSelectTile(null)}
+        onNodeMouseEnter={handleNodeMouseEnter}
         fitView
         nodesDraggable={false}
         className="bg-background"
