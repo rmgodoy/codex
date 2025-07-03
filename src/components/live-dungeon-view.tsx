@@ -62,7 +62,8 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
             setAlertHistory(prevHistory => {
                 const newHistory = [...prevHistory];
                 if (nextTotal >= newHistory.length) {
-                    newHistory[nextTotal] = newHistory[prevTotal] ?? 0;
+                    const lastAlert = prevHistory[prevHistory.length - 1] ?? 0;
+                    newHistory[nextTotal] = lastAlert;
                 }
                 return newHistory;
             });
@@ -114,7 +115,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
     useEffect(() => {
         if (!dungeon || !details) return;
 
-        const initialNodes = dungeon.rooms.map((roomInstance): Node => {
+        const initialNodes: Node[] = dungeon.rooms.map((roomInstance): Node => {
             const roomTemplate = details.rooms.get(roomInstance.roomId);
             return {
                 id: roomInstance.instanceId,
@@ -144,7 +145,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 id: `edge-${conn.from}-${conn.to}`,
                 source: conn.from,
                 target: conn.to,
-                type: 'smoothstep',
+                type: 'bezier',
                 animated: false,
                 style: {
                     strokeWidth: 1.5,
