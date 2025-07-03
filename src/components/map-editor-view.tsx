@@ -1,9 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback } from 'react';
-import ReactFlow, { MiniMap, Controls, ReactFlowProvider, useReactFlow } from 'reactflow';
-import 'reactflow/dist/style.css';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { useForm } from 'react-hook-form';
@@ -12,43 +10,12 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import type { MapData, HexTile } from '@/lib/types';
+import type { MapData, NewMapData } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
-import { HexGridBackground } from './hex-grid-background';
 import { Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle } from './ui/alert-dialog';
-
-
-const hexSize = 60;
-
-// Conversion from pixel coordinates (x, y) to fractional axial coordinates for pointy-top hexagons
-function pixelToAxial(x: number, y: number) {
-  const q = (Math.sqrt(3)/3 * x - 1/3 * y) / hexSize;
-  const r = (2/3 * y) / hexSize;
-  return { q, r };
-}
-
-// Rounding fractional hex coordinates to the nearest integer hex coordinates
-function hexRound(q: number, r: number): { q: number; r: number } {
-    const s = -q - r;
-    let rq = Math.round(q);
-    let rr = Math.round(r);
-    let rs = Math.round(s);
-
-    const q_diff = Math.abs(rq - q);
-    const r_diff = Math.abs(rr - r);
-    const s_diff = Math.abs(rs - s);
-
-    if (q_diff > r_diff && q_diff > s_diff) {
-        rq = -rr - rs;
-    } else if (r_diff > s_diff) {
-        rr = -rq - rs;
-    }
-    
-    return { q: rq, r: rr };
-}
-
+import MapCanvasComponent from './map-canvas';
 
 const mapCreationSchema = z.object({
   name: z.string().min(1, "Map name is required"),
@@ -70,32 +37,10 @@ interface MapEditorViewProps {
 }
 
 const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave }: MapEditorViewProps) => {
-  const { screenToFlowPosition } = useReactFlow();
-  
   const form = useForm<MapCreationFormData>({
     resolver: zodResolver(mapCreationSchema),
     defaultValues: { name: "", description: "", width: 20, height: 20 },
   });
-  
-  const handlePaneClick = (event: React.MouseEvent) => {
-    // Ensure the click is on the pane itself, not on a control or other element
-    if (event.target instanceof Element && !event.target.classList.contains('react-flow__pane')) {
-        return;
-    }
-
-    const { x, y } = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    const { q, r } = pixelToAxial(x, y);
-    const rounded = hexRound(q, r);
-    const s = -rounded.q - rounded.r;
-    const tileId = `${rounded.q},${rounded.r},${s}`;
-
-    const clickedTile = mapData?.tiles.find(t => t.id === tileId);
-    if (clickedTile) {
-        onSelectTile(tileId);
-    } else {
-        onSelectTile(null);
-    }
-  };
   
   const MapSettingsDialog = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -196,12 +141,12 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 
   return (
     <div className="w-full h-full bg-muted/30 relative">
-      <ReactFlow onPaneClick={handlePaneClick} fitView>
-        <HexGridBackground map={mapData} selectedTileId={selectedTileId} hexSize={hexSize} />
-        <Controls />
-        <MiniMap zoomable pannable />
-      </ReactFlow>
-      <div className="absolute top-4 right-4 flex gap-2">
+      <MapCanvasComponent
+        mapData={mapData}
+        selectedTileId={selectedTileId}
+        onTileClick={onSelectTile}
+      />
+      <div className="absolute top-4 right-14 flex gap-2">
         <MapSettingsDialog />
       </div>
     </div>
@@ -209,9 +154,5 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 };
 
 export default function MapEditorView(props: MapEditorViewProps) {
-  return (
-    <ReactFlowProvider>
-      <MapEditorComponent {...props} />
-    </ReactFlowProvider>
-  );
+  return <MapEditorComponent {...props} />;
 }
