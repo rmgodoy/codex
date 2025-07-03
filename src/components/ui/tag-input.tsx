@@ -39,8 +39,10 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
   }, [tagSource]);
 
   const refreshTopSuggestions = async (currentTags: string[]) => {
-    const topTags = await getTopTagsBySource(tagSource, 3);
-    const filteredTopTags = topTags.filter(t => !currentTags.includes(t));
+    const tagsToFetch = 3 + currentTags.length;
+    const topTags = await getTopTagsBySource(tagSource, tagsToFetch);
+    const filteredTopTags = topTags.filter(t => !currentTags.includes(t)).slice(0, 3);
+    
     if (filteredTopTags.length > 0) {
       setSuggestions(filteredTopTags);
       setIsPopoverOpen(true);
