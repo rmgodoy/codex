@@ -62,27 +62,28 @@ export default function MapCanvasComponent({ mapData, selectedTileId, onTileClic
     }
   }, []);
 
-  const handlePaneClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+  const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    // This event is on the main container div, which does not pan or zoom.
     const { offsetX, offsetY } = event.nativeEvent;
     
-    const { q, r } = pixelToAxial(offsetX, offsetY);
+    // Transform viewport coordinates to world coordinates
+    const worldX = (offsetX - viewport.positionX) / viewport.scale;
+    const worldY = (offsetY - viewport.positionY) / viewport.scale;
+
+    const { q, r } = pixelToAxial(worldX, worldY);
     const rounded = hexRound(q, r);
     const s = -rounded.q - rounded.r;
     const tileId = `${rounded.q},${rounded.r},${s}`;
 
     const clickedTile = mapData?.tiles.find(t => t.id === tileId);
-    if (clickedTile) {
-        onTileClick(tileId);
-    } else {
-        onTileClick(null);
-    }
-  }, [mapData, onTileClick]);
+    onTileClick(clickedTile ? tileId : null);
+  }, [mapData, onTileClick, viewport]);
 
   const worldWidth = mapData ? (mapData.width * hexSize * Math.sqrt(3)) : 10000;
   const worldHeight = mapData ? (mapData.height * hexSize * 1.5) : 10000;
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-muted/30 relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full bg-muted/30 relative overflow-hidden" onClick={handleCanvasClick}>
       <TransformWrapper
         onTransformed={(ref, state) => setViewport(state)}
         minScale={0.1}
@@ -90,6 +91,7 @@ export default function MapCanvasComponent({ mapData, selectedTileId, onTileClic
         initialScale={1}
         limitToBounds={false}
         centerOnInit
+        panning={{ excluded: ['button'] }}
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
           <>
@@ -104,7 +106,6 @@ export default function MapCanvasComponent({ mapData, selectedTileId, onTileClic
             <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full">
               <div
                 style={{ width: worldWidth, height: worldHeight }}
-                onClick={handlePaneClick}
               />
             </TransformComponent>
             
