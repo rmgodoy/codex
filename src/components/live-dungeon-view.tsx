@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -67,8 +66,8 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
             const nextTotal = prevTotal + 1;
             setAlertHistory(prevHistory => {
                 const newHistory = [...prevHistory];
+                const lastAlert = prevHistory[prevHistory.length - 1] ?? 0;
                 if (nextTotal >= newHistory.length) {
-                    const lastAlert = prevHistory[prevHistory.length - 1] ?? 0;
                     newHistory[nextTotal] = lastAlert;
                 }
                 return newHistory;
@@ -127,6 +126,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 id: roomInstance.instanceId,
                 position: roomInstance.position,
                 data: { label: roomTemplate?.name || 'Loading...' },
+                connectable: false,
                 style: {
                     background: 'hsl(var(--card))',
                     color: 'hsl(var(--card-foreground))',
@@ -319,3 +319,5 @@ export default function LiveDungeonView(props: LiveDungeonViewProps) {
         </ReactFlowProvider>
     );
 }
+
+    
