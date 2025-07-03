@@ -1,5 +1,4 @@
 
-
 import type { Role } from './roles';
 import type { StateEffect } from './states';
 
@@ -35,7 +34,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room';
 
 export interface Tag {
   name: string;
@@ -225,3 +224,21 @@ export interface AlchemicalItem {
 }
 
 export type NewAlchemicalItem = Omit<AlchemicalItem, 'id'>;
+
+// Room Types
+export interface RoomFeature {
+  id: string;
+  description: string;
+  encounterIds: string[];
+}
+
+export interface Room {
+  id: string;
+  name: string;
+  description: string;
+  size: string;
+  features: RoomFeature[];
+  tags: string[];
+}
+
+export type NewRoom = Omit<Room, 'id'>;

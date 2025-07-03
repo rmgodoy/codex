@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -80,6 +80,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     if (pathname.startsWith('/random/treasures')) return 'Treasures';
     if (pathname.startsWith('/random/commoners')) return 'Commoners';
     if (pathname.startsWith('/alchemy')) return 'Alchemy';
+    if (pathname.startsWith('/rooms')) return 'Rooms';
     switch (pathname) {
       case '/':
         return 'Bestiary';
@@ -96,6 +97,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     { href: '/alchemy', label: 'Alchemy', group: 'Compendium' },
     { href: '/deeds', label: 'Creature Deeds', group: 'Compendium' },
     { href: '/', label: 'Bestiary', group: 'Compendium' },
+    { href: '/rooms', label: 'Rooms', group: 'Compendium' },
     { href: '/random/encounter-tables', label: 'Encounter Tables', group: 'Random' },
     { href: '/random/treasures', label: 'Treasures', group: 'Random' },
     { href: '/random/commoners', label: 'Commoners', group: 'Random' },
@@ -183,7 +185,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters' || pathname.startsWith('/random') || pathname.startsWith('/alchemy')) && showSidebarTrigger && <SidebarTrigger />}
+          {(pathname === '/' || pathname === '/deeds' || pathname === '/encounters' || pathname.startsWith('/random') || pathname.startsWith('/alchemy') || pathname.startsWith('/rooms')) && showSidebarTrigger && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">

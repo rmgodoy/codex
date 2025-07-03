@@ -1,11 +1,10 @@
 
-
 "use client";
 
-import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag, Treasure, NewTreasure, AlchemicalItem, NewAlchemicalItem, TagSource } from '@/lib/types';
+import type { Creature, Deed, DeedData, Encounter, EncounterTable, NewCreature, Tag, Treasure, NewTreasure, AlchemicalItem, NewAlchemicalItem, TagSource, Room, NewRoom } from '@/lib/types';
 
 const DB_NAME = 'TresspasserBestiaryDB';
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 const CREATURES_STORE_NAME = 'creatures';
 const DEEDS_STORE_NAME = 'deeds';
 const ENCOUNTERS_STORE_NAME = 'encounters';
@@ -13,6 +12,7 @@ const TAGS_STORE_NAME = 'tags';
 const ENCOUNTER_TABLES_STORE_NAME = 'encounterTables';
 const TREASURES_STORE_NAME = 'treasures';
 const ALCHEMY_ITEMS_STORE_NAME = 'alchemicalItems';
+const ROOMS_STORE_NAME = 'rooms';
 
 const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -35,7 +35,6 @@ const getDb = (): Promise<IDBDatabase> => {
         db.createObjectStore(ENCOUNTERS_STORE_NAME, { keyPath: 'id' });
       }
       
-      // Recreate tags store for schema change
       if (db.objectStoreNames.contains(TAGS_STORE_NAME)) {
           db.deleteObjectStore(TAGS_STORE_NAME);
       }
@@ -50,6 +49,9 @@ const getDb = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(ALCHEMY_ITEMS_STORE_NAME)) {
         db.createObjectStore(ALCHEMY_ITEMS_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(ROOMS_STORE_NAME)) {
+        db.createObjectStore(ROOMS_STORE_NAME, { keyPath: 'id' });
       }
     };
 
@@ -433,6 +435,59 @@ export const deleteAlchemicalItem = async (id: string): Promise<void> => {
     });
 };
 
+// Room Functions
+export const getAllRooms = async (): Promise<Room[]> => {
+    const db = await getDb();
+    const store = db.transaction(ROOMS_STORE_NAME, 'readonly').objectStore(ROOMS_STORE_NAME);
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const getRoomById = async (id: string): Promise<Room | undefined> => {
+    const db = await getDb();
+    const store = db.transaction(ROOMS_STORE_NAME, 'readonly').objectStore(ROOMS_STORE_NAME);
+    const request = store.get(id);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const addRoom = async (roomData: NewRoom): Promise<string> => {
+    const db = await getDb();
+    const store = db.transaction(ROOMS_STORE_NAME, 'readwrite').objectStore(ROOMS_STORE_NAME);
+    const id = generateId();
+    const roomWithId = { ...roomData, id };
+    const request = store.add(roomWithId);
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(id);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const updateRoom = async (room: Room): Promise<void> => {
+    const db = await getDb();
+    const store = db.transaction(ROOMS_STORE_NAME, 'readwrite').objectStore(ROOMS_STORE_NAME);
+    const request = store.put(room);
+    return new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const deleteRoom = async (id: string): Promise<void> => {
+    const db = await getDb();
+    const store = db.transaction(ROOMS_STORE_NAME, 'readwrite').objectStore(ROOMS_STORE_NAME);
+    const request = store.delete(id);
+    return new Promise<void>((resolve, reject) => {
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
 // Tag Functions
 export const getTagsBySource = async (source: TagSource): Promise<Tag[]> => {
     const db = await getDb();
@@ -498,6 +553,7 @@ export const getTopTagsBySource = async (source: TagSource, limit: number): Prom
         case 'encounterTable': storeName = ENCOUNTER_TABLES_STORE_NAME; break;
         case 'treasure': storeName = TREASURES_STORE_NAME; break;
         case 'alchemicalItem': storeName = ALCHEMY_ITEMS_STORE_NAME; break;
+        case 'room': storeName = ROOMS_STORE_NAME; break;
         default: return [];
     }
 
@@ -521,54 +577,36 @@ export const getTopTagsBySource = async (source: TagSource, limit: number): Prom
 
 
 // Import/Export
-export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[], treasures: Treasure[], alchemicalItems: AlchemicalItem[] }> => {
+export const exportAllData = async (): Promise<{ creatures: Creature[], deeds: Deed[], encounters: Encounter[], tags: Tag[], encounterTables: EncounterTable[], treasures: Treasure[], alchemicalItems: AlchemicalItem[], rooms: Room[] }> => {
     const db = await getDb();
-    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME], 'readonly');
+    const transaction = db.transaction([CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME], 'readonly');
     
-    const creaturesPromise = new Promise<Creature[]>((resolve, reject) => {
-        const req = transaction.objectStore(CREATURES_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    const creaturesPromise = transaction.objectStore(CREATURES_STORE_NAME).getAll();
+    const deedsPromise = transaction.objectStore(DEEDS_STORE_NAME).getAll();
+    const encountersPromise = transaction.objectStore(ENCOUNTERS_STORE_NAME).getAll();
+    const tagsPromise = transaction.objectStore(TAGS_STORE_NAME).getAll();
+    const encounterTablesPromise = transaction.objectStore(ENCOUNTER_TABLES_STORE_NAME).getAll();
+    const treasuresPromise = transaction.objectStore(TREASURES_STORE_NAME).getAll();
+    const alchemicalItemsPromise = transaction.objectStore(ALCHEMY_ITEMS_STORE_NAME).getAll();
+    const roomsPromise = transaction.objectStore(ROOMS_STORE_NAME).getAll();
 
-    const deedsPromise = new Promise<Deed[]>((resolve, reject) => {
-        const req = transaction.objectStore(DEEDS_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+    return new Promise((resolve, reject) => {
+        const results: any = {};
+        let completed = 0;
+        const promises = [creaturesPromise, deedsPromise, encountersPromise, tagsPromise, encounterTablesPromise, treasuresPromise, alchemicalItemsPromise, roomsPromise];
+        const names = ['creatures', 'deeds', 'encounters', 'tags', 'encounterTables', 'treasures', 'alchemicalItems', 'rooms'];
+        
+        promises.forEach((p, i) => {
+            p.onsuccess = () => {
+                results[names[i]] = p.result;
+                completed++;
+                if (completed === promises.length) {
+                    resolve(results);
+                }
+            };
+            p.onerror = () => reject(p.error);
+        });
     });
-
-    const encountersPromise = new Promise<Encounter[]>((resolve, reject) => {
-        const req = transaction.objectStore(ENCOUNTERS_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-    
-    const tagsPromise = new Promise<Tag[]>((resolve, reject) => {
-        const req = transaction.objectStore(TAGS_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-
-    const encounterTablesPromise = new Promise<EncounterTable[]>((resolve, reject) => {
-        const req = transaction.objectStore(ENCOUNTER_TABLES_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-
-    const treasuresPromise = new Promise<Treasure[]>((resolve, reject) => {
-        const req = transaction.objectStore(TREASURES_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-
-    const alchemicalItemsPromise = new Promise<AlchemicalItem[]>((resolve, reject) => {
-        const req = transaction.objectStore(ALCHEMY_ITEMS_STORE_NAME).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
-
-    const [creatures, deeds, encounters, tags, encounterTables, treasures, alchemicalItems] = await Promise.all([creaturesPromise, deedsPromise, encountersPromise, tagsPromise, encounterTablesPromise, treasuresPromise, alchemicalItemsPromise]);
-    return { creatures, deeds, encounters, tags, encounterTables, treasures, alchemicalItems };
 };
 
 export const importData = async (data: any): Promise<void> => {
@@ -578,7 +616,7 @@ export const importData = async (data: any): Promise<void> => {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
 
-    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME];
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME];
     const tx = db.transaction(storeNames, 'readwrite');
     
     const stores: { [key: string]: IDBObjectStore } = {};
@@ -636,8 +674,13 @@ export const importData = async (data: any): Promise<void> => {
             processTags(item.tags, 'alchemicalItem');
         });
     }
+    if (data.rooms && Array.isArray(data.rooms)) {
+        data.rooms.forEach((item: Room) => {
+            stores[ROOMS_STORE_NAME].put(item);
+            processTags(item.tags, 'room');
+        });
+    }
     
-    // Now add the collected tags.
     allTagsToCreate.forEach(tag => {
         stores[TAGS_STORE_NAME].put(tag);
     });
