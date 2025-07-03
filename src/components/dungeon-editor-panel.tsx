@@ -191,8 +191,16 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
   };
 
   const addRooms = (newRooms: RoomType[]) => {
+    const existingRoomCount = roomFields.length;
+    const roomsPerRow = 4;
+    const roomBoxWidth = 150 + 20; // width + margin
+    const roomBoxHeight = 80 + 20; // height + margin
+
     newRooms.forEach((room, index) => {
-      appendRoom({ id: crypto.randomUUID(), roomId: room.id, position: { x: 100 + index * 5, y: 100 + index * 5 } });
+      const totalIndex = existingRoomCount + index;
+      const x = (totalIndex % roomsPerRow) * roomBoxWidth;
+      const y = Math.floor(totalIndex / roomsPerRow) * roomBoxHeight;
+      appendRoom({ id: crypto.randomUUID(), roomId: room.id, position: { x: x + 20, y: y + 20 } });
     });
   };
   
