@@ -161,6 +161,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!roomId);
   const [roomData, setRoomData] = useState<Room | null>(null);
+  const [openFeatures, setOpenFeatures] = useState<Record<string, boolean>>({});
   
   const [allEncounters, setAllEncounters] = useState<Encounter[]>([]);
   const [allTreasures, setAllTreasures] = useState<Treasure[]>([]);
@@ -295,14 +296,16 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   };
   
   const handleAddFeature = () => {
+    const newId = crypto.randomUUID();
     appendFeature({
-      id: crypto.randomUUID(),
+      id: newId,
       title: "",
       description: "",
       encounterIds: [],
       treasureIds: [],
       alchemicalItemIds: [],
     });
+    setOpenFeatures(prev => ({...prev, [newId]: true}));
   };
 
   if (loading) return <div className="w-full max-w-5xl mx-auto"><Card><CardHeader><Skeleton className="h-8 w-48" /></CardHeader><CardContent><Skeleton className="h-40 w-full" /></CardContent></Card></div>;
@@ -407,7 +410,12 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                   <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground">Room Features</h3><Button type="button" size="sm" variant="outline" onClick={handleAddFeature}><Plus className="h-4 w-4 mr-2" /> Add Feature</Button></div>
                   <div className="space-y-3">
                     {featureFields.map((field, index) => (
-                      <Collapsible key={field.id} className="border bg-card-foreground/5 rounded-lg p-3" defaultOpen={!form.getValues(`features.${index}.title`)}>
+                      <Collapsible 
+                        key={field.id} 
+                        className="border bg-card-foreground/5 rounded-lg p-3"
+                        open={openFeatures[field.id] ?? !form.getValues(`features.${index}.title`)}
+                        onOpenChange={(isOpen) => setOpenFeatures(prev => ({ ...prev, [field.id]: isOpen }))}
+                      >
                           <div className="flex items-center justify-between">
                               <CollapsibleTrigger asChild>
                                   <button type="button" className="flex items-center gap-3 text-left w-full">
