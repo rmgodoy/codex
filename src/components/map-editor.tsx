@@ -46,7 +46,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             orientation: 'pointy',
             origin: 'center'
         });
-        const tiles = initialMapData.tiles.map(tile => HexWithMetadata(tile));
+        const tiles = initialMapData.tiles.map(tile => new HexWithMetadata(tile));
         return new Grid(HexWithMetadata, tiles);
     }, [initialMapData.tiles]);
     
@@ -113,7 +113,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
         const canvas = canvasRef.current;
         if (canvas) {
             const ctx = canvas.getContext('2d');
-            const gridWithMetadata = new Grid(grid.Hex, mapData.tiles.map(tile => grid.Hex(tile)));
+            const gridWithMetadata = new Grid(grid.Hex, mapData.tiles.map(tile => new grid.Hex(tile)));
             if (ctx) drawMap(ctx, gridWithMetadata);
         }
     }, [mapData, grid.Hex, drawMap]);
