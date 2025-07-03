@@ -22,7 +22,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 const mapCreationSchema = z.object({
   name: z.string().min(1, "Map name is required"),
   description: z.string().optional(),
-  size: z.coerce.number().min(1).max(100),
+  radius: z.coerce.number().min(1).max(100),
 });
 type MapCreationFormData = z.infer<typeof mapCreationSchema>;
 
@@ -31,7 +31,7 @@ const NewMapDialog = ({ onMapCreated }: { onMapCreated: () => void }) => {
     const { toast } = useToast();
     const form = useForm<MapCreationFormData>({
         resolver: zodResolver(mapCreationSchema),
-        defaultValues: { name: "", description: "", size: 10 },
+        defaultValues: { name: "", description: "", radius: 10 },
     });
     
     const handleSaveNewMap = async (data: MapCreationFormData) => {
@@ -57,7 +57,7 @@ const NewMapDialog = ({ onMapCreated }: { onMapCreated: () => void }) => {
                     <form onSubmit={form.handleSubmit(handleSaveNewMap)} className="space-y-4">
                         <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField name="size" control={form.control} render={({ field }) => (<FormItem><FormLabel>Map Radius (Size)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField name="radius" control={form.control} render={({ field }) => (<FormItem><FormLabel>Map Radius</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <div className="flex justify-end gap-2 pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
                             <Button type="submit">Create Map</Button>
