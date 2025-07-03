@@ -15,16 +15,46 @@ import { Textarea } from './ui/textarea';
 import type { MapData, HexTile } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { HexGridBackground } from './hex-grid-background';
-import { Settings, Trash2 } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle } from './ui/alert-dialog';
+
+
+const hexSize = 60;
+
+// Conversion from pixel coordinates (x, y) to fractional axial coordinates for pointy-top hexagons
+function pixelToAxial(x: number, y: number) {
+  const q = (Math.sqrt(3)/3 * x - 1/3 * y) / hexSize;
+  const r = (2/3 * y) / hexSize;
+  return { q, r };
+}
+
+// Rounding fractional hex coordinates to the nearest integer hex coordinates
+function hexRound(q: number, r: number): { q: number; r: number } {
+    const s = -q - r;
+    let rq = Math.round(q);
+    let rr = Math.round(r);
+    let rs = Math.round(s);
+
+    const q_diff = Math.abs(rq - q);
+    const r_diff = Math.abs(rr - r);
+    const s_diff = Math.abs(rs - s);
+
+    if (q_diff > r_diff && q_diff > s_diff) {
+        rq = -rr - rs;
+    } else if (r_diff > s_diff) {
+        rr = -rq - rs;
+    }
+    
+    return { q: rq, r: rr };
+}
 
 
 const mapCreationSchema = z.object({
   name: z.string().min(1, "Map name is required"),
   description: z.string().optional(),
-  width: z.coerce.number().min(3).max(200),
-  height: z.coerce.number().min(3).max(200),
+  width: z.coerce.number().min(3).max(1000),
+  height: z.coerce.number().min(3).max(1000),
 });
 type MapCreationFormData = z.infer<typeof mapCreationSchema>;
 
@@ -40,16 +70,31 @@ interface MapEditorViewProps {
 }
 
 const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave }: MapEditorViewProps) => {
-  const { setViewport, getViewport } = useReactFlow();
+  const { screenToFlowPosition } = useReactFlow();
   
   const form = useForm<MapCreationFormData>({
     resolver: zodResolver(mapCreationSchema),
     defaultValues: { name: "", description: "", width: 20, height: 20 },
   });
   
-  const handlePaneClick = (e: React.MouseEvent) => {
-    if (e.target !== e.currentTarget) return; // Prevent clicks on nodes from deselecting
-    onSelectTile(null);
+  const handlePaneClick = (event: React.MouseEvent) => {
+    // Ensure the click is on the pane itself, not on a control or other element
+    if (event.target instanceof Element && !event.target.classList.contains('react-flow__pane')) {
+        return;
+    }
+
+    const { x, y } = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    const { q, r } = pixelToAxial(x, y);
+    const rounded = hexRound(q, r);
+    const s = -rounded.q - rounded.r;
+    const tileId = `${rounded.q},${rounded.r},${s}`;
+
+    const clickedTile = mapData?.tiles.find(t => t.id === tileId);
+    if (clickedTile) {
+        onSelectTile(tileId);
+    } else {
+        onSelectTile(null);
+    }
   };
   
   const MapSettingsDialog = () => {
@@ -151,8 +196,8 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 
   return (
     <div className="w-full h-full bg-muted/30 relative">
-      <ReactFlow onPaneClick={handlePaneClick} nodesConnectable={false} fitView>
-        <HexGridBackground map={mapData} onSelectTile={onSelectTile} selectedTileId={selectedTileId} />
+      <ReactFlow onPaneClick={handlePaneClick} fitView>
+        <HexGridBackground map={mapData} selectedTileId={selectedTileId} hexSize={hexSize} />
         <Controls />
         <MiniMap zoomable pannable />
       </ReactFlow>
