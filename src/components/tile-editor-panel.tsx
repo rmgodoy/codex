@@ -109,10 +109,13 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave }: TileEdi
             <FormField name="icon" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Icon</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                  value={field.value || "none"}
+                >
                   <FormControl><SelectTrigger><SelectValue placeholder="Select an icon" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {TILE_ICON_NAMES.map(iconName => (
                       <SelectItem key={iconName} value={iconName} className="capitalize">{iconName}</SelectItem>
                     ))}
