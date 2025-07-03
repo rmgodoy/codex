@@ -38,18 +38,31 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
     fetchTags();
   }, [tagSource]);
 
-  const addTag = (tag: string) => {
+  const refreshTopSuggestions = async (currentTags: string[]) => {
+    const topTags = await getTopTagsBySource(tagSource, 3);
+    const filteredTopTags = topTags.filter(t => !currentTags.includes(t));
+    if (filteredTopTags.length > 0) {
+      setSuggestions(filteredTopTags);
+      setIsPopoverOpen(true);
+      setActiveIndex(0);
+    } else {
+      setSuggestions([]);
+      setIsPopoverOpen(false);
+    }
+  };
+
+  const addTag = async (tag: string) => {
     const newTag = tag.trim();
+    let updatedTags = value;
     if (newTag && !value.includes(newTag)) {
-      onChange([...value, newTag]);
+      updatedTags = [...value, newTag];
+      onChange(updatedTags);
     }
     setInputValue('');
-    setIsPopoverOpen(false);
-    setActiveIndex(-1);
-    setSuggestions([]);
+    await refreshTopSuggestions(updatedTags);
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (isPopoverOpen && suggestions.length > 0) {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -64,7 +77,7 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
         if (e.key === 'Enter' || e.key === 'Tab') {
             if (activeIndex > -1) {
                 e.preventDefault();
-                addTag(suggestions[activeIndex]);
+                await addTag(suggestions[activeIndex]);
                 return;
             }
         }
@@ -72,7 +85,7 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
 
     if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
       e.preventDefault();
-      addTag(inputValue);
+      await addTag(inputValue);
     } else if (e.key === 'Backspace' && inputValue === '') {
         if (value.length > 0) {
             onChange(value.slice(0, -1));
@@ -80,7 +93,7 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
     }
   };
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newInputValue = e.target.value;
     setInputValue(newInputValue);
 
@@ -93,20 +106,13 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
       setIsPopoverOpen(filtered.length > 0);
       setActiveIndex(filtered.length > 0 ? 0 : -1);
     } else {
-        setIsPopoverOpen(false);
-        setSuggestions([]);
+        await refreshTopSuggestions(value);
     }
   };
 
   const handleFocus = async () => {
     if (!inputValue) {
-      const topTags = await getTopTagsBySource(tagSource, 3);
-      const filteredTopTags = topTags.filter(tag => !value.includes(tag));
-      if (filteredTopTags.length > 0) {
-        setSuggestions(filteredTopTags);
-        setIsPopoverOpen(true);
-        setActiveIndex(0);
-      }
+      await refreshTopSuggestions(value);
     }
   };
 
@@ -154,9 +160,9 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
                     "w-full justify-start font-normal",
                     activeIndex === index && "bg-accent"
                   )}
-                  onMouseDown={(e) => {
+                  onMouseDown={async (e) => {
                     e.preventDefault();
-                    addTag(suggestion);
+                    await addTag(suggestion);
                   }}
                 >
                   {suggestion}
