@@ -68,7 +68,7 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
     
     const selectedRoom = useMemo(() => {
         if (!selectedRoomId || !details) return null;
-        const dungeonRoom = dungeon.rooms.find(r => r.id === selectedRoomId);
+        const dungeonRoom = dungeon.rooms.find(r => r.instanceId === selectedRoomId);
         return dungeonRoom ? details.rooms.get(dungeonRoom.roomId) : null;
     }, [selectedRoomId, dungeon, details]);
 
@@ -167,8 +167,8 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                                 <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="hsl(var(--border))" /></marker>
                             </defs>
                             {dungeon.connections.map((conn, i) => {
-                                const fromNode = dungeon.rooms.find(r => r.id === conn.from);
-                                const toNode = dungeon.rooms.find(r => r.id === conn.to);
+                                const fromNode = dungeon.rooms.find(r => r.instanceId === conn.from);
+                                const toNode = dungeon.rooms.find(r => r.instanceId === conn.to);
                                 if (!fromNode || !toNode) return null;
                                 return <line key={i} x1={fromNode.position.x + 75} y1={fromNode.position.y + 40} x2={toNode.position.x + 75} y2={toNode.position.y + 40} stroke="hsl(var(--border))" strokeWidth="2" markerEnd="url(#arrow)" />
                             })}
@@ -176,11 +176,11 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                         {dungeon.rooms.map(roomInstance => {
                             const roomTemplate = details?.rooms.get(roomInstance.roomId);
                             return (
-                                <div key={roomInstance.id} style={{ left: roomInstance.position.x, top: roomInstance.position.y, position: 'absolute' }}>
+                                <div key={roomInstance.instanceId} style={{ left: roomInstance.position.x, top: roomInstance.position.y, position: 'absolute' }}>
                                     <Button
-                                        variant={selectedRoomId === roomInstance.id ? 'secondary' : 'outline'}
+                                        variant={selectedRoomId === roomInstance.instanceId ? 'secondary' : 'outline'}
                                         className="w-[150px] h-[80px] flex-col items-center justify-center whitespace-normal text-center shadow-lg"
-                                        onClick={() => { setSelectedRoomId(roomInstance.id); setSelectedEncounterId(null); }}>
+                                        onClick={() => { setSelectedRoomId(roomInstance.instanceId); setSelectedEncounterId(null); }}>
                                         <p className="font-bold">{roomTemplate?.name || 'Loading...'}</p>
                                     </Button>
                                 </div>

@@ -29,7 +29,7 @@ import { Checkbox } from "./ui/checkbox";
 import { Badge } from "./ui/badge";
 
 const dungeonRoomSchema = z.object({
-  id: z.string(),
+  instanceId: z.string(),
   roomId: z.string(),
   position: z.object({ x: z.number(), y: z.number() }),
 });
@@ -200,7 +200,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
       const totalIndex = existingRoomCount + index;
       const x = (totalIndex % roomsPerRow) * roomBoxWidth;
       const y = Math.floor(totalIndex / roomsPerRow) * roomBoxHeight;
-      appendRoom({ id: crypto.randomUUID(), roomId: room.id, position: { x: x + 20, y: y + 20 } });
+      appendRoom({ instanceId: crypto.randomUUID(), roomId: room.id, position: { x: x + 20, y: y + 20 } });
     });
   };
   
@@ -241,7 +241,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                     <div>
                         <h3 className="text-lg font-semibold text-primary-foreground mb-2">Rooms ({dungeonData.rooms.length})</h3>
                         <ul className="list-disc pl-5 space-y-1">
-                            {dungeonData.rooms.map(dr => <li key={dr.id} className="text-accent">{roomMap.get(dr.roomId)?.name || 'Unknown Room'}</li>)}
+                            {dungeonData.rooms.map(dr => <li key={dr.instanceId} className="text-accent">{roomMap.get(dr.roomId)?.name || 'Unknown Room'}</li>)}
                         </ul>
                     </div>
                     {dungeonData.tags && dungeonData.tags.length > 0 && (
@@ -318,9 +318,9 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                                                  </SelectTrigger>
                                              </FormControl>
                                              <SelectContent>
-                                                 {roomFields.map(r => (
-                                                     <SelectItem key={r.id} value={r.id}>
-                                                         {roomMap.get(r.roomId)?.name || '...'}
+                                                 {roomFields.map(roomField => (
+                                                     <SelectItem key={roomField.id} value={roomField.instanceId}>
+                                                         {roomMap.get(roomField.roomId)?.name || '...'}
                                                      </SelectItem>
                                                  ))}
                                              </SelectContent>
@@ -342,9 +342,9 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                                                  </SelectTrigger>
                                              </FormControl>
                                              <SelectContent>
-                                                 {roomFields.map(r => (
-                                                     <SelectItem key={r.id} value={r.id}>
-                                                         {roomMap.get(r.roomId)?.name || '...'}
+                                                 {roomFields.map(roomField => (
+                                                     <SelectItem key={roomField.id} value={roomField.instanceId}>
+                                                         {roomMap.get(roomField.roomId)?.name || '...'}
                                                      </SelectItem>
                                                  ))}
                                              </SelectContent>

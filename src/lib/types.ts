@@ -253,14 +253,14 @@ export type DungeonHostilityLevel = 'I' | 'II' | 'III' | 'IV' | 'V';
 export type DungeonSize = 'Tiny' | 'Small' | 'Medium' | 'Large' | 'Huge';
 
 export interface DungeonRoom {
-  id: string; // A unique ID for this instance in the dungeon
+  instanceId: string; // A unique ID for this instance in the dungeon
   roomId: string; // The ID of the room template from the main rooms list
   position: { x: number; y: number };
 }
 
 export interface DungeonConnection {
-  from: string; // DungeonRoom instance ID
-  to: string; // DungeonRoom instance ID
+  from: string; // DungeonRoom instanceId
+  to: string; // DungeonRoom instanceId
 }
 
 export interface Dungeon {
