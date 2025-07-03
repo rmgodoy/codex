@@ -11,7 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import MapCanvasComponent from './map-canvas';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { ScrollArea } from "./ui/scroll-area";
-import { TILE_ICONS } from "@/lib/map-data";
+import { TILE_ICON_COMPONENTS } from "@/lib/map-data";
 
 interface LiveMapViewProps {
   mapId: string;
@@ -68,7 +68,7 @@ export default function LiveMapView({ mapId }: LiveMapViewProps) {
     );
   }
 
-  const Icon = selectedTile?.icon ? TILE_ICONS[selectedTile.icon as keyof typeof TILE_ICONS] : null;
+  const Icon = selectedTile?.icon ? TILE_ICON_COMPONENTS[selectedTile.icon as keyof typeof TILE_ICON_COMPONENTS] : null;
 
   return (
     <div className="h-screen w-screen relative">
