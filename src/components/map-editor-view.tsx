@@ -75,6 +75,16 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   const debouncedTransform = useDebounce(transform, 100);
 
   useEffect(() => {
+    const handleMouseUp = () => setIsPainting(false);
+    
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  useEffect(() => {
     if (mapData?.tiles) {
         const [x, y, zoom] = debouncedTransform;
 
@@ -123,9 +133,22 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
     );
   }, [selectedTileId, setNodes]);
 
+  const handleNodeMouseDown = (_event: React.MouseEvent, node: Node) => {
+    if (isBrushActive) {
+      setIsPainting(true);
+      onBrushPaint(node.id);
+    }
+  };
+
   const handleNodeMouseEnter = (_event: React.MouseEvent, node: Node) => {
     if (isPainting && isBrushActive) {
       onBrushPaint(node.id);
+    }
+  };
+
+  const handleNodeClick = (_event: React.MouseEvent, node: Node) => {
+    if (!isBrushActive) {
+      onSelectTile(node.id);
     }
   };
 
@@ -230,19 +253,18 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   return (
     <div
         className="w-full h-full bg-muted/30 relative"
-        onMouseDown={() => setIsPainting(true)}
-        onMouseUp={() => setIsPainting(false)}
-        onMouseLeave={() => setIsPainting(false)}
     >
       <ReactFlow
         nodes={nodes}
         onNodesChange={onNodesChange}
         nodeTypes={nodeTypes}
-        onNodeClick={(_, node) => onSelectTile(node.id)}
+        onNodeClick={handleNodeClick}
         onPaneClick={() => onSelectTile(null)}
+        onNodeMouseDown={handleNodeMouseDown}
         onNodeMouseEnter={handleNodeMouseEnter}
         fitView
         nodesDraggable={false}
+        panOnDrag={!isPainting}
         className="bg-background"
       >
         <Controls />
