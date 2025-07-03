@@ -1,8 +1,9 @@
 
-// This file previously contained default alchemical items and a function to populate them.
-// The default data has been removed as per user request.
 
+import type { AlchemicalItem } from './types';
+import { addAlchemicalItem, addTags, getAllAlchemicalItems } from '@/lib/idb';
+
+// This function is intentionally left empty.
 export async function populateDefaultAlchemyData() {
-  // This function is intentionally left empty.
   return Promise.resolve();
 }

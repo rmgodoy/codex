@@ -2,7 +2,7 @@
 "use client";
 
 import type { DeedData, NewCreature, Role, Deed, DeedTier, DeedActionType, DeedType, DeedVersus } from './types';
-import { addCreature, addDeed, getAllDeeds } from './idb';
+import { addCreature, addDeed, getAllDeeds } from '@/lib/idb';
 import { getStatsForRoleAndLevel } from './roles';
 
 interface LegacyCreature {

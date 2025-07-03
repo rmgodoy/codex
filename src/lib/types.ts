@@ -230,6 +230,8 @@ export interface RoomFeature {
   id: string;
   description: string;
   encounterIds: string[];
+  treasureIds: string[];
+  alchemicalItemIds: string[];
 }
 
 export interface Room {
@@ -239,6 +241,7 @@ export interface Room {
   size: string;
   features: RoomFeature[];
   tags: string[];
+  totalTreasureValue: number;
 }
 
 export type NewRoom = Omit<Room, 'id'>;

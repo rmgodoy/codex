@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
-import { getTagsBySource, getTopTagsBySource } from '@/lib/idb';
+import { getTopTagsBySource, getAllTags } from '@/lib/idb';
 import { ScrollArea } from './scroll-area';
 import { cn } from '@/lib/utils';
 import type { TagSource } from '@/lib/types';
@@ -31,8 +31,9 @@ export const TagInput = ({ value, onChange, placeholder, tagSource }: TagInputPr
   useEffect(() => {
     async function fetchTags() {
       if (tagSource) {
-        const tagsFromDb = await getTagsBySource(tagSource);
-        setAllTags(tagsFromDb.map(t => t.name));
+        const tagsFromDb = await getAllTags();
+        const filteredTags = tagsFromDb.filter(t => t.source === tagSource).map(t => t.name);
+        setAllTags(filteredTags);
       }
     }
     fetchTags();

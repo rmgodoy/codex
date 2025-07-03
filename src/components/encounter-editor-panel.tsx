@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, getCreaturesByIds, addTags, getAllEncounterTables } from "@/lib/idb";
+import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, addTags, getAllEncounterTables } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { Encounter, Creature, MonsterEncounterGroup, PlayerEncounterEntry, EncounterTable } from "@/lib/types";
 import { cn } from "@/lib/utils";

@@ -6,8 +6,8 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { getRoomById, addRoom, updateRoom, deleteRoom, addTags, getAllEncounters } from "@/lib/idb";
-import type { Room, NewRoom, Encounter } from "@/lib/types";
+import { getRoomById, addRoom, updateRoom, deleteRoom, addTags, getAllEncounters, getAllTreasures, getAllAlchemicalItems } from "@/lib/idb";
+import type { Room, NewRoom, Encounter, Treasure, AlchemicalItem } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Link as LinkIcon, Bot } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Link as LinkIcon, Bot, Gem, FlaskConical } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
@@ -29,6 +29,8 @@ const roomFeatureSchema = z.object({
   id: z.string(),
   description: z.string().min(1, "Feature description is required"),
   encounterIds: z.array(z.string()),
+  treasureIds: z.array(z.string()),
+  alchemicalItemIds: z.array(z.string()),
 });
 
 const roomSchema = z.object({
@@ -37,56 +39,63 @@ const roomSchema = z.object({
   size: z.string().optional(),
   tags: z.array(z.string()).optional(),
   features: z.array(roomFeatureSchema),
+  totalTreasureValue: z.coerce.number(),
 });
 
 type RoomFormData = z.infer<typeof roomSchema>;
 
-const EncounterSelectionDialog = ({ onSelectEncounters, allEncounters, initialSelectedIds = [] }: { onSelectEncounters: (ids: string[]) => void, allEncounters: Encounter[], initialSelectedIds?: string[] }) => {
+const ItemSelectionDialog = ({ 
+  triggerButton,
+  dialogTitle,
+  items,
+  onSelectItems,
+  initialSelectedIds = [] 
+}: { 
+  triggerButton: React.ReactNode,
+  dialogTitle: string,
+  items: {id: string, name: string, value?: number, type?: string}[],
+  onSelectItems: (ids: string[]) => void,
+  initialSelectedIds?: string[] 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedEncounterIds, setSelectedEncounterIds] = useState<Set<string>>(new Set(initialSelectedIds));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedIds));
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredEncounters = useMemo(() => {
-    return allEncounters.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [allEncounters, searchTerm]);
+  const filteredItems = useMemo(() => {
+    return items.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [items, searchTerm]);
 
-  const handleCheckboxChange = (encounterId: string) => {
-    setSelectedEncounterIds(prev => {
+  const handleCheckboxChange = (id: string) => {
+    setSelectedIds(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(encounterId)) {
-        newSet.delete(encounterId);
-      } else {
-        newSet.add(encounterId);
-      }
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
       return newSet;
     });
   };
 
   const handleConfirm = () => {
-    onSelectEncounters(Array.from(selectedEncounterIds));
+    onSelectItems(Array.from(selectedIds));
     setIsOpen(false);
   };
   
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button type="button" size="sm" variant="outline"><LinkIcon className="h-4 w-4 mr-2" /> Link Encounters</Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent className="max-w-lg h-[70vh] flex flex-col">
-        <DialogHeader><DialogTitle>Link Encounters</DialogTitle></DialogHeader>
-        <Input placeholder="Search encounters..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="mb-4 shrink-0"/>
+        <DialogHeader><DialogTitle>{dialogTitle}</DialogTitle></DialogHeader>
+        <Input placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="mb-4 shrink-0"/>
         <ScrollArea className="flex-1 border rounded-md p-2">
           <div className="space-y-1">
-            {filteredEncounters.map(encounter => (
-              <div key={encounter.id} className="flex items-center gap-3 p-2 rounded-md">
-                <Checkbox 
-                  id={`encounter-${encounter.id}`} 
-                  onCheckedChange={() => handleCheckboxChange(encounter.id)}
-                  checked={selectedEncounterIds.has(encounter.id)}
-                />
-                <label htmlFor={`encounter-${encounter.id}`} className="flex-1">
-                  <p className="font-semibold">{encounter.name}</p>
-                  <p className="text-xs text-muted-foreground">TR {encounter.totalTR || 0}</p>
+            {filteredItems.map(item => (
+              <div key={item.id} className="flex items-center gap-3 p-2 rounded-md">
+                <Checkbox id={`item-${item.id}`} onCheckedChange={() => handleCheckboxChange(item.id)} checked={selectedIds.has(item.id)} />
+                <label htmlFor={`item-${item.id}`} className="flex-1">
+                  <p className="font-semibold">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.value !== undefined && `Value: ${item.value}`}
+                    {item.type && `Type: ${item.type}`}
+                  </p>
                 </label>
               </div>
             ))}
@@ -100,6 +109,7 @@ const EncounterSelectionDialog = ({ onSelectEncounters, allEncounters, initialSe
     </Dialog>
   );
 };
+
 
 interface RoomEditorPanelProps {
   roomId: string | null;
@@ -117,6 +127,7 @@ const defaultValues: RoomFormData = {
   size: "",
   tags: [],
   features: [],
+  totalTreasureValue: 0,
 };
 
 export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onFilterByClick, onBack }: RoomEditorPanelProps) {
@@ -124,10 +135,18 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!roomId);
   const [roomData, setRoomData] = useState<Room | null>(null);
+  
   const [allEncounters, setAllEncounters] = useState<Encounter[]>([]);
+  const [allTreasures, setAllTreasures] = useState<Treasure[]>([]);
+  const [allAlchemicalItems, setAllAlchemicalItems] = useState<AlchemicalItem[]>([]);
+  
   const isMobile = useIsMobile();
 
-  const encounterMap = useMemo(() => new Map(allEncounters.map(e => [e.id, e])), [allEncounters]);
+  const itemMaps = useMemo(() => ({
+      encounters: new Map(allEncounters.map(e => [e.id, e])),
+      treasures: new Map(allTreasures.map(t => [t.id, t])),
+      alchemicalItems: new Map(allAlchemicalItems.map(a => [a.id, a])),
+  }), [allEncounters, allTreasures, allAlchemicalItems]);
 
   const form = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
@@ -139,8 +158,34 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
     name: "features",
   });
 
+  const watchedFeatures = form.watch('features');
   useEffect(() => {
-    getAllEncounters().then(setAllEncounters);
+    if (isEditing) {
+      const totalValue = watchedFeatures.reduce((total, feature) => {
+        const featureValue = feature.treasureIds.reduce((sum, treasureId) => {
+            const treasure = itemMaps.treasures.get(treasureId);
+            return sum + (treasure?.value || 0);
+        }, 0);
+        return total + featureValue;
+      }, 0);
+      
+      if (form.getValues('totalTreasureValue') !== totalValue) {
+        form.setValue('totalTreasureValue', totalValue, { shouldValidate: true });
+      }
+    }
+  }, [watchedFeatures, itemMaps.treasures, form, isEditing]);
+
+
+  useEffect(() => {
+    Promise.all([
+      getAllEncounters(),
+      getAllTreasures(),
+      getAllAlchemicalItems(),
+    ]).then(([encounters, treasures, alchemy]) => {
+      setAllEncounters(encounters);
+      setAllTreasures(treasures);
+      setAllAlchemicalItems(alchemy);
+    });
   }, []);
 
   useEffect(() => {
@@ -228,6 +273,8 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
       id: crypto.randomUUID(),
       description: "",
       encounterIds: [],
+      treasureIds: [],
+      alchemicalItemIds: [],
     });
   };
 
@@ -253,7 +300,10 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                              {isMobile && onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2 -mt-1"><ArrowLeft className="h-5 w-5" /></Button>}
                             <div>
                                 <CardTitle className="text-3xl font-bold">{roomData.name}</CardTitle>
-                                {roomData.size && <CardDescription>Size: {roomData.size}</CardDescription>}
+                                <CardDescription className="flex flex-wrap gap-x-4">
+                                  {roomData.size && <span>Size: {roomData.size}</span>}
+                                  <span>Total Value: {roomData.totalTreasureValue}</span>
+                                </CardDescription>
                             </div>
                         </div>
                          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4"/><span className="hidden sm:inline ml-2">Edit</span></Button>
@@ -270,14 +320,9 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                                     {roomData.features.map(feature => (
                                         <li key={feature.id} className="p-3 bg-card-foreground/5 rounded-lg">
                                             <p className="font-semibold">{feature.description}</p>
-                                            {feature.encounterIds.length > 0 && (
-                                                <div className="mt-2 pl-4">
-                                                    <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Bot className="h-4 w-4"/> Linked Encounters</h4>
-                                                    <ul className="list-disc list-inside mt-1">
-                                                        {feature.encounterIds.map(id => <li key={id} className="text-sm text-accent">{encounterMap.get(id)?.name || 'Unknown Encounter'}</li>)}
-                                                    </ul>
-                                                </div>
-                                            )}
+                                            {feature.encounterIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Bot className="h-4 w-4"/> Linked Encounters</h4><ul className="list-disc list-inside mt-1">{feature.encounterIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.encounters.get(id)?.name || '...'}</li>)}</ul></div>}
+                                            {feature.treasureIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Gem className="h-4 w-4"/> Linked Treasures</h4><ul className="list-disc list-inside mt-1">{feature.treasureIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.treasures.get(id)?.name || '...'}</li>)}</ul></div>}
+                                            {feature.alchemicalItemIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><FlaskConical className="h-4 w-4"/> Linked Alchemy</h4><ul className="list-disc list-inside mt-1">{feature.alchemicalItemIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.alchemicalItems.get(id)?.name || '...'}</li>)}</ul></div>}
                                         </li>
                                     ))}
                                 </ul>
@@ -320,6 +365,12 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                     <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField name="size" control={form.control} render={({ field }) => (<FormItem><FormLabel>Size</FormLabel><FormControl><Input {...field} placeholder="e.g., 30ft x 40ft" /></FormControl></FormItem>)} />
                 </div>
+                 <FormField name="totalTreasureValue" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Treasure Value</FormLabel>
+                    <FormControl><Input type="number" {...field} readOnly className="w-28 bg-muted border-none"/></FormControl>
+                  </FormItem>
+                 )} />
                 <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl></FormItem>)} />
                 <FormField name="tags" control={form.control} render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel><FormControl><TagInput value={field.value || []} onChange={field.onChange} placeholder="Add tags..." tagSource="room" /></FormControl><FormMessage /></FormItem>)} />
 
@@ -334,15 +385,28 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                           <FormField name={`features.${index}.description`} control={form.control} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>)} />
                           <Button type="button" variant="ghost" size="icon" onClick={() => removeFeature(index)} className="text-muted-foreground hover:text-destructive shrink-0 mt-8"><Trash2 className="h-4 w-4" /></Button>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-wrap gap-1">
-                                {form.getValues(`features.${index}.encounterIds`).map(id => <Badge key={id} variant="secondary">{encounterMap.get(id)?.name || "..."}</Badge>)}
-                            </div>
-                           <EncounterSelectionDialog 
-                             allEncounters={allEncounters}
-                             initialSelectedIds={form.getValues(`features.${index}.encounterIds`)}
-                             onSelectEncounters={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), encounterIds: ids })}
-                           />
+                        <div className="flex flex-wrap gap-2 justify-end">
+                            <ItemSelectionDialog
+                              triggerButton={<Button type="button" size="sm" variant="outline"><Bot className="h-4 w-4 mr-2" /> Encounters</Button>}
+                              dialogTitle="Link Encounters"
+                              items={allEncounters.map(e => ({ id: e.id, name: e.name, value: e.totalTR || 0 }))}
+                              onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), encounterIds: ids })}
+                              initialSelectedIds={form.getValues(`features.${index}.encounterIds`)}
+                            />
+                            <ItemSelectionDialog
+                              triggerButton={<Button type="button" size="sm" variant="outline"><Gem className="h-4 w-4 mr-2" /> Treasures</Button>}
+                              dialogTitle="Link Treasures"
+                              items={allTreasures}
+                              onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), treasureIds: ids })}
+                              initialSelectedIds={form.getValues(`features.${index}.treasureIds`)}
+                            />
+                            <ItemSelectionDialog
+                              triggerButton={<Button type="button" size="sm" variant="outline"><FlaskConical className="h-4 w-4 mr-2" /> Alchemy</Button>}
+                              dialogTitle="Link Alchemical Items"
+                              items={allAlchemicalItems.map(a => ({ id: a.id, name: a.name, type: a.type }))}
+                              onSelectItems={(ids) => updateFeature(index, { ...form.getValues(`features.${index}`), alchemicalItemIds: ids })}
+                              initialSelectedIds={form.getValues(`features.${index}.alchemicalItemIds`)}
+                            />
                         </div>
                       </div>
                     ))}
