@@ -413,7 +413,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                       <Collapsible 
                         key={field.id} 
                         className="border bg-card-foreground/5 rounded-lg p-3"
-                        open={openFeatures[field.id] ?? !form.getValues(`features.${index}.title`)}
+                        open={openFeatures[field.id]}
                         onOpenChange={(isOpen) => setOpenFeatures(prev => ({ ...prev, [field.id]: isOpen }))}
                       >
                           <div className="flex items-center justify-between">
@@ -473,5 +473,3 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
     </div>
   );
 }
-
-    
