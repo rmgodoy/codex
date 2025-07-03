@@ -16,6 +16,8 @@ import { Separator } from "./ui/separator";
 import { Bot, Gem, FlaskConical, ArrowLeft, Plus, Minus, Swords } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
+import FloatingEdge from './floating-edge';
+import FloatingConnectionLine from './floating-connection-line';
 
 
 interface LiveDungeonViewProps {
@@ -28,6 +30,10 @@ type DungeonDetails = {
     encounters: Map<string, Encounter>;
     treasures: Map<string, Treasure>;
     alchemicalItems: Map<string, AlchemicalItem>;
+};
+
+const edgeTypes = {
+  floating: FloatingEdge,
 };
 
 function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProps) {
@@ -145,10 +151,9 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                 id: `edge-${conn.from}-${conn.to}`,
                 source: conn.from,
                 target: conn.to,
-                type: 'bezier',
-                animated: false,
+                type: 'floating',
                 style: {
-                    strokeWidth: 1.5,
+                    strokeWidth: 2,
                     stroke: 'hsl(var(--border))',
                 },
             };
@@ -294,6 +299,8 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                         onPaneClick={() => handleNodeClick(null, null)}
                         fitView
                         nodesDraggable={true}
+                        edgeTypes={edgeTypes}
+                        connectionLineComponent={FloatingConnectionLine}
                     >
                         <Controls />
                         <MiniMap pannable zoomable nodeStrokeWidth={3} nodeColor={(n) => n.style?.background as string || '#fff'} />
