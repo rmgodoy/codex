@@ -65,8 +65,23 @@ const ItemSelectionDialog = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredItems = useMemo(() => {
-    return items.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [items, searchTerm]);
+    const filtered = items.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    filtered.sort((a, b) => {
+      const aIsSelected = selectedIds.has(a.id);
+      const bIsSelected = selectedIds.has(b.id);
+      if (aIsSelected && !bIsSelected) {
+        return -1;
+      }
+      if (!aIsSelected && bIsSelected) {
+        return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    return filtered;
+  }, [items, searchTerm, selectedIds]);
+
 
   const handleCheckboxChange = (id: string) => {
     setSelectedIds(prev => {
@@ -82,8 +97,15 @@ const ItemSelectionDialog = ({
     setIsOpen(false);
   };
   
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setSelectedIds(new Set(initialSelectedIds));
+    }
+    setIsOpen(open);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent className="max-w-lg h-[70vh] flex flex-col">
         <DialogHeader><DialogTitle>{dialogTitle}</DialogTitle></DialogHeader>
@@ -443,3 +465,5 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
     </div>
   );
 }
+
+    
