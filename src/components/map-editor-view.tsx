@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -7,6 +8,7 @@ import ReactFlow, {
   Background,
   useNodesState,
   MiniMap,
+  useStore,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -23,7 +25,8 @@ import { Skeleton } from './ui/skeleton';
 import { Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle } from './ui/alert-dialog';
-import { HexNode } from './hex-grid-background';
+import { HexNode } from './hex-node';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const nodeTypes = {
   hex: HexNode,
@@ -63,10 +66,30 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   });
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  
+  const { width, height, transform } = useStore(s => ({ width: s.width, height: s.height, transform: s.transform }));
+  const debouncedTransform = useDebounce(transform, 100);
 
   useEffect(() => {
     if (mapData?.tiles) {
-      const newNodes = mapData.tiles.map((tile) => {
+        const [x, y, zoom] = debouncedTransform;
+
+        const visibleTiles = mapData.tiles.filter(tile => {
+            const tileX = hexGridSize * Math.sqrt(3) * (tile.q + tile.r / 2);
+            const tileY = hexGridSize * 3 / 2 * tile.r;
+            
+            const tileWidth = hexGridSize * Math.sqrt(3);
+            const tileHeight = hexGridSize * 2;
+
+            return (
+                tileX * zoom + x < width &&
+                (tileX + tileWidth) * zoom + x > 0 &&
+                tileY * zoom + y < height &&
+                (tileY + tileHeight) * zoom + y > 0
+            );
+        });
+
+      const newNodes = visibleTiles.map((tile) => {
         const { x, y } = axialToPixel(tile.q, tile.r);
         return {
           id: tile.id,
@@ -85,7 +108,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
     } else {
       setNodes([]);
     }
-  }, [mapData, setNodes]);
+  }, [mapData, setNodes, debouncedTransform, width, height]);
   
   useEffect(() => {
     setNodes((nds) =>
@@ -210,7 +233,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
         <MiniMap nodeStrokeWidth={3} zoomable pannable />
         <Background variant="dots" gap={16} size={1} />
       </ReactFlow>
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
         <MapSettingsDialog />
       </div>
     </div>
