@@ -35,8 +35,8 @@ const dungeonRoomSchema = z.object({
 });
 
 const dungeonConnectionSchema = z.object({
-  from: z.string(),
-  to: z.string(),
+  from: z.string().min(1, "A 'from' room must be selected."),
+  to: z.string().min(1, "A 'to' room must be selected."),
 });
 
 const dungeonSchema = z.object({
@@ -193,8 +193,8 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
   const addRooms = (newRooms: RoomType[]) => {
     const existingRoomCount = roomFields.length;
     const roomsPerRow = 4;
-    const roomBoxWidth = 150 + 20; // width + margin
-    const roomBoxHeight = 80 + 20; // height + margin
+    const roomBoxWidth = 150 + 40; // width + margin
+    const roomBoxHeight = 80 + 40; // height + margin
 
     newRooms.forEach((room, index) => {
       const totalIndex = existingRoomCount + index;
@@ -302,18 +302,62 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                 <Separator />
                 
                 <div>
-                  <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground flex items-center gap-2"><Link2 className="h-5 w-5"/>Connections</h3><Button type="button" size="sm" variant="outline" onClick={() => appendConnection({ from: '', to: ''})} disabled={roomFields.length < 2}><Plus className="h-4 w-4 mr-2" />Add Connection</Button></div>
-                   <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                      {connectionFields.map((field, index) => (
-                        <div key={field.id} className="flex items-center gap-2 p-2 bg-card-foreground/5 rounded-md">
-                            <FormField control={control} name={`connections.${index}.from`} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="From..."/></SelectTrigger></FormControl><SelectContent>{roomFields.map(r => <SelectItem key={r.id} value={r.id}>{roomMap.get(r.roomId)?.name || '...'}</SelectItem>)}</SelectContent></Select>)} />
-                            <span>-&gt;</span>
-                            <FormField control={control} name={`connections.${index}.to`} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="To..."/></SelectTrigger></FormControl><SelectContent>{roomFields.map(r => <SelectItem key={r.id} value={r.id}>{roomMap.get(r.roomId)?.name || '...'}</SelectItem>)}</SelectContent></Select>)} />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeConnection(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      ))}
-                   </div>
-                </div>
+                   <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground flex items-center gap-2"><Link2 className="h-5 w-5"/>Connections</h3><Button type="button" size="sm" variant="outline" onClick={() => appendConnection({ from: '', to: ''})} disabled={roomFields.length < 2}><Plus className="h-4 w-4 mr-2" />Add Connection</Button></div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                       {connectionFields.map((field, index) => (
+                         <div key={field.id} className="grid grid-cols-[1fr_auto_1fr_auto] items-start gap-2 p-2 bg-card-foreground/5 rounded-md">
+                             <FormField
+                                 control={control}
+                                 name={`connections.${index}.from`}
+                                 render={({ field }) => (
+                                     <FormItem>
+                                         <Select onValueChange={field.onChange} value={field.value || ''}>
+                                             <FormControl>
+                                                 <SelectTrigger>
+                                                     <SelectValue placeholder="From Room..." />
+                                                 </SelectTrigger>
+                                             </FormControl>
+                                             <SelectContent>
+                                                 {roomFields.map(r => (
+                                                     <SelectItem key={r.id} value={r.id}>
+                                                         {roomMap.get(r.roomId)?.name || '...'}
+                                                     </SelectItem>
+                                                 ))}
+                                             </SelectContent>
+                                         </Select>
+                                         <FormMessage />
+                                     </FormItem>
+                                 )}
+                             />
+                             <span className="pt-2">-&gt;</span>
+                              <FormField
+                                 control={control}
+                                 name={`connections.${index}.to`}
+                                 render={({ field }) => (
+                                     <FormItem>
+                                         <Select onValueChange={field.onChange} value={field.value || ''}>
+                                             <FormControl>
+                                                 <SelectTrigger>
+                                                     <SelectValue placeholder="To Room..." />
+                                                 </SelectTrigger>
+                                             </FormControl>
+                                             <SelectContent>
+                                                 {roomFields.map(r => (
+                                                     <SelectItem key={r.id} value={r.id}>
+                                                         {roomMap.get(r.roomId)?.name || '...'}
+                                                     </SelectItem>
+                                                 ))}
+                                             </SelectContent>
+                                         </Select>
+                                         <FormMessage />
+                                     </FormItem>
+                                 )}
+                             />
+                             <Button type="button" variant="ghost" size="icon" onClick={() => removeConnection(index)} className="text-muted-foreground hover:text-destructive shrink-0 self-center"><Trash2 className="h-4 w-4" /></Button>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
             </CardContent>
             <CardFooter className="flex items-center gap-2">
               {!isCreatingNew && <AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{getValues("name")}".</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
