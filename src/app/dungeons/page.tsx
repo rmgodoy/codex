@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -188,7 +187,7 @@ export default function DungeonsPage() {
               dataVersion={dataVersion}
               filters={filters}
               setFilters={setFilters}
-              onClearFilters={onClearFilters}
+              onClearFilters={clearFilters}
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
