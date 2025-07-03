@@ -147,23 +147,31 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
       }
       setSelectedRoomId(node.id);
       setSelectedEncounterId(null);
+    }, [setSelectedRoomId, setSelectedEncounterId]);
 
-      const connectedNodeIds = new Set<string>([node.id]);
-      dungeon.connections.forEach(conn => {
-          if (conn.from === node.id) {
-              connectedNodeIds.add(conn.to);
-          }
-          if (conn.to === node.id) {
-              connectedNodeIds.add(conn.from);
-          }
-      });
-      
-      fitView({ 
-        nodes: Array.from(connectedNodeIds).map(id => ({ id })),
-        duration: 600, 
-        padding: 0.2 
-      });
-    }, [fitView, setSelectedRoomId, setSelectedEncounterId, dungeon.connections]);
+    useEffect(() => {
+        if (selectedRoomId) {
+            const connectedNodeIds = new Set<string>([selectedRoomId]);
+            dungeon.connections.forEach(conn => {
+                if (conn.from === selectedRoomId) {
+                    connectedNodeIds.add(conn.to);
+                }
+                if (conn.to === selectedRoomId) {
+                    connectedNodeIds.add(conn.from);
+                }
+            });
+
+            // Using a small timeout to ensure ReactFlow has processed any updates (like styling)
+            // before we try to fit the view. This is crucial for the first click.
+            setTimeout(() => {
+                fitView({ 
+                    nodes: Array.from(connectedNodeIds).map(id => ({ id })),
+                    duration: 600, 
+                    padding: 0.2 
+                });
+            }, 10);
+        }
+    }, [selectedRoomId, dungeon.connections, fitView]);
 
     useEffect(() => {
         const fetchDetails = async () => {
