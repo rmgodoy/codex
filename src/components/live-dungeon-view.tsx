@@ -44,8 +44,8 @@ const elkOptions: LayoutOptions = {
   'elk.force.iterations': '1000',
   'elk.force.alpha': '1',
   'elk.force.gravity': '0.01',
-  'elk.force.charge': '-1200',
-  'elk.spacing.nodeNode': '150',
+  'elk.force.charge': '-800',
+  'elk.spacing.nodeNode': '120',
 };
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]): Promise<Node[]> => {
@@ -143,8 +143,23 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
       }
       setSelectedRoomId(node.id);
       setSelectedEncounterId(null);
-      fitView({ nodes: [{ id: node.id }], duration: 600, padding: 0.2 });
-    }, [fitView, setSelectedRoomId, setSelectedEncounterId]);
+
+      const connectedNodeIds = new Set<string>([node.id]);
+      dungeon.connections.forEach(conn => {
+          if (conn.from === node.id) {
+              connectedNodeIds.add(conn.to);
+          }
+          if (conn.to === node.id) {
+              connectedNodeIds.add(conn.from);
+          }
+      });
+      
+      fitView({ 
+        nodes: Array.from(connectedNodeIds).map(id => ({ id })),
+        duration: 600, 
+        padding: 0.2 
+      });
+    }, [fitView, setSelectedRoomId, setSelectedEncounterId, dungeon.connections]);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -306,7 +321,7 @@ function LiveDungeonViewComponent({ dungeon, onEndDungeon }: LiveDungeonViewProp
                         <Button variant="outline" size="sm" onClick={handlePrevAction} disabled={totalActions === 0}>Prev Action</Button>
                         <Button variant="default" size="sm" onClick={handleNextAction}>Next Action</Button>
                     </div>
-                    <Button variant="outline" size="icon" onClick={onLayout} title="Auto-Layout"><RefreshCw className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={onLayout} title="Re-Layout"><RefreshCw className="h-4 w-4" /></Button>
                     <Button variant="destructive" onClick={onEndDungeon}>End Dungeon</Button>
                 </div>
             </header>
@@ -383,3 +398,4 @@ export default function LiveDungeonView(props: LiveDungeonViewProps) {
 }
 
     
+
