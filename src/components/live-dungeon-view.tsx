@@ -55,10 +55,11 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
         setTotalActions(prevTotal => {
             const nextTotal = prevTotal + 1;
             setAlertHistory(prevHistory => {
-                if (nextTotal >= prevHistory.length) {
-                    return [...prevHistory, prevHistory[prevTotal] ?? 0];
+                const newHistory = [...prevHistory];
+                if (nextTotal >= newHistory.length) {
+                    newHistory[nextTotal] = newHistory[prevTotal] ?? 0;
                 }
-                return prevHistory;
+                return newHistory;
             });
             return nextTotal;
         });
@@ -200,11 +201,38 @@ export default function LiveDungeonView({ dungeon, onEndDungeon }: LiveDungeonVi
                                 const fromNode = dungeon.rooms.find(r => r.instanceId === conn.from);
                                 const toNode = dungeon.rooms.find(r => r.instanceId === conn.to);
                                 if (!fromNode || !toNode) return null;
+                                
                                 const isHighlighted = selectedRoomId && (conn.from === selectedRoomId || conn.to === selectedRoomId);
-                                return <line 
+                                
+                                const fromX = fromNode.position.x + 75;
+                                const fromY = fromNode.position.y + 40;
+                                const toX = toNode.position.x + 75;
+                                const toY = toNode.position.y + 40;
+
+                                // Calculate a control point for a quadratic Bezier curve
+                                const midX = (fromX + toX) / 2;
+                                const midY = (fromY + toY) / 2;
+                                
+                                const dx = toX - fromX;
+                                const dy = toY - fromY;
+                                
+                                const length = Math.sqrt(dx * dx + dy * dy);
+                                if (length === 0) return null; // Avoid division by zero
+
+                                const perpX = -dy / length;
+                                const perpY = dx / length;
+                                
+                                const curveFactor = 30;
+                                
+                                const controlX = midX + curveFactor * perpX;
+                                const controlY = midY + curveFactor * perpY;
+                                
+                                const pathData = `M${fromX},${fromY} Q${controlX},${controlY} ${toX},${toY}`;
+                                
+                                return <path 
                                     key={i} 
-                                    x1={fromNode.position.x + 75} y1={fromNode.position.y + 40} 
-                                    x2={toNode.position.x + 75} y2={toNode.position.y + 40} 
+                                    d={pathData}
+                                    fill="none"
                                     strokeWidth={isHighlighted ? 3 : 2} 
                                     className={cn("transition-all", isHighlighted ? "stroke-primary" : "stroke-border")}
                                     markerEnd={isHighlighted ? "url(#arrow-highlight)" : "url(#arrow)"} 
