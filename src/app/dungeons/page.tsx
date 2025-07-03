@@ -191,7 +191,7 @@ export default function DungeonsPage() {
             />
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
-            <div className="bg-background/50 p-4 sm:p-6 md:p-8 h-full w-full">
+            <div className="bg-background/50 p-4 sm:p-6 md:p-8 w-full">
               <DungeonEditorPanel
                 key={selectedDungeonId ?? (isCreatingNew ? 'new' : 'placeholder')}
                 dungeonId={selectedDungeonId}
