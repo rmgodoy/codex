@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { Combatant, PlayerCombatant } from "@/lib/types";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
@@ -11,6 +11,7 @@ import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 
 
 interface InitiativeTrackerProps {
@@ -25,7 +26,7 @@ interface InitiativeTrackerProps {
   perilText: string;
   allPlayersReady: boolean;
   turnIndex: number;
-  onAddPlayer?: () => void;
+  onAddPlayer?: (name: string) => void;
 }
 
 export default function InitiativeTracker({
@@ -43,6 +44,8 @@ export default function InitiativeTracker({
   onAddPlayer,
 }: InitiativeTrackerProps) {
   const [localInitiatives, setLocalInitiatives] = useState<Record<string, string>>({});
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [isAddPlayerDialogOpen, setIsAddPlayerDialogOpen] = useState(false);
 
   const allPlayers = useMemo(() => 
     [...untrackedPlayers, ...combatantsInTurnOrder.filter(c => c.type === 'player')] as PlayerCombatant[],
@@ -104,6 +107,14 @@ export default function InitiativeTracker({
     }
     return button;
   }
+
+  const handleAddPlayer = () => {
+    if (onAddPlayer && newPlayerName.trim()) {
+      onAddPlayer(newPlayerName.trim());
+      setNewPlayerName("");
+      setIsAddPlayerDialogOpen(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full p-4 bg-card">
@@ -179,9 +190,41 @@ export default function InitiativeTracker({
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold text-primary-foreground">Initiative Order</h3>
         {onAddPlayer && (
-          <Button variant="outline" size="sm" onClick={onAddPlayer}>
-            <UserPlus className="h-4 w-4 mr-2" /> Add Player
-          </Button>
+          <Dialog open={isAddPlayerDialogOpen} onOpenChange={setIsAddPlayerDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <UserPlus className="h-4 w-4 mr-2" /> Add Player
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Player</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    className="col-span-3"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddPlayer();
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleAddPlayer}>Add Player</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
       <ScrollArea className="flex-1">

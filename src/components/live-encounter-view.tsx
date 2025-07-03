@@ -56,19 +56,14 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
 
   const combatants = useMemo(() => combatantsByRound[round] || [], [combatantsByRound, round]);
 
-  const addDummyPlayer = useCallback(() => {
-    setCombatantsByRound(prevRounds => {
-      const currentRoundCombatants = prevRounds[round] || [];
-      const dummyPlayers = currentRoundCombatants.filter(c => c.type === 'player' && c.name.startsWith("Extra Player"));
-      const maxNum = dummyPlayers.reduce((max, p) => {
-        const num = parseInt(p.name.replace("Extra Player ", ""), 10);
-        return isNaN(num) ? max : Math.max(max, num);
-      }, 0);
+  const addPlayer = useCallback((name: string) => {
+    if (!name) return;
 
+    setCombatantsByRound(prevRounds => {
       const newPlayer: PlayerCombatant = {
         id: crypto.randomUUID(),
         type: 'player',
-        name: `Extra Player ${maxNum + 1}`,
+        name: name,
         initiative: 0,
         nat20: false,
       };
@@ -369,7 +364,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                 perilText={currentPeril.text}
                 allPlayersReady={allPlayersReady}
                 turnIndex={turnIndex}
-                onAddPlayer={addDummyPlayer}
+                onAddPlayer={addPlayer}
             />
             {activeTurn ? (
               <CombatantDashboard
@@ -418,7 +413,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                       perilText={currentPeril.text}
                       allPlayersReady={allPlayersReady}
                       turnIndex={turnIndex}
-                      onAddPlayer={addDummyPlayer}
+                      onAddPlayer={addPlayer}
                   />
                 )}
             </Sidebar>
