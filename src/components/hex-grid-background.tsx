@@ -68,24 +68,24 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
             ctx.stroke();
 
             if (tile.icon && TILE_ICONS[tile.icon]) {
+                ctx.fillStyle = 'hsl(var(--card-foreground))';
                 ctx.strokeStyle = 'hsl(var(--card-foreground))';
-                
+                ctx.font = `bold ${hexSize * 0.7}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
                 const IconKey = tile.icon as keyof typeof TILE_ICONS;
-                const iconComponent = TILE_ICONS[IconKey];
-                const iconNode = (iconComponent as any)?.iconNode;
+                
+                const IconComponent = TILE_ICONS[IconKey];
+                const iconNode = (IconComponent as any)?.iconNode;
 
                 if (iconNode) {
                    ctx.save();
-                   ctx.translate(x, y); // translate to center of hex
-                   
-                   const iconSize = hexSize * 0.7; // Desired icon size
-                   const scale = iconSize / 24; // Lucide icons are 24x24
+                   ctx.translate(x, y);
+                   const scale = (hexSize * 0.03);
                    ctx.scale(scale, scale);
-                   ctx.translate(-12, -12); // Center the 24x24 icon
+                   ctx.translate(-12, -12);
 
-                   // The original icon has stroke-width="2".
-                   // We set the line width relative to the new scale to maintain its visual weight.
-                   ctx.lineWidth = 2;
+                   ctx.lineWidth = (2 / scale) / zoom;
 
                    for (const node of iconNode) {
                        const [tag, attrs] = node;
@@ -94,13 +94,15 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
                            ctx.stroke(p);
                        } else if (tag === 'circle' && attrs.cx !== undefined) {
                            ctx.beginPath();
-                           ctx.arc(Number(attrs.cx), Number(attrs.cy), Number(attrs.r), 0, 2 * Math.PI);
+                           ctx.arc(attrs.cx, attrs.cy, attrs.r, 0, 2 * Math.PI);
                            ctx.stroke();
                        } else if (tag === 'rect' && attrs.x !== undefined) {
-                           ctx.strokeRect(Number(attrs.x), Number(attrs.y), Number(attrs.width), Number(attrs.height));
+                           ctx.strokeRect(attrs.x, attrs.y, attrs.width, attrs.height);
                        }
                    }
                    ctx.restore();
+                } else {
+                   ctx.fillText(tile.icon.charAt(0).toUpperCase(), x, y);
                 }
             }
         }
@@ -111,7 +113,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
 
   useEffect(() => {
     draw();
-  }, [draw]);
+  }, [draw, map, selectedTileId, width, height, viewport]);
 
   return (
     <canvas 
