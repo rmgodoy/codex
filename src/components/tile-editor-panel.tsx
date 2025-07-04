@@ -41,7 +41,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: T
     defaultValues: {
       title: tile?.title || "",
       description: tile?.description || "",
-      color: tile?.color || "#9CA3AF",
+      color: tile?.color || "#374151",
       icon: tile?.icon || "none",
       dungeonIds: tile?.dungeonIds || [],
     },
@@ -71,7 +71,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: T
       form.reset({
         title: tile.title || "",
         description: tile.description || "",
-        color: tile.color || "#9CA3AF",
+        color: tile.color || "#374151",
         icon: tile.icon || "none",
         dungeonIds: tile.dungeonIds || [],
       });
