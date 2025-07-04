@@ -75,7 +75,11 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   const debouncedTransform = useDebounce(transform, 100);
 
   useEffect(() => {
-    const handleMouseUp = () => setIsPainting(false);
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) { // Only stop painting for left mouse button release
+        setIsPainting(false);
+      }
+    };
     
     window.addEventListener('mouseup', handleMouseUp);
     
@@ -134,7 +138,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   }, [selectedTileId, setNodes]);
 
   const handleNodeMouseDown = (_event: React.MouseEvent, node: Node) => {
-    if (isBrushActive) {
+    if (isBrushActive && _event.button === 0) { // Only start painting with left click
       setIsPainting(true);
       onBrushPaint(node.id);
     }
@@ -147,7 +151,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   };
 
   const handleNodeClick = (_event: React.MouseEvent, node: Node) => {
-    if (!isBrushActive) {
+    if (!isBrushActive && _event.button === 0) { // Only select with left click
       onSelectTile(node.id);
     }
   };
@@ -262,9 +266,10 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
         onPaneClick={() => onSelectTile(null)}
         onNodeMouseDown={handleNodeMouseDown}
         onNodeMouseEnter={handleNodeMouseEnter}
+        onContextMenu={(e) => e.preventDefault()}
         fitView
         nodesDraggable={false}
-        panOnDrag={!isPainting}
+        panOnDrag={[2]}
         className="bg-background"
       >
         <Controls />
@@ -281,3 +286,5 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 export default function MapEditorView(props: MapEditorViewProps) {
   return <ReactFlowProvider><MapEditorComponent {...props} /></ReactFlowProvider>;
 }
+
+    
