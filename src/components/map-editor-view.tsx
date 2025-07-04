@@ -17,7 +17,7 @@ import { Skeleton } from './ui/skeleton';
 import { HexGridBackground } from './hex-grid-background';
 import { Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle } from './ui/alert-dialog';
+import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle as AlertTitle } from './ui/alert-dialog';
 
 
 const hexSize = 60;
