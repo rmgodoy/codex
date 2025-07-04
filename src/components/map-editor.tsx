@@ -73,8 +73,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
 
     const drawMap = useCallback((ctx: CanvasRenderingContext2D, gridToDraw: Grid<HexTile>) => {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        gridToDraw.forEach(hexData => {
-            const hex = new gridToDraw.Hex(hexData);
+        gridToDraw.forEach(hex => {
             const { x, y } = hex.toPoint();
             const corners = hex.corners();
 
