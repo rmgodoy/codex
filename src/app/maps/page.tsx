@@ -7,11 +7,10 @@ import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import MapListPanel from '@/components/map-list-panel';
 import MapEditorView from '@/components/map-editor-view';
 import TileEditorPanel from '@/components/tile-editor-panel';
-import type { MapData, NewMapData, HexTile } from '@/lib/types';
-import { useIsMobile } from '@/hooks/use-is-mobile';
-import { getMapById, updateMap, addMap, deleteMap } from '@/lib/idb';
+import type { MapData } from '@/lib/types';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { getMapById, updateMap } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
-import { produce } from 'immer';
 
 export default function MapsPage() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
@@ -31,10 +30,8 @@ export default function MapsPage() {
   useEffect(() => {
     const fetchMap = async () => {
       if (selectedMapId) {
-        setLoading(true);
         const data = await getMapById(selectedMapId);
         setMapData(data || null);
-        setLoading(false);
       } else {
         setMapData(null);
       }
@@ -42,7 +39,6 @@ export default function MapsPage() {
     fetchMap();
   }, [selectedMapId, dataVersion]);
 
-  const [loading, setLoading] = useState(false);
   const refreshList = () => setDataVersion(v => v + 1);
 
   const handleSelectMap = (id: string | null) => {
@@ -55,109 +51,47 @@ export default function MapsPage() {
     setSelectedMapId(null);
     setSelectedTileId(null);
     setIsCreatingNew(true);
-    setMapData(null);
   };
 
-  const handleSaveNewMap = async (data: { name: string; description: string; width: number; height: number; }) => {
-    try {
-      setLoading(true);
-      const tiles: HexTile[] = [];
-      for (let r = 0; r < data.height; r++) {
-        const r_offset = Math.floor(r / 2);
-        for (let q = -r_offset; q < data.width - r_offset; q++) {
-          const s = -q - r;
-          tiles.push({ id: `${q},${r},${s}`, q, r, s });
-        }
-      }
-      
-      const newMap: NewMapData = { ...data, description: data.description || '', tags: [], tiles };
-      const newId = await addMap(newMap);
-      toast({ title: "Map Created", description: `${data.name} has been created.` });
-      
-      refreshList();
+  const handleSaveSuccess = (id: string) => {
+    refreshList();
+    if (isCreatingNew) {
+      setSelectedMapId(id);
       setIsCreatingNew(false);
-      setSelectedMapId(newId);
-    } catch (error) {
-      toast({ variant: 'destructive', title: "Error", description: "Could not create map." });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleDeleteMap = async (id: string) => {
-    try {
-      await deleteMap(id);
-      toast({ title: "Map Deleted", description: "The map has been removed." });
-      if (selectedMapId === id) {
-        setSelectedMapId(null);
-        setMapData(null);
-      }
-      refreshList();
-    } catch (error) {
-       toast({ variant: 'destructive', title: "Error", description: "Could not delete map." });
+  const handleDeleteSuccess = () => {
+    refreshList();
+    setSelectedMapId(null);
+    setSelectedTileId(null);
+    setIsCreatingNew(false);
+  };
+
+  const handleEditCancel = () => {
+    if (isCreatingNew) {
+      setIsCreatingNew(false);
+    }
+    if (selectedTileId) {
+      setSelectedTileId(null);
     }
   };
   
   const handleMapUpdate = (updatedMap: MapData) => {
     setMapData(updatedMap);
   };
-  
-  const handleMapSettingsSave = async (updatedSettings: Partial<MapData>) => {
-    if (!mapData) return;
-    
-    const didResize = updatedSettings.width && updatedSettings.height && (updatedSettings.width !== mapData.width || updatedSettings.height !== mapData.height);
-    
-    const nextState = produce(mapData, draft => {
-        draft.name = updatedSettings.name ?? draft.name;
-        draft.description = updatedSettings.description ?? draft.description;
-        
-        if (didResize) {
-            draft.width = updatedSettings.width!;
-            draft.height = updatedSettings.height!;
-            const newTiles: HexTile[] = [];
-            for (let r = 0; r < draft.height; r++) {
-                const r_offset = Math.floor(r / 2);
-                for (let q = -r_offset; q < draft.width - r_offset; q++) {
-                    const s = -q - r;
-                    newTiles.push({ id: `${q},${r},${s}`, q, r, s });
-                }
-            }
-            draft.tiles = newTiles;
-            setSelectedTileId(null); // Deselect tile as grid has changed
-        }
-    });
-    
-    setMapData(nextState);
 
+  const handleSave = async () => {
+    if (!mapData) return;
     try {
-      await updateMap(nextState);
+      await updateMap(mapData);
       toast({ title: "Map Saved", description: "Your changes have been saved." });
-      refreshList(); // To update list if name changed
+      refreshList();
     } catch (error) {
       toast({ variant: "destructive", title: "Save Failed", description: "Could not save map changes." });
-      setMapData(mapData); // Revert optimistic update on failure
     }
   };
 
-  const handleTileUpdate = async (updatedTile: HexTile) => {
-    if (!mapData) return;
-    
-    const nextState = produce(mapData, draft => {
-        const tileIndex = draft.tiles.findIndex(t => t.id === updatedTile.id);
-        if (tileIndex !== -1) {
-            draft.tiles[tileIndex] = updatedTile;
-        }
-    });
-
-    setMapData(nextState);
-    
-    try {
-      await updateMap(nextState);
-    } catch (error) {
-      toast({ variant: "destructive", title: "Tile Save Failed", description: "Could not save tile change." });
-      // Note: We don't revert here to allow for further edits, it will just be out of sync
-    }
-  };
 
   if (!isClient) return null;
 
@@ -166,12 +100,13 @@ export default function MapsPage() {
       <MainLayout>
         <div className="flex w-full h-full overflow-hidden">
           <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
-            {selectedMapId && mapData && selectedTileId ? (
+            {selectedTileId && mapData ? (
               <TileEditorPanel
                 map={mapData}
                 tileId={selectedTileId}
                 onBack={() => setSelectedTileId(null)}
-                onTileUpdate={handleTileUpdate}
+                onMapUpdate={handleMapUpdate}
+                onSave={handleSave}
               />
             ) : (
               <MapListPanel
@@ -179,7 +114,6 @@ export default function MapsPage() {
                 onNewMap={handleNewMap}
                 selectedMapId={selectedMapId}
                 dataVersion={dataVersion}
-                onDeleteMap={handleDeleteMap}
               />
             )}
           </Sidebar>
@@ -188,12 +122,11 @@ export default function MapsPage() {
               key={selectedMapId ?? (isCreatingNew ? 'new' : 'placeholder')}
               mapData={mapData}
               isCreatingNew={isCreatingNew}
-              isLoading={loading}
-              onNewMapSave={handleSaveNewMap}
-              onEditCancel={handleNewMap}
+              onSaveSuccess={handleSaveSuccess}
+              onDeleteSuccess={handleDeleteSuccess}
+              onEditCancel={handleEditCancel}
               onSelectTile={setSelectedTileId}
               selectedTileId={selectedTileId}
-              onMapSettingsSave={handleMapSettingsSave}
             />
           </SidebarInset>
         </div>

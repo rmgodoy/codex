@@ -2,25 +2,24 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAllMaps } from '@/lib/idb';
+import { getAllMaps, getMapById } from '@/lib/idb';
 import type { MapData } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown, Play, Trash2 } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Play } from 'lucide-react';
 import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { TagInput } from '@/components/ui/tag-input';
 import Link from 'next/link';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface MapListPanelProps {
   onSelectMap: (id: string | null) => void;
   onNewMap: () => void;
   selectedMapId: string | null;
   dataVersion: number;
-  onDeleteMap: (id: string) => void;
 }
 
 export default function MapListPanel({ 
@@ -28,7 +27,6 @@ export default function MapListPanel({
   onNewMap, 
   selectedMapId, 
   dataVersion,
-  onDeleteMap,
 }: MapListPanelProps) {
   const [maps, setMaps] = useState<MapData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,32 +116,19 @@ export default function MapListPanel({
           ) : filteredAndSortedMaps.length > 0 ? (
             <ul className="space-y-1">
               {filteredAndSortedMaps.map(map => (
-                <li key={map.id} className="flex items-center gap-1 group">
+                <li key={map.id} className="flex items-center gap-1">
                   <button
                     onClick={() => onSelectMap(map.id)}
                     className={`flex-1 w-full text-left p-2 rounded-md transition-colors ${selectedMapId === map.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
                     {map.name}
                   </button>
-                  <Link href={`/maps/${map.id}/live`} passHref legacyBehavior>
-                    <a target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-accent/50" title="Run Map">
+                  <Button asChild variant="ghost" size="icon">
+                    <Link href={`/maps/${map.id}/live`}>
                       <Play className="h-4 w-4 text-accent-foreground" />
-                    </a>
-                  </Link>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="invisible group-hover:visible text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader><AlertDialogTitle>Delete Map?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete "{map.name}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDeleteMap(map.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                      <span className="sr-only">Run map {map.name}</span>
+                    </Link>
+                  </Button>
                 </li>
               ))}
             </ul>
