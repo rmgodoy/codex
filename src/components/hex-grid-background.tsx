@@ -30,7 +30,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
     if (typeof window !== 'undefined') {
         try {
             const color = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
-            foregroundColor.current = color;
+            foregroundColor.current = `hsl(${color})`;
         } catch (e) {
             console.error("Could not get foreground color from CSS", e);
         }
@@ -82,9 +82,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
 
             // Draw the icon directly onto the canvas
             if (tile.icon) {
-                const IconKey = tile.icon as keyof typeof TILE_ICON_DATA;
-                const iconNode = TILE_ICON_DATA[IconKey];
-
+                const iconNode = TILE_ICON_DATA[tile.icon as keyof typeof TILE_ICON_DATA];
                 if (Array.isArray(iconNode)) {
                     ctx.save();
 
