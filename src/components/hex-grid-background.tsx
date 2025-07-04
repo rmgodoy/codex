@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import type { MapData } from '@/lib/types';
 import { TILE_ICON_DATA } from '@/lib/map-data';
 
@@ -23,17 +23,6 @@ interface HexGridBackgroundProps {
 
 export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, width, height }: HexGridBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [iconColor, setIconColor] = useState('#FFFFFF'); // Default to white
-
-  useEffect(() => {
-    // This effect runs on the client-side, where we can access computed styles
-    if (typeof window !== 'undefined') {
-        const color = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
-        // The color is in HSL format like "275 40% 90%". Canvas wants "hsl(275, 40%, 90%)".
-        setIconColor(`hsl(${color})`);
-    }
-  }, []);
-
   
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -79,7 +68,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
             ctx.stroke();
 
             if (tile.icon && TILE_ICON_DATA[tile.icon]) {
-                ctx.strokeStyle = iconColor;
+                ctx.strokeStyle = 'hsl(var(--card-foreground))';
                 
                 const IconKey = tile.icon as keyof typeof TILE_ICON_DATA;
                 const iconNode = TILE_ICON_DATA[IconKey];
@@ -93,7 +82,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
                    ctx.scale(iconScale, iconScale);
                    ctx.translate(-12, -12);
                    
-                   ctx.lineWidth = 1.5;
+                   ctx.lineWidth = 2;
 
                    for (const node of iconNode) {
                        const [tag, attrs] = node;
@@ -115,7 +104,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
     }
 
     ctx.restore();
-  }, [viewport, width, height, map.tiles, selectedTileId, hexSize, iconColor]);
+  }, [viewport, width, height, map.tiles, selectedTileId, hexSize]);
 
   useEffect(() => {
     draw();
