@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from "@/components/main-layout";
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import MapListPanel from '@/components/map-list-panel';
@@ -64,7 +64,7 @@ export default function MapsPage() {
         const r_offset = Math.floor(r / 2);
         for (let q = -r_offset; q < data.width - r_offset; q++) {
           const s = -q - r;
-          tiles.push({ id: `${q},${r},${s}`, q, r, s, color: '#cccccc' });
+          tiles.push({ id: `${q},${r},${s}`, q, r, s });
         }
       }
       
@@ -117,7 +117,7 @@ export default function MapsPage() {
                 const r_offset = Math.floor(r / 2);
                 for (let q = -r_offset; q < draft.width - r_offset; q++) {
                     const s = -q - r;
-                    newTiles.push({ id: `${q},${r},${s}`, q, r, s, color: '#cccccc' });
+                    newTiles.push({ id: `${q},${r},${s}`, q, r, s });
                 }
             }
             draft.tiles = newTiles;
@@ -137,27 +137,25 @@ export default function MapsPage() {
     }
   };
 
-  const handleTileUpdate = useCallback(async (updatedTile: HexTile) => {
-    setMapData(currentMapData => {
-      if (!currentMapData) return null;
-      
-      const nextState = produce(currentMapData, draft => {
+  const handleTileUpdate = async (updatedTile: HexTile) => {
+    if (!mapData) return;
+    
+    const nextState = produce(mapData, draft => {
         const tileIndex = draft.tiles.findIndex(t => t.id === updatedTile.id);
         if (tileIndex !== -1) {
-          draft.tiles[tileIndex] = updatedTile;
+            draft.tiles[tileIndex] = updatedTile;
         }
-      });
-
-      // Save to DB in the background, not tied to the state update
-      updateMap(nextState).catch(error => {
-        toast({ variant: "destructive", title: "Tile Save Failed", description: "Could not save tile change." });
-        // Reverting here could cause data loss if user keeps editing, so we just toast.
-      });
-
-      return nextState;
     });
-  }, [toast]);
 
+    setMapData(nextState);
+    
+    try {
+      await updateMap(nextState);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Tile Save Failed", description: "Could not save tile change." });
+      // Note: We don't revert here to allow for further edits, it will just be out of sync
+    }
+  };
 
   if (!isClient) return null;
 

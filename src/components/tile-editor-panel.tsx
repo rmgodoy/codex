@@ -138,50 +138,30 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: T
   
   // Reset form when tile changes
   useEffect(() => {
-      const tileData = map.tiles.find(t => t.id === tileId);
+      const tile = map.tiles.find(t => t.id === tileId);
       form.reset({
-        title: tileData?.title || "",
-        description: tileData?.description || "",
-        color: tileData?.color || "#cccccc",
-        icon: tileData?.icon || "none",
-        dungeonIds: tileData?.dungeonIds || [],
+        title: tile?.title || "",
+        description: tile?.description || "",
+        color: tile?.color || "#cccccc",
+        icon: tile?.icon || "none",
+        dungeonIds: tile?.dungeonIds || [],
       });
   }, [tileId, map.tiles, form]);
 
-  const watchedValues = useDebounce(form.watch(), 300);
+  const watchedValues = useDebounce(form.watch(), 200);
 
   useEffect(() => {
-    if (!tile) return;
-    
-    const newValues = {
-        title: watchedValues.title || '',
-        description: watchedValues.description || '',
-        color: watchedValues.color || '#cccccc',
-        icon: watchedValues.icon === 'none' ? undefined : watchedValues.icon,
-        dungeonIds: watchedValues.dungeonIds || [],
-    };
-    
-    const currentTileValues = {
-        title: tile.title || '',
-        description: tile.description || '',
-        color: tile.color || '#cccccc',
-        icon: tile.icon,
-        dungeonIds: tile.dungeonIds || [],
-    };
-
-    // Only call update if there's an actual change
-    if (JSON.stringify(newValues) !== JSON.stringify(currentTileValues)) {
+    if (tile) {
       const updatedTile = produce(tile, draft => {
-        draft.title = newValues.title;
-        draft.description = newValues.description;
-        draft.color = newValues.color;
-        draft.icon = newValues.icon;
-        draft.dungeonIds = newValues.dungeonIds;
+        draft.title = watchedValues.title;
+        draft.description = watchedValues.description;
+        draft.color = watchedValues.color;
+        draft.icon = watchedValues.icon === "none" ? undefined : watchedValues.icon;
+        draft.dungeonIds = watchedValues.dungeonIds;
       });
       onTileUpdate(updatedTile);
     }
   }, [watchedValues, tile, onTileUpdate]);
-
 
   if (!tile) {
     return (
