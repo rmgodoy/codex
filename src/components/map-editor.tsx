@@ -31,13 +31,44 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     const [activeTool, setActiveTool] = useState<Tool>('brush');
     const [brush, setBrush] = useState({ color: '#68B35A', icon: 'none' });
     const [isPainting, setIsPainting] = useState(false);
-    
+    const [isSpacePressed, setIsSpacePressed] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
     useEffect(() => {
         if (debouncedMapData && JSON.stringify(debouncedMapData) !== JSON.stringify(lastSavedData)) {
             updateMap(debouncedMapData);
             setLastSavedData(debouncedMapData);
         }
     }, [debouncedMapData, lastSavedData]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === ' ' && !e.repeat) {
+                e.preventDefault();
+                setIsSpacePressed(true);
+            }
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === ' ') {
+                setIsSpacePressed(false);
+            }
+        };
+        const handleMouseDown = () => setIsDragging(true);
+        const handleMouseUp = () => setIsDragging(false);
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
+
 
     const handleHexInteraction = (q: number, r: number, s: number) => {
         if (activeTool === 'data') return;
@@ -88,29 +119,35 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
         }
     };
 
-    const handleMouseDown = (event: React.MouseEvent, q: number, r: number, s: number) => {
+    const handleHexMouseDown = (event: React.MouseEvent, q: number, r: number, s: number) => {
+        if (isSpacePressed) return;
         if (event.button === 0) { // Left click
             setIsPainting(true);
             handleHexInteraction(q, r, s);
         }
     };
 
-    const handleMouseEnter = (event: React.MouseEvent, q: number, r: number, s: number) => {
-        if (isPainting) {
+    const handleHexMouseEnter = (event: React.MouseEvent, q: number, r: number, s: number) => {
+        if (isPainting && !isSpacePressed) {
             handleHexInteraction(q, r, s);
         }
     };
 
-    const handleMouseUp = () => setIsPainting(false);
+    const handlePaintMouseUp = () => setIsPainting(false);
 
     const radius = mapData.radius || 10;
     const canvasWidth = (radius * 2 + 1) * HEX_SIZE * Math.sqrt(3);
     const canvasHeight = (radius * 2 + 1) * HEX_SIZE * 1.5;
 
     return (
-        <div className="w-full h-full bg-black relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
+        <div 
+            className="w-full h-full bg-black relative" 
+            style={{ cursor: isSpacePressed ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+            onMouseUp={handlePaintMouseUp} 
+            onMouseLeave={handlePaintMouseUp}
+        >
              <TransformWrapper
-                panning={{ disabled: isPainting, activationKeys: [], excluded: ["button"], rightMouseButton: true, leftMouseButton: false }}
+                panning={{ disabled: !isSpacePressed, excluded: ["button"] }}
                 wheel={{ step: 0.1 }}
                 options={{ minScale: 0.1, maxScale: 8, limitToBounds: false }}
             >
@@ -124,8 +161,8 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
                                     r={tile.r}
                                     s={tile.s}
                                     cellStyle={{ fill: tile.color || '#cccccc' }}
-                                    onMouseDown={(e) => handleMouseDown(e, tile.q, tile.r, tile.s)}
-                                    onMouseEnter={(e) => handleMouseEnter(e, tile.q, tile.r, tile.s)}
+                                    onMouseDown={(e) => handleHexMouseDown(e, tile.q, tile.r, tile.s)}
+                                    onMouseEnter={(e) => handleHexMouseEnter(e, tile.q, tile.r, tile.s)}
                                 >
                                     {tile.icon && tile.icon !== 'none' && (
                                         <foreignObject x={-HEX_SIZE/2} y={-HEX_SIZE/2} width={HEX_SIZE} height={HEX_SIZE}>
@@ -184,7 +221,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             </div>
 
             <div className="absolute bottom-4 right-4 text-xs text-gray-400 bg-gray-800/80 p-3 rounded-lg">
-                <p><span className="font-bold">Right-Click + Drag:</span> Pan</p>
+                <p><span className="font-bold">Space + Drag:</span> Pan</p>
                 <p><span className="font-bold">Scroll Wheel:</span> Zoom</p>
                 <p><span className="font-bold">Left Click:</span> Place Terrain</p>
             </div>
