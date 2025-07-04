@@ -125,10 +125,14 @@ export default function MapListPanel({
                   >
                     {map.name}
                   </button>
-                  <Link href={`/maps/${map.id}/live`} passHref legacyBehavior>
-                    <a target="_blank" rel="noopener noreferrer" className="p-2 rounded-md hover:bg-accent/50" title="Run Map">
-                      <Play className="h-4 w-4 text-accent-foreground" />
-                    </a>
+                  <Link
+                    href={`/maps/${map.id}/live`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-md hover:bg-accent/50"
+                    title="Run Map"
+                  >
+                    <Play className="h-4 w-4 text-accent-foreground" />
                   </Link>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
