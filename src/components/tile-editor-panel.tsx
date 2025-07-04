@@ -135,6 +135,18 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: T
       dungeonIds: tile?.dungeonIds || [],
     },
   });
+  
+  // Reset form when tile changes
+  useEffect(() => {
+      const tile = map.tiles.find(t => t.id === tileId);
+      form.reset({
+        title: tile?.title || "",
+        description: tile?.description || "",
+        color: tile?.color || "#cccccc",
+        icon: tile?.icon || "none",
+        dungeonIds: tile?.dungeonIds || [],
+      });
+  }, [tileId, map.tiles, form]);
 
   const watchedValues = useDebounce(form.watch(), 200);
 
@@ -149,8 +161,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: T
       });
       onTileUpdate(updatedTile);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedValues]);
+  }, [watchedValues, tile, onTileUpdate]);
 
   if (!tile) {
     return (
