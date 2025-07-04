@@ -297,8 +297,7 @@ export interface MapData {
   description: string;
   tags: string[];
   tiles: HexTile[];
-  width: number;
-  height: number;
+  radius: number;
 }
 
 export type NewMapData = Omit<MapData, 'id'>;
