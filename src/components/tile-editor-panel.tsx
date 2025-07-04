@@ -150,21 +150,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: T
       onTileUpdate(updatedTile);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedValues, tileId]);
-
-
-  useEffect(() => {
-    if (tile) {
-      form.reset({
-        title: tile.title || "",
-        description: tile.description || "",
-        color: tile.color || "#cccccc",
-        icon: tile.icon || "none",
-        dungeonIds: tile.dungeonIds || [],
-      });
-    }
-  }, [tileId, map, form]);
-
+  }, [watchedValues]);
 
   if (!tile) {
     return (
