@@ -146,7 +146,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
         selectedTileId={selectedTileId}
         onTileClick={onSelectTile}
       />
-      <div className="absolute top-4 right-40 z-10">
+      <div className="absolute top-4 right-14 flex gap-2">
         <MapSettingsDialog />
       </div>
     </div>

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import type { MapData } from '@/lib/types';
-import { TILE_ICON_DATA } from '@/lib/map-data';
+import { TILE_ICONS } from '@/lib/map-data';
 
 // Conversion from axial coordinates (q, r) to pixel coordinates (pointy-top hexagons)
 function axialToPixel(q: number, r: number, size: number) {
@@ -67,21 +67,24 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
             ctx.lineWidth = tile.id === selectedTileId ? (4 / zoom) : (2 / zoom);
             ctx.stroke();
 
-            if (tile.icon && TILE_ICON_DATA[tile.icon]) {
+            if (tile.icon && TILE_ICONS[tile.icon]) {
                 ctx.strokeStyle = 'hsl(var(--card-foreground))';
                 
-                const IconKey = tile.icon as keyof typeof TILE_ICON_DATA;
-                const iconNode = TILE_ICON_DATA[IconKey];
+                const IconKey = tile.icon as keyof typeof TILE_ICONS;
+                const iconComponent = TILE_ICONS[IconKey];
+                const iconNode = (iconComponent as any)?.iconNode;
 
                 if (iconNode) {
                    ctx.save();
-                   ctx.translate(x, y);
+                   ctx.translate(x, y); // translate to center of hex
                    
-                   const iconSize = hexSize * 0.7;
-                   const iconScale = iconSize / 24;
-                   ctx.scale(iconScale, iconScale);
-                   ctx.translate(-12, -12);
-                   
+                   const iconSize = hexSize * 0.7; // Desired icon size
+                   const scale = iconSize / 24; // Lucide icons are 24x24
+                   ctx.scale(scale, scale);
+                   ctx.translate(-12, -12); // Center the 24x24 icon
+
+                   // The original icon has stroke-width="2".
+                   // We set the line width relative to the new scale to maintain its visual weight.
                    ctx.lineWidth = 2;
 
                    for (const node of iconNode) {
