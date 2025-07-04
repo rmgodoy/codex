@@ -47,6 +47,11 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
             if (ctx) {
                 const iconNode = TILE_ICON_DATA[iconName as keyof typeof TILE_ICON_DATA];
                 
+                if (!Array.isArray(iconNode)) {
+                    console.warn(`Icon data for "${iconName}" is not iterable. Skipping.`);
+                    continue;
+                }
+
                 ctx.strokeStyle = iconColor;
                 ctx.lineWidth = 2.5; // A fixed stroke width for the cached image
                 ctx.translate(sourceIconSize / 2, sourceIconSize / 2);
