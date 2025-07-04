@@ -19,7 +19,7 @@ export function HexNode({ data, selected }: NodeProps<{ color?: string; icon?: s
         style={{ width: data.width, height: data.height }}
       >
         <svg
-          viewBox="-0.866 -1 1.732 2"
+          viewBox="-1.1 -1.1 2.2 2.2"
           width="100%"
           height="100%"
           style={{ overflow: 'visible' }}
@@ -29,7 +29,7 @@ export function HexNode({ data, selected }: NodeProps<{ color?: string; icon?: s
             points={points} 
             fill={data.color || 'hsl(var(--muted))'} 
             stroke={selected ? 'hsl(var(--ring))' : 'hsl(var(--border))'} 
-            strokeWidth={selected ? 0.08 : 0.04} 
+            strokeWidth={selected ? 0.10 : 0.05} 
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
