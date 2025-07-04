@@ -69,40 +69,22 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
 
             if (tile.icon && TILE_ICONS[tile.icon]) {
                 ctx.fillStyle = 'hsl(var(--card-foreground))';
-                ctx.strokeStyle = 'hsl(var(--card-foreground))'; // For icons that are stroked
                 ctx.font = `bold ${hexSize * 0.7}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 const IconKey = tile.icon as keyof typeof TILE_ICONS;
-                
-                const IconComponent = TILE_ICONS[IconKey];
-                const iconElement = IconComponent ? IconComponent({}) : null;
-
-                if (iconElement && iconElement.props.children) {
+                // A bit of a hack to render Lucide icons on canvas.
+                // This will vary by icon. A more robust solution might use SVGs.
+                const iconPath = (TILE_ICONS[IconKey] as any)?.render().props.children[0].props.d;
+                if (iconPath) {
+                   const p = new Path2D(iconPath);
                    ctx.save();
                    ctx.translate(x, y);
-                   const scale = (hexSize * 0.03); // Adjust this factor for desired icon size
+                   const scale = (hexSize * 0.025) / zoom;
                    ctx.scale(scale, scale);
                    ctx.translate(-12, -12); // Center the 24x24 icon
-
-                   const children = Array.isArray(iconElement.props.children)
-                     ? iconElement.props.children
-                     : [iconElement.props.children];
-
-                   ctx.lineWidth = (2 / scale) / zoom; // Adjust line width for canvas zoom and icon scale
-
-                   for (const child of children) {
-                     if (child && child.props) {
-                        if (child.props.d) {
-                           const p = new Path2D(child.props.d);
-                           ctx.stroke(p);
-                        } else if (child.type === 'circle' && child.props.cx) {
-                           ctx.beginPath();
-                           ctx.arc(child.props.cx, child.props.cy, child.props.r, 0, 2 * Math.PI);
-                           ctx.stroke();
-                        }
-                     }
-                   }
+                   ctx.stroke(p);
+                   ctx.fill(p);
                    ctx.restore();
                 } else {
                    ctx.fillText(tile.icon.charAt(0).toUpperCase(), x, y);
