@@ -105,7 +105,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     const canvasHeight = (mapData.radius * 2 + 1) * HEX_SIZE * 1.5;
 
     return (
-        <div className="w-full h-full bg-black flex relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
+        <div className="w-full h-full bg-black flex relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
              <TransformWrapper
                 panning={{ disabled: isPainting, activationKeys: [], excluded: ["button"], rightMouseButton: true, leftMouseButton: false }}
                 wheel={{ step: 0.1 }}
