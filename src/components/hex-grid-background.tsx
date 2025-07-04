@@ -1,38 +1,124 @@
-'use client';
 
-import React from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
-import { TILE_ICON_COMPONENTS } from '@/lib/map-data';
-import { cn } from '@/lib/utils';
+"use client";
 
-const points = "30,1 60,16 60,46 30,61 0,46 0,16";
+import React, { useEffect, useRef, useCallback } from 'react';
+import type { MapData } from '@/lib/types';
+import { TILE_ICON_DATA } from '@/lib/map-data';
 
-export function HexNode({ data, selected }: NodeProps<{ color?: string; icon?: string; width: number; height: number }>) {
-  const Icon = data.icon ? TILE_ICON_COMPONENTS[data.icon as keyof typeof TILE_ICON_COMPONENTS] : null;
+// Conversion from axial coordinates (q, r) to pixel coordinates (pointy-top hexagons)
+function axialToPixel(q: number, r: number, size: number) {
+  const x = size * Math.sqrt(3) * (q + r / 2);
+  const y = size * 3 / 2 * r;
+  return { x, y };
+}
+
+interface HexGridBackgroundProps {
+  map: MapData;
+  selectedTileId: string | null;
+  hexSize: number;
+  viewport: { x: number; y: number; scale: number };
+  width: number;
+  height: number;
+}
+
+export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, width, height }: HexGridBackgroundProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const { x: viewX, y: viewY, scale: zoom } = viewport;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.translate(viewX, viewY);
+    ctx.scale(zoom, zoom);
+
+    if (map.tiles) {
+        for (const tile of map.tiles) {
+            const { x, y } = axialToPixel(tile.q, tile.r, hexSize);
+
+            const tileWidth = hexSize * Math.sqrt(3);
+            const tileHeight = hexSize * 2;
+            if (
+                x < -viewX / zoom - tileWidth || x > (-viewX + width) / zoom ||
+                y < -viewY / zoom - tileHeight || y > (-viewY + height) / zoom
+            ) {
+                continue;
+            }
+
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = 2 * Math.PI / 6 * (i + 0.5);
+                const px = x + hexSize * Math.cos(angle);
+                const py = y + hexSize * Math.sin(angle);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            
+            ctx.fillStyle = tile.color || '#cccccc';
+            ctx.fill();
+            ctx.strokeStyle = tile.id === selectedTileId ? 'hsl(var(--ring))' : 'hsl(var(--border))';
+            ctx.lineWidth = tile.id === selectedTileId ? (3 / zoom) : (1 / zoom);
+            ctx.stroke();
+
+            // Draw the icon directly onto the canvas
+            if (tile.icon) {
+                const IconKey = tile.icon as keyof typeof TILE_ICON_DATA;
+                const iconNode = TILE_ICON_DATA[IconKey];
+
+                if (Array.isArray(iconNode)) {
+                    ctx.save();
+
+                    // Position and scale for drawing the icon
+                    ctx.translate(x, y); // Center of the hex
+                    const iconSize = hexSize * 0.7;
+                    const scaleFactor = iconSize / 24;
+                    ctx.scale(scaleFactor, scaleFactor);
+                    ctx.translate(-12, -12); // Center the 24x24 icon unit
+
+                    // Set drawing style
+                    ctx.strokeStyle = '#000000'; // Draw icon with black color
+                    ctx.lineWidth = 2.5 / scaleFactor; // Adjust line width based on scale
+
+                    // Draw the icon parts
+                    for (const node of iconNode) {
+                        const [tag, attrs] = node;
+                        if (tag === 'path' && attrs.d) {
+                            const p = new Path2D(attrs.d as string);
+                            ctx.stroke(p);
+                        } else if (tag === 'circle' && attrs.cx !== undefined && attrs.cy !== undefined && attrs.r !== undefined) {
+                            ctx.beginPath();
+                            ctx.arc(Number(attrs.cx), Number(attrs.cy), Number(attrs.r), 0, 2 * Math.PI);
+                            ctx.stroke();
+                        } else if (tag === 'rect' && attrs.x !== undefined && attrs.y !== undefined && attrs.width !== undefined && attrs.height !== undefined) {
+                            ctx.strokeRect(Number(attrs.x), Number(attrs.y), Number(attrs.width), Number(attrs.height));
+                        }
+                    }
+                    ctx.restore();
+                }
+            }
+        }
+    }
+    ctx.restore();
+  }, [viewport, width, height, map.tiles, selectedTileId, hexSize]);
+
+  useEffect(() => {
+    draw();
+  }, [draw]);
 
   return (
-    <>
-      <div className={cn("relative hex-node", selected && "z-10")} style={{ width: data.width, height: data.height }}>
-        <svg
-          viewBox="0 0 60 62"
-          width="100%"
-          height="100%"
-          style={{ overflow: 'visible' }}
-          className="drop-shadow-md"
-        >
-          <polygon 
-            points={points} 
-            fill={data.color || 'hsl(var(--muted))'} 
-            stroke={selected ? 'hsl(var(--ring))' : 'hsl(var(--border))'} 
-            strokeWidth={selected ? 4 : 2}
-          />
-          {Icon && <Icon color="hsl(var(--card-foreground))" size={30} x={15} y={16} />}
-        </svg>
-      </div>
-      <Handle type="source" position={Position.Top} style={{ visibility: 'hidden' }} />
-      <Handle type="source" position={Position.Right} style={{ visibility: 'hidden' }} />
-      <Handle type="source" position={Position.Bottom} style={{ visibility: 'hidden' }} />
-      <Handle type="source" position={Position.Left} style={{ visibility: 'hidden' }} />
-    </>
+    <canvas 
+        ref={canvasRef} 
+        width={width} 
+        height={height} 
+        className="absolute top-0 left-0"
+        style={{ pointerEvents: 'none', zIndex: 0 }}
+    />
   );
-}
+};
