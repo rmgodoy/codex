@@ -6,8 +6,7 @@ import MainLayout from "@/components/main-layout";
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import MapListPanel from '@/components/map-list-panel';
 import MapEditorView from '@/components/map-editor-view';
-import MapPaintPanel from '@/components/map-paint-panel';
-import TileDataPanel from '@/components/tile-data-panel';
+import TileEditorPanel from '@/components/tile-editor-panel';
 import type { MapData, NewMapData, HexTile } from '@/lib/types';
 import { getMapById, updateMap, addMap, deleteMap } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
@@ -192,38 +191,27 @@ export default function MapsPage() {
       <MainLayout>
         <div className="flex w-full h-full overflow-hidden">
           <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
-            {(() => {
-              if (!selectedMapId || !mapData) {
-                return (
-                  <MapListPanel
-                    onSelectMap={handleSelectMap}
-                    onNewMap={handleNewMap}
-                    selectedMapId={selectedMapId}
-                    dataVersion={dataVersion}
-                    onDeleteMap={handleDeleteMap}
-                  />
-                );
-              }
-              if (selectedTileId) {
-                return (
-                  <TileDataPanel
-                    map={mapData}
-                    tileId={selectedTileId}
-                    onBack={() => setSelectedTileId(null)}
-                    onTileUpdate={handleTileUpdate}
-                  />
-                );
-              }
-              return (
-                <MapPaintPanel
-                  onBackToMapList={() => handleSelectMap(null)}
-                  isBrushActive={isBrushActive}
-                  onBrushActiveChange={setIsBrushActive}
-                  onBrushSettingsChange={setBrushSettings}
-                  brushSettings={brushSettings}
-                />
-              );
-            })()}
+            {selectedMapId && mapData && selectedTileId ? (
+              <TileEditorPanel
+                key={selectedTileId}
+                map={mapData}
+                tileId={selectedTileId}
+                onBack={() => setSelectedTileId(null)}
+                onTileUpdate={handleTileUpdate}
+                isBrushActive={isBrushActive}
+                onBrushActiveChange={setIsBrushActive}
+                onBrushSettingsChange={setBrushSettings}
+                brushSettings={brushSettings}
+              />
+            ) : (
+              <MapListPanel
+                onSelectMap={handleSelectMap}
+                onNewMap={handleNewMap}
+                selectedMapId={selectedMapId}
+                dataVersion={dataVersion}
+                onDeleteMap={handleDeleteMap}
+              />
+            )}
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
             <MapEditorView
