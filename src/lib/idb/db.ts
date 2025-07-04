@@ -13,7 +13,6 @@ export const TREASURES_STORE_NAME = 'treasures';
 export const ALCHEMY_ITEMS_STORE_NAME = 'alchemicalItems';
 export const ROOMS_STORE_NAME = 'rooms';
 export const DUNGEONS_STORE_NAME = 'dungeons';
-export const MAPS_STORE_NAME = 'maps';
 
 export const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -57,9 +56,6 @@ export const getDb = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(DUNGEONS_STORE_NAME)) {
         db.createObjectStore(DUNGEONS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(MAPS_STORE_NAME)) {
-        db.createObjectStore(MAPS_STORE_NAME, { keyPath: 'id' });
       }
     };
 

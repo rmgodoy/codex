@@ -9,6 +9,5 @@ export * from './treasures';
 export * from './alchemicalItems';
 export * from './rooms';
 export * from './dungeons';
-export * from './maps';
 export * from './tags';
 export * from './import-export';
