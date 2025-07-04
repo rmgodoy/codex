@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -8,7 +7,6 @@ import ReactFlow, {
   Background,
   useNodesState,
   MiniMap,
-  useStore,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -22,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { ScrollArea } from "./ui/scroll-area";
 import { TILE_ICON_COMPONENTS } from "@/lib/map-data";
 import { HexNode } from './hex-grid-background';
-import { useDebounce } from "@/hooks/use-debounce";
 
 const nodeTypes = {
   hex: HexNode,
@@ -47,9 +44,6 @@ function LiveMapComponent({ mapId }: LiveMapViewProps) {
   const [linkedDungeons, setLinkedDungeons] = useState<Dungeon[]>([]);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
 
-  const { width, height, transform } = useStore(s => ({ width: s.width, height: s.height, transform: s.transform }));
-  const debouncedTransform = useDebounce(transform, 100);
-
   const selectedTile = useMemo(() => {
     if (!mapData || !selectedTileId) return null;
     return mapData.tiles.find(t => t.id === selectedTileId);
@@ -60,50 +54,28 @@ function LiveMapComponent({ mapId }: LiveMapViewProps) {
       setLoading(true);
       const data = await getMapById(mapId);
       setMapData(data || null);
+      if (data) {
+        const newNodes = data.tiles.map((tile) => {
+          const { x, y } = axialToPixel(tile.q, tile.r);
+          return {
+            id: tile.id,
+            type: 'hex',
+            position: { x, y },
+            data: {
+              color: tile.color,
+              icon: tile.icon,
+              width: hexGridSize * Math.sqrt(3),
+              height: hexGridSize * 2,
+            },
+            selectable: true,
+          };
+        });
+        setNodes(newNodes);
+      }
       setLoading(false);
     };
     fetchMap();
-  }, [mapId]);
-
-  useEffect(() => {
-    if (mapData?.tiles) {
-        const [x, y, zoom] = debouncedTransform;
-
-        const visibleTiles = mapData.tiles.filter(tile => {
-            const tileX = hexGridSize * Math.sqrt(3) * (tile.q + tile.r / 2);
-            const tileY = hexGridSize * 3 / 2 * tile.r;
-            
-            const tileWidth = hexGridSize * Math.sqrt(3);
-            const tileHeight = hexGridSize * 2;
-
-            return (
-                tileX * zoom + x < width &&
-                (tileX + tileWidth) * zoom + x > 0 &&
-                tileY * zoom + y < height &&
-                (tileY + tileHeight) * zoom + y > 0
-            );
-        });
-
-      const newNodes = visibleTiles.map((tile) => {
-        const { x, y } = axialToPixel(tile.q, tile.r);
-        return {
-          id: tile.id,
-          type: 'hex',
-          position: { x, y },
-          data: {
-            color: tile.color,
-            icon: tile.icon,
-            width: hexGridSize * Math.sqrt(3),
-            height: hexGridSize * 2,
-          },
-          selectable: true,
-        };
-      });
-      setNodes(newNodes);
-    } else {
-      setNodes([]);
-    }
-  }, [mapData, setNodes, debouncedTransform, width, height]);
+  }, [mapId, setNodes]);
 
   useEffect(() => {
     setNodes((nds) =>
