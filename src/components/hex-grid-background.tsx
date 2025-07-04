@@ -23,66 +23,19 @@ interface HexGridBackgroundProps {
 
 export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, width, height }: HexGridBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const iconCache = useRef<Map<string, HTMLCanvasElement>>(new Map());
-  const [isCacheReady, setIsCacheReady] = useState(false);
+  const [iconColor, setIconColor] = useState('#FFFFFF'); // Default to white
 
-  // Effect to pre-render icons to offscreen canvases for performance
   useEffect(() => {
-    const renderIconsToCache = () => {
-        if (typeof window === 'undefined') return;
-
+    // This effect runs on the client-side, where we can access computed styles
+    if (typeof window !== 'undefined') {
         const color = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
-        const iconColor = `hsl(${color})`;
-        const cache = new Map<string, HTMLCanvasElement>();
-        
-        // Use a slightly larger size for the source canvas for better quality when scaled down
-        const sourceIconSize = hexSize * 2;
+        // The color is in HSL format like "275 40% 90%". Canvas wants "hsl(275, 40%, 90%)".
+        setIconColor(`hsl(${color})`);
+    }
+  }, []);
 
-        for (const iconName in TILE_ICON_DATA) {
-            const offscreenCanvas = document.createElement('canvas');
-            offscreenCanvas.width = sourceIconSize;
-            offscreenCanvas.height = sourceIconSize;
-            const ctx = offscreenCanvas.getContext('2d');
-
-            if (ctx) {
-                const iconNode = TILE_ICON_DATA[iconName as keyof typeof TILE_ICON_DATA];
-                
-                ctx.strokeStyle = iconColor;
-                ctx.lineWidth = 2.5; // A fixed stroke width for the cached image
-                ctx.translate(sourceIconSize / 2, sourceIconSize / 2);
-                
-                const scale = (sourceIconSize * 0.7) / 24;
-                ctx.scale(scale, scale);
-                ctx.translate(-12, -12);
-                
-                for (const node of iconNode) {
-                    const [tag, attrs] = node;
-                    if (tag === 'path' && attrs.d) {
-                        const p = new Path2D(attrs.d as string);
-                        ctx.stroke(p);
-                    } else if (tag === 'circle' && attrs.cx !== undefined) {
-                        ctx.beginPath();
-                        ctx.arc(Number(attrs.cx), Number(attrs.cy), Number(attrs.r), 0, 2 * Math.PI);
-                        ctx.stroke();
-                    } else if (tag === 'rect' && attrs.x !== undefined) {
-                        ctx.strokeRect(Number(attrs.x), Number(attrs.y), Number(attrs.width), Number(attrs.height));
-                    }
-                }
-                cache.set(iconName, offscreenCanvas);
-            }
-        }
-        iconCache.current = cache;
-        setIsCacheReady(true);
-    };
-    
-    // We need a short delay to ensure CSS variables are available on first load.
-    const timeoutId = setTimeout(renderIconsToCache, 50);
-
-    return () => clearTimeout(timeoutId);
-  }, [hexSize]);
-
+  
   const draw = useCallback(() => {
-    if (!isCacheReady) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -122,28 +75,47 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
             ctx.fillStyle = tile.color || '#cccccc';
             ctx.fill();
             ctx.strokeStyle = tile.id === selectedTileId ? 'hsl(var(--ring))' : 'hsl(var(--border))';
-            ctx.lineWidth = tile.id === selectedTileId ? (3 / zoom) : (1 / zoom);
+            ctx.lineWidth = tile.id === selectedTileId ? (4 / zoom) : (2 / zoom);
             ctx.stroke();
 
-            // Draw the icon from the pre-rendered cache
-            if (tile.icon) {
-                const cachedIcon = iconCache.current.get(tile.icon);
-                if (cachedIcon) {
-                    const iconDrawSize = hexSize * 0.9;
-                    ctx.drawImage(
-                        cachedIcon,
-                        x - iconDrawSize / 2,
-                        y - iconDrawSize / 2,
-                        iconDrawSize,
-                        iconDrawSize
-                    );
+            if (tile.icon && TILE_ICON_DATA[tile.icon]) {
+                ctx.strokeStyle = iconColor;
+                
+                const IconKey = tile.icon as keyof typeof TILE_ICON_DATA;
+                const iconNode = TILE_ICON_DATA[IconKey];
+
+                if (iconNode) {
+                   ctx.save();
+                   ctx.translate(x, y);
+                   
+                   const iconSize = hexSize * 0.7;
+                   const iconScale = iconSize / 24;
+                   ctx.scale(iconScale, iconScale);
+                   ctx.translate(-12, -12);
+                   
+                   ctx.lineWidth = 1.5;
+
+                   for (const node of iconNode) {
+                       const [tag, attrs] = node;
+                       if (tag === 'path' && attrs.d) {
+                           const p = new Path2D(attrs.d);
+                           ctx.stroke(p);
+                       } else if (tag === 'circle' && attrs.cx !== undefined) {
+                           ctx.beginPath();
+                           ctx.arc(Number(attrs.cx), Number(attrs.cy), Number(attrs.r), 0, 2 * Math.PI);
+                           ctx.stroke();
+                       } else if (tag === 'rect' && attrs.x !== undefined) {
+                           ctx.strokeRect(Number(attrs.x), Number(attrs.y), Number(attrs.width), Number(attrs.height));
+                       }
+                   }
+                   ctx.restore();
                 }
             }
         }
     }
 
     ctx.restore();
-  }, [viewport, width, height, map.tiles, selectedTileId, hexSize, isCacheReady]);
+  }, [viewport, width, height, map.tiles, selectedTileId, hexSize, iconColor]);
 
   useEffect(() => {
     draw();
