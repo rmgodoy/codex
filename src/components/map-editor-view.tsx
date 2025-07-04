@@ -70,29 +70,9 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [isPainting, setIsPainting] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   
   const { width, height, transform } = useStore(s => ({ width: s.width, height: s.height, transform: s.transform }));
   const debouncedTransform = useDebounce(transform, 100);
-  
-  useEffect(() => {
-    const handleMouseUp = () => {
-      setIsPainting(false);
-    };
-
-    const wrapper = wrapperRef.current;
-    if (wrapper) {
-      wrapper.addEventListener('mouseup', handleMouseUp);
-      wrapper.addEventListener('mouseleave', handleMouseUp);
-    }
-
-    return () => {
-      if (wrapper) {
-        wrapper.removeEventListener('mouseup', handleMouseUp);
-        wrapper.removeEventListener('mouseleave', handleMouseUp);
-      }
-    };
-  }, []);
 
   const handleNodeMouseDown = useCallback((_event: React.MouseEvent, node: Node) => {
     if (editMode === 'paint' && _event.button === 0) {
@@ -264,8 +244,9 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 
   return (
     <div
-        ref={wrapperRef}
         className="w-full h-full bg-muted/30 relative"
+        onMouseUp={() => setIsPainting(false)}
+        onMouseLeave={() => setIsPainting(false)}
     >
       <ReactFlow
         nodes={nodes}
