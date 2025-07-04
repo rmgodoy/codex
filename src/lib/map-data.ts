@@ -1,15 +1,8 @@
 
 import type { LucideIcon } from 'lucide-react';
-import {
-  Mountain, Trees, Castle, Tent, HelpCircle, Skull, Warehouse, TowerControl
-} from 'lucide-react';
-import {
-  mountain, trees, castle, tent, helpCircle, skull, warehouse, towerControl as towerControlData
-} from 'lucide';
+import { Mountain, Trees, Castle, Tent, HelpCircle, Skull, Warehouse, TowerControl } from 'lucide-react';
 
-type IconNode = [string, object][];
-
-export const TILE_ICON_COMPONENTS: { [key: string]: LucideIcon } = {
+export const TILE_ICONS: { [key: string]: LucideIcon } = {
   mountain: Mountain,
   forest: Trees,
   city: Castle,
@@ -20,15 +13,4 @@ export const TILE_ICON_COMPONENTS: { [key: string]: LucideIcon } = {
   poi: HelpCircle,
 };
 
-export const TILE_ICON_DATA: { [key: string]: IconNode } = {
-  mountain,
-  forest: trees,
-  city: castle,
-  camp: tent,
-  dungeon: warehouse,
-  tower: towerControlData,
-  lair: skull,
-  poi: helpCircle,
-};
-
-export const TILE_ICON_NAMES = Object.keys(TILE_ICON_COMPONENTS);
+export const TILE_ICON_NAMES = Object.keys(TILE_ICONS);
