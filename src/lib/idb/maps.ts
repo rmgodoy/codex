@@ -1,6 +1,7 @@
 
 "use client";
 
+import { Hex, Grid, define, hexagon } from 'honeycomb-grid';
 import type { MapData, NewMapData } from '@/lib/types';
 import { getDb, generateId, MAPS_STORE_NAME } from './db';
 
@@ -28,22 +29,16 @@ export const addMap = async (mapData: Pick<MapData, 'name' | 'description'> & { 
     const db = await getDb();
     const store = db.transaction(MAPS_STORE_NAME, 'readwrite').objectStore(MAPS_STORE_NAME);
     
-    const tiles = [];
-    const radius = mapData.size;
-    for (let q = -radius; q <= radius; q++) {
-        const r1 = Math.max(-radius, -q - radius);
-        const r2 = Math.min(radius, -q + radius);
-        for (let r = r1; r <= r2; r++) {
-            const s = -q - r;
-            tiles.push({
-                id: `${q},${r},${s}`,
-                q,
-                r,
-                s,
-                color: '#cccccc',
-            });
-        }
-    }
+    const HexTile = define({ dimensions: 50, orientation: 'pointy' });
+    const grid = new Grid(HexTile, hexagon({ radius: mapData.size }));
+
+    const tiles = grid.map(hex => ({
+        id: hex.toString(),
+        q: hex.q,
+        r: hex.r,
+        s: hex.s,
+        color: '#cccccc',
+    }));
     
     const newMap: NewMapData = { 
         name: mapData.name,
