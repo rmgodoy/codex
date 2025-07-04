@@ -21,8 +21,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "./ui/switch";
-import { Separator } from "./ui/separator";
 
 const tileSchema = z.object({
   title: z.string().optional(),
@@ -36,12 +34,10 @@ type TileFormData = z.infer<typeof tileSchema>;
 
 const DungeonSelectionDialog = ({ 
   onSelectItems,
-  initialSelectedIds = [],
-  disabled = false
+  initialSelectedIds = [] 
 }: { 
   onSelectItems: (ids: string[]) => void,
-  initialSelectedIds?: string[],
-  disabled?: boolean
+  initialSelectedIds?: string[] 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
@@ -90,7 +86,7 @@ const DungeonSelectionDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" className="w-full" disabled={disabled}>
+        <Button type="button" variant="outline" className="w-full">
             <Warehouse className="mr-2 h-4 w-4"/> Link Dungeons
         </Button>
       </DialogTrigger>
@@ -124,13 +120,9 @@ interface TileEditorPanelProps {
   tileId: string;
   onBack: () => void;
   onTileUpdate: (updatedTile: HexTile) => void;
-  isBrushActive: boolean;
-  onBrushActiveChange: (isActive: boolean) => void;
-  brushSettings: { color: string; icon: string };
-  onBrushSettingsChange: (settings: { color: string; icon: string }) => void;
 }
 
-export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate, isBrushActive, onBrushActiveChange, brushSettings, onBrushSettingsChange }: TileEditorPanelProps) {
+export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: TileEditorPanelProps) {
   const tile = map.tiles.find(t => t.id === tileId);
 
   const form = useForm<TileFormData>({
@@ -144,6 +136,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate, isB
     },
   });
   
+  // Reset form when tile changes
   useEffect(() => {
       const tileData = map.tiles.find(t => t.id === tileId);
       form.reset({
@@ -155,48 +148,39 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate, isB
       });
   }, [tileId, map.tiles, form]);
 
-  const watchedValues = useDebounce(form.watch(), 200);
+  const watchedValues = useDebounce(form.watch(), 300);
 
   useEffect(() => {
     if (!tile) return;
-
-    if (isBrushActive) {
-      const newBrushSettings = {
-        color: watchedValues.color || '#cccccc',
-        icon: watchedValues.icon || 'none',
-      };
-      if (newBrushSettings.color !== brushSettings.color || newBrushSettings.icon !== brushSettings.icon) {
-        onBrushSettingsChange(newBrushSettings);
-      }
-    } else {
-      const currentTileValues = {
-          title: tile.title || '',
-          description: tile.description || '',
-          color: tile.color || '#cccccc',
-          icon: tile.icon || 'none',
-          dungeonIds: tile.dungeonIds || [],
-      };
-      
-      const newFormValues = {
+    
+    const newValues = {
         title: watchedValues.title || '',
         description: watchedValues.description || '',
         color: watchedValues.color || '#cccccc',
-        icon: watchedValues.icon || 'none',
+        icon: watchedValues.icon === 'none' ? undefined : watchedValues.icon,
         dungeonIds: watchedValues.dungeonIds || [],
-      };
+    };
+    
+    const currentTileValues = {
+        title: tile.title || '',
+        description: tile.description || '',
+        color: tile.color || '#cccccc',
+        icon: tile.icon,
+        dungeonIds: tile.dungeonIds || [],
+    };
 
-      if (JSON.stringify(newFormValues) !== JSON.stringify(currentTileValues)) {
-        const updatedTile = produce(tile, draft => {
-          draft.title = newFormValues.title;
-          draft.description = newFormValues.description;
-          draft.color = newFormValues.color;
-          draft.icon = newFormValues.icon === 'none' ? undefined : newFormValues.icon;
-          draft.dungeonIds = newFormValues.dungeonIds;
-        });
-        onTileUpdate(updatedTile);
-      }
+    // Only call update if there's an actual change
+    if (JSON.stringify(newValues) !== JSON.stringify(currentTileValues)) {
+      const updatedTile = produce(tile, draft => {
+        draft.title = newValues.title;
+        draft.description = newValues.description;
+        draft.color = newValues.color;
+        draft.icon = newValues.icon;
+        draft.dungeonIds = newValues.dungeonIds;
+      });
+      onTileUpdate(updatedTile);
     }
-  }, [watchedValues, tile, isBrushActive, onTileUpdate, onBrushSettingsChange, brushSettings]);
+  }, [watchedValues, tile, onTileUpdate]);
 
 
   if (!tile) {
@@ -226,10 +210,10 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate, isB
           <ScrollArea className="flex-1 overflow-y-auto pr-2">
             <div className="space-y-4">
               <FormField name="title" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} disabled={isBrushActive} /></FormControl></FormItem>
+                <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
               )} />
               <FormField name="description" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={5} disabled={isBrushActive} /></FormControl></FormItem>
+                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>
               )} />
               <FormField name="color" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Color</FormLabel><FormControl><Input type="color" {...field} /></FormControl></FormItem>
@@ -249,36 +233,20 @@ export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate, isB
                 </FormItem>
               )} />
               <div>
-                <Label className={isBrushActive ? 'text-muted-foreground' : ''}>Linked Dungeons</Label>
+                <Label>Linked Dungeons</Label>
                  <div className="mt-2">
                     <DungeonSelectionDialog
                         onSelectItems={(ids) => form.setValue('dungeonIds', ids, { shouldDirty: true })}
                         initialSelectedIds={linkedDungeons}
-                        disabled={isBrushActive}
                     />
                  </div>
-                 {linkedDungeons.length > 0 && !isBrushActive && (
+                 {linkedDungeons.length > 0 && (
                      <div className="mt-2 space-y-1">
                         {linkedDungeons.map(id => (
                             <Badge key={id} variant="secondary" className="mr-1 mb-1">Dungeon ID: {id.substring(0,6)}...</Badge>
                         ))}
                      </div>
                  )}
-              </div>
-              <Separator />
-              <div className="space-y-2 pt-2">
-                <div className="flex items-center justify-between">
-                    <FormLabel>Brush Mode</FormLabel>
-                    <Switch
-                        checked={isBrushActive}
-                        onCheckedChange={onBrushActiveChange}
-                    />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    {isBrushActive 
-                        ? "Changes to color & icon update the brush. Click and drag to paint."
-                        : "Enable to paint multiple tiles with the selected color and icon."}
-                </p>
               </div>
             </div>
           </ScrollArea>
