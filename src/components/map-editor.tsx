@@ -1,23 +1,30 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { HexGrid, Layout, Hexagon } from 'react-hexgrid';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { produce } from 'immer';
+import { Hex, Grid, defineHex } from 'honeycomb-grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TILE_ICON_NAMES, getIconSVG } from '@/lib/map-data';
-import type { MapData } from '@/lib/types';
+import type { MapData, HexTile } from '@/lib/types';
 import { updateMap } from '@/lib/idb';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Paintbrush, Spline, Milestone } from 'lucide-react';
+import { Paintbrush, Spline, Trash2, Milestone, Hand } from 'lucide-react';
 
 const HEX_SIZE = 50;
+
 type Tool = 'brush' | 'bucket' | 'data';
+
+// Helper function to convert pixel coordinates to hex coordinates
+const pixelToHex = (grid: Grid<HexTile>, x: number, y: number): Hex => {
+    const point = { x, y };
+    return grid.pointToHex(point);
+};
 
 interface MapEditorProps {
     initialMapData: MapData;
@@ -25,119 +32,181 @@ interface MapEditorProps {
 
 export default function MapEditor({ initialMapData }: MapEditorProps) {
     const [mapData, setMapData] = useState(initialMapData);
-    const debouncedMapData = useDebounce(mapData, 1000);
-
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [activeTool, setActiveTool] = useState<Tool>('brush');
     const [brush, setBrush] = useState({ color: '#68B35A', icon: 'none' });
+    const [iconImageCache, setIconImageCache] = useState<Map<string, HTMLImageElement>>(new Map());
+    const debouncedMapData = useDebounce(mapData, 1000);
     const [isPainting, setIsPainting] = useState(false);
     
+    const HexWithMetadata = useMemo(() => defineHex<HexTile>({ 
+        dimensions: HEX_SIZE, 
+        orientation: 'pointy',
+        origin: 'center'
+    }), []);
+    
+    const grid = useMemo(() => {
+        if (!mapData) return null;
+        const tiles = mapData.tiles.map(tile => new HexWithMetadata(tile));
+        return new Grid(HexWithMetadata, tiles);
+    }, [mapData, HexWithMetadata]);
+    
+    // Pre-load icon images
+    useEffect(() => {
+        const cache = new Map<string, HTMLImageElement>();
+        TILE_ICON_NAMES.forEach(iconName => {
+            const svgString = getIconSVG(iconName, 'black');
+            const img = new Image();
+            img.src = `data:image/svg+xml;base64,${btoa(svgString)}`;
+            img.onload = () => {
+                cache.set(iconName, img);
+            };
+        });
+        setIconImageCache(cache);
+    }, []);
+
+    // Auto-save debounced data
     useEffect(() => {
         if (debouncedMapData && debouncedMapData !== initialMapData) {
             updateMap(debouncedMapData);
         }
     }, [debouncedMapData, initialMapData]);
 
-    const handleHexInteraction = (q: number, r: number, s: number) => {
+    const drawMap = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !grid) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        grid.forEach(hex => {
+            const { x, y } = hex.toPoint();
+            const corners = hex.corners();
+
+            ctx.beginPath();
+            corners.forEach((corner, i) => {
+                const point = { x: corner.x + x, y: corner.y + y };
+                if (i === 0) ctx.moveTo(point.x, point.y);
+                else ctx.lineTo(point.x, point.y);
+            });
+            ctx.closePath();
+            
+            ctx.fillStyle = hex.color || '#cccccc';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            if (hex.icon && iconImageCache.has(hex.icon)) {
+                const img = iconImageCache.get(hex.icon)!;
+                const iconSize = HEX_SIZE * 0.8;
+                ctx.drawImage(img, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+            }
+        });
+    }, [grid, iconImageCache]);
+    
+    useEffect(() => {
+        drawMap();
+    }, [drawMap]);
+    
+    const handleCanvasInteraction = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (activeTool === 'data') return;
 
+        const canvas = canvasRef.current;
+        if (!canvas || !grid) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const transform = e.currentTarget.style.transform;
+        const matrix = new DOMMatrix(transform);
+        
+        const scale = matrix.a;
+        const panX = matrix.e;
+        const panY = matrix.f;
+        
+        const canvasX = (e.clientX - rect.left - panX) / scale;
+        const canvasY = (e.clientY - rect.top - panY) / scale;
+
+        const targetHexCoords = pixelToHex(grid, canvasX, canvasY);
+
         if (activeTool === 'brush') {
-            setMapData(currentMapData => produce(currentMapData, draft => {
-                const tile = draft.tiles.find(t => t.q === q && t.r === r && t.s === s);
-                if (tile) {
-                    tile.color = brush.color;
-                    tile.icon = brush.icon === 'none' ? undefined : brush.icon;
-                }
-            }));
+            const targetHex = grid.get(targetHexCoords);
+            if (targetHex) {
+                setMapData(currentMapData => produce(currentMapData, draft => {
+                    if (!draft) return;
+                    const tile = draft.tiles.find(t => t.q === targetHex.q && t.r === targetHex.r);
+                    if (tile) {
+                        tile.color = brush.color;
+                        tile.icon = brush.icon === 'none' ? undefined : brush.icon;
+                    }
+                }));
+            }
         } else if (activeTool === 'bucket') {
-            const startTile = mapData.tiles.find(t => t.q === q && t.r === r && t.s === s);
-            if (!startTile || (startTile.color === brush.color && (startTile.icon || 'none') === brush.icon)) return;
-
-            const startColor = startTile.color || '#cccccc';
-            const startIcon = startTile.icon;
-
-            const queue = [{q,r,s}];
-            const visited = new Set<string>([`${q},${r},${s}`]);
+            const startHex = grid.get(targetHexCoords);
+            if (!startHex || (startHex.color === brush.color && (startHex.icon || 'none') === brush.icon)) return;
             
-            const directions = [[1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1]];
+            const startColor = startHex.color || '#cccccc';
+            const startIcon = startHex.icon;
 
+            const queue: Hex[] = [startHex];
+            const visited = new Set<string>([startHex.toString()]);
+            
             setMapData(currentMapData => produce(currentMapData, draft => {
+                if (!draft) return;
                 while(queue.length > 0) {
                     const current = queue.shift()!;
-                    const tile = draft.tiles.find(t => t.q === current.q && t.r === current.r && t.s === current.s);
+                    const tile = draft.tiles.find(t => t.q === current.q && t.r === current.r);
                     if (tile) {
                         tile.color = brush.color;
                         tile.icon = brush.icon === 'none' ? undefined : brush.icon;
                     }
 
-                    for (const dir of directions) {
-                        const neighborCoord = {q: current.q + dir[0], r: current.r + dir[1], s: current.s + dir[2]};
-                        const neighborId = `${neighborCoord.q},${neighborCoord.r},${neighborCoord.s}`;
-                        
-                        if (!visited.has(neighborId)) {
-                            visited.add(neighborId);
-                            const neighbor = mapData.tiles.find(t => t.q === neighborCoord.q && t.r === neighborCoord.r && t.s === neighborCoord.s);
-                            if (neighbor && (neighbor.color || '#cccccc') === startColor && neighbor.icon === startIcon) {
+                    grid.neighborsOf(current).forEach(neighbor => {
+                        if (neighbor && !visited.has(neighbor.toString())) {
+                            visited.add(neighbor.toString());
+                            if ((neighbor.color || '#cccccc') === startColor && neighbor.icon === startIcon) {
                                 queue.push(neighbor);
                             }
                         }
-                    }
+                    });
                 }
             }));
         }
     };
-
-    const handleMouseDown = (event: React.MouseEvent, q: number, r: number, s: number) => {
-        if (event.button === 0) { // Left click
-            setIsPainting(true);
-            handleHexInteraction(q, r, s);
-        }
-    };
-
-    const handleMouseEnter = (event: React.MouseEvent, q: number, r: number, s: number) => {
-        if (isPainting) {
-            handleHexInteraction(q, r, s);
-        }
-    };
-
-    const handleMouseUp = () => setIsPainting(false);
     
-    const canvasWidth = (mapData.radius * 2 + 1) * HEX_SIZE * Math.sqrt(3);
-    const canvasHeight = (mapData.radius * 2 + 1) * HEX_SIZE * 1.5;
+    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (e.button === 0) { // Left click
+            setIsPainting(true);
+            handleCanvasInteraction(e);
+        }
+    };
+    
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (isPainting) {
+            handleCanvasInteraction(e);
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsPainting(false);
+    };
 
     return (
-        <div className="w-full h-full bg-black flex relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+        <div className="w-full h-full bg-black flex relative">
              <TransformWrapper
-                panning={{ disabled: isPainting, activationKeys: [], excluded: ["button"], rightMouseButton: true, leftMouseButton: false }}
+                panning={{ disabled: isPainting, activationKeys: ['Control'], excluded: ["button"] }}
                 wheel={{ step: 0.1 }}
-                options={{ minScale: 0.1, maxScale: 8, limitToBounds: false }}
+                options={{ minScale: 0.1, maxScale: 8 }}
             >
                 <TransformComponent wrapperClass="w-full h-full" contentClass="w-full h-full">
-                    <HexGrid width={canvasWidth} height={canvasHeight} viewBox={`-50 -50 ${canvasWidth} ${canvasHeight}`}>
-                        <Layout size={{ x: HEX_SIZE, y: HEX_SIZE }} flat={false} spacing={1.05} origin={{ x: 0, y: 0 }}>
-                            {mapData.tiles.map(tile => (
-                                <Hexagon
-                                    key={tile.id}
-                                    q={tile.q}
-                                    r={tile.r}
-                                    s={tile.s}
-                                    cellStyle={{ fill: tile.color || '#cccccc' }}
-                                    onMouseDown={(e) => handleMouseDown(e, tile.q, tile.r, tile.s)}
-                                    onMouseEnter={(e) => handleMouseEnter(e, tile.q, tile.r, tile.s)}
-                                >
-                                    {tile.icon && tile.icon !== 'none' && (
-                                        <foreignObject x={-HEX_SIZE/2} y={-HEX_SIZE/2} width={HEX_SIZE} height={HEX_SIZE}>
-                                           <img 
-                                                xmlns="http://www.w3.org/1999/xhtml"
-                                                src={`data:image/svg+xml;base64,${btoa(getIconSVG(tile.icon, '#000000'))}`}
-                                                style={{ width: '70%', height: '70%', margin: '15%', objectFit: 'contain', pointerEvents: 'none' }}
-                                                alt={tile.icon}
-                                            />
-                                        </foreignObject>
-                                    )}
-                                </Hexagon>
-                            ))}
-                        </Layout>
-                    </HexGrid>
+                    <canvas
+                        ref={canvasRef}
+                        width={mapData.width * HEX_SIZE * 2}
+                        height={mapData.height * HEX_SIZE * 2}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                    />
                 </TransformComponent>
             </TransformWrapper>
             
@@ -181,7 +250,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             </div>
 
             <div className="absolute bottom-4 right-4 text-xs text-gray-400 bg-gray-800/80 p-3 rounded-lg">
-                <p><span className="font-bold">Right-Click + Drag:</span> Pan</p>
+                <p><span className="font-bold">Ctrl + Drag:</span> Pan</p>
                 <p><span className="font-bold">Scroll Wheel:</span> Zoom</p>
                 <p><span className="font-bold">Left Click:</span> Place Terrain</p>
             </div>
