@@ -35,7 +35,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'map';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon';
 
 export interface Tag {
   name: string;
@@ -277,27 +277,3 @@ export interface Dungeon {
 }
 
 export type NewDungeon = Omit<Dungeon, 'id'>;
-
-// Map Types
-export interface HexTile {
-  id: string; // e.g., "1,-1,0"
-  q: number;
-  r: number;
-  s: number;
-  title?: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  dungeonIds?: string[];
-}
-
-export interface MapData {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  tiles: HexTile[];
-  radius: number;
-}
-
-export type NewMapData = Omit<MapData, 'id'>;
