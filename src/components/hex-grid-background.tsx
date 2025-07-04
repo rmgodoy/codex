@@ -69,36 +69,39 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
 
             if (tile.icon && TILE_ICONS[tile.icon]) {
                 ctx.fillStyle = 'hsl(var(--card-foreground))';
-                ctx.strokeStyle = 'hsl(var(--card-foreground))';
+                ctx.strokeStyle = 'hsl(var(--card-foreground))'; // For icons that are stroked
                 ctx.font = `bold ${hexSize * 0.7}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 const IconKey = tile.icon as keyof typeof TILE_ICONS;
                 
                 const IconComponent = TILE_ICONS[IconKey];
-                const iconNode = (IconComponent as any)?.iconNode;
+                const iconElement = IconComponent ? IconComponent({}) : null;
 
-                if (iconNode) {
+                if (iconElement && iconElement.props.children) {
                    ctx.save();
                    ctx.translate(x, y);
-                   const scale = (hexSize * 0.03);
+                   const scale = (hexSize * 0.03); // Adjust this factor for desired icon size
                    ctx.scale(scale, scale);
-                   ctx.translate(-12, -12);
+                   ctx.translate(-12, -12); // Center the 24x24 icon
 
-                   ctx.lineWidth = (2 / scale) / zoom;
+                   const children = Array.isArray(iconElement.props.children)
+                     ? iconElement.props.children
+                     : [iconElement.props.children];
 
-                   for (const node of iconNode) {
-                       const [tag, attrs] = node;
-                       if (tag === 'path' && attrs.d) {
-                           const p = new Path2D(attrs.d);
+                   ctx.lineWidth = (2 / scale) / zoom; // Adjust line width for canvas zoom and icon scale
+
+                   for (const child of children) {
+                     if (child && child.props) {
+                        if (child.props.d) {
+                           const p = new Path2D(child.props.d);
                            ctx.stroke(p);
-                       } else if (tag === 'circle' && attrs.cx !== undefined) {
+                        } else if (child.type === 'circle' && child.props.cx) {
                            ctx.beginPath();
-                           ctx.arc(attrs.cx, attrs.cy, attrs.r, 0, 2 * Math.PI);
+                           ctx.arc(child.props.cx, child.props.cy, child.props.r, 0, 2 * Math.PI);
                            ctx.stroke();
-                       } else if (tag === 'rect' && attrs.x !== undefined) {
-                           ctx.strokeRect(attrs.x, attrs.y, attrs.width, attrs.height);
-                       }
+                        }
+                     }
                    }
                    ctx.restore();
                 } else {
