@@ -39,16 +39,16 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     const debouncedMapData = useDebounce(mapData, 1000);
     const [isPainting, setIsPainting] = useState(false);
     
-    // Create the grid instance
+    const HexWithMetadata = useMemo(() => defineHex<HexTile>({ 
+        dimensions: HEX_SIZE, 
+        orientation: 'pointy',
+        origin: 'center'
+    }), []);
+    
     const grid = useMemo(() => {
-        const HexWithMetadata = defineHex<HexTile>({ 
-            dimensions: HEX_SIZE, 
-            orientation: 'pointy',
-            origin: 'center'
-        });
-        const tiles = initialMapData.tiles.map(tile => new HexWithMetadata(tile));
+        const tiles = mapData.tiles.map(tile => new HexWithMetadata(tile));
         return new Grid(HexWithMetadata, tiles);
-    }, [initialMapData.tiles]);
+    }, [mapData.tiles, HexWithMetadata]);
     
     // Pre-load icon images
     useEffect(() => {
@@ -71,10 +71,14 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
         }
     }, [debouncedMapData, initialMapData]);
 
-    const drawMap = useCallback((ctx: CanvasRenderingContext2D, gridToDraw: Grid<HexTile>) => {
+    const drawMap = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        gridToDraw.forEach(hexData => {
-            const hex = new gridToDraw.Hex(hexData);
+        grid.forEach(hex => {
             const { x, y } = hex.toPoint();
             const corners = hex.corners();
 
@@ -98,26 +102,12 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
                 ctx.drawImage(img, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
             }
         });
-    }, [iconImageCache]);
+    }, [grid, iconImageCache]);
     
-    // Initial draw
+    // Draw map whenever the grid changes
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if(ctx) drawMap(ctx, grid);
-        }
-    }, [grid, drawMap]);
-    
-    // Re-draw canvas when mapData changes
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            const gridWithMetadata = new Grid(grid.Hex, mapData.tiles.map(tile => new grid.Hex(tile)));
-            if (ctx) drawMap(ctx, gridWithMetadata);
-        }
-    }, [mapData, grid.Hex, drawMap]);
+        drawMap();
+    }, [drawMap]);
     
     const handleCanvasInteraction = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (activeTool === 'data') return; // Data tool doesn't paint
@@ -150,7 +140,6 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
                 }));
             }
         } else if (activeTool === 'bucket') {
-            // Flood fill logic
             const startHex = grid.get(targetHexCoords);
             if (!startHex || (startHex.color === brush.color && (startHex.icon || 'none') === brush.icon)) return;
             
@@ -238,7 +227,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
                           <Button key={iconName} variant="ghost" className={`h-14 w-14 p-0 bg-gray-700/50 hover:bg-gray-600 ${isSelected ? 'ring-2 ring-green-400' : ''}`}
                             onClick={() => setBrush(b => ({...b, icon: iconName}))}
                           >
-                            <img src={`data:image/svg+xml;base64,${btoa(iconSVG)}`} className="h-8 w-8"/>
+                            <img src={`data:image/svg+xml;base64,${btoa(iconSVG)}`} className="h-8 w-8" alt={iconName}/>
                           </Button>
                         )
                     })}
