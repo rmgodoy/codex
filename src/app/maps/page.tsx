@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MainLayout from "@/components/main-layout";
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import MapListPanel from '@/components/map-list-panel';
@@ -12,6 +12,7 @@ import type { MapData, NewMapData, HexTile } from '@/lib/types';
 import { getMapById, updateMap, addMap, deleteMap } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
 import { produce } from 'immer';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function MapsPage() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
@@ -25,8 +26,8 @@ export default function MapsPage() {
 
   const [editMode, setEditMode] = useState<'paint' | 'data'>('paint');
   const [brushSettings, setBrushSettings] = useState({ color: '#cccccc', icon: 'none' });
-  
-  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedMapData = useDebounce(mapData, 1000);
 
   useEffect(() => {
     setIsClient(true);
@@ -48,23 +49,12 @@ export default function MapsPage() {
 
   // Debounced auto-save
   useEffect(() => {
-    if (mapData && !isCreatingNew) {
-      if (autosaveTimeoutRef.current) {
-        clearTimeout(autosaveTimeoutRef.current);
-      }
-      autosaveTimeoutRef.current = setTimeout(() => {
-        updateMap(mapData).catch(error => {
-          toast({ variant: "destructive", title: "Auto-save Failed", description: "Could not save map changes." });
+    if (debouncedMapData && !isCreatingNew) {
+        updateMap(debouncedMapData).catch(error => {
+            toast({ variant: "destructive", title: "Auto-save Failed", description: "Could not save map changes." });
         });
-      }, 1000); // 1 second debounce delay
     }
-
-    return () => {
-      if (autosaveTimeoutRef.current) {
-        clearTimeout(autosaveTimeoutRef.current);
-      }
-    };
-  }, [mapData, isCreatingNew, toast]);
+  }, [debouncedMapData, isCreatingNew, toast]);
 
 
   const [loading, setLoading] = useState(false);
