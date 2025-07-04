@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import ReactFlow, { MiniMap, Controls, Background, Node, Edge, ReactFlowProvider, useReactFlow } from 'reactflow';
+import ReactFlow, { MiniMap, Controls, Background, Node, Edge, ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { HexNode } from './hex-node';
-import { addMap } from '@/lib/idb';
+import { getMapById, addMap, updateMap } from '@/lib/idb';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import type { MapData, HexTile, NewMapData } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { PlusCircle } from 'lucide-react';
 
 const nodeTypes = {
   hex: HexNode,
@@ -31,27 +32,41 @@ const mapSchema = z.object({
 type MapFormData = z.infer<typeof mapSchema>;
 
 interface MapEditorViewProps {
-  mapData: MapData | null;
+  mapId: string | null;
   isCreatingNew: boolean;
   onSaveSuccess: (id: string) => void;
   onDeleteSuccess: () => void;
   onEditCancel: () => void;
   onSelectTile: (id: string | null) => void;
-  selectedTileId: string | null;
 }
 
 const hexWidth = 100;
 const hexHeight = 86.6;
 
-const MapEditorComponent = ({ mapData, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onSelectTile, selectedTileId }: MapEditorViewProps) => {
+const MapEditorComponent = ({ mapId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onSelectTile }: MapEditorViewProps) => {
+  const [mapData, setMapData] = useState<MapData | null>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
   const { toast } = useToast();
-  const { setNodes: setReactFlowNodes, getNodes, setEdges } = useReactFlow();
 
   const form = useForm<MapFormData>({
     resolver: zodResolver(mapSchema),
     defaultValues: { name: "", description: "", width: 10, height: 10 },
   });
-  
+
+  useEffect(() => {
+    const fetchMap = async () => {
+      if (mapId) {
+        const data = await getMapById(mapId);
+        setMapData(data || null);
+      } else {
+        setMapData(null);
+      }
+    };
+    if (!isCreatingNew) {
+      fetchMap();
+    }
+  }, [mapId, isCreatingNew]);
+
   useEffect(() => {
     if (mapData) {
       const newNodes = mapData.tiles.map(tile => {
@@ -68,24 +83,13 @@ const MapEditorComponent = ({ mapData, isCreatingNew, onSaveSuccess, onDeleteSuc
             height: hexHeight
           },
           draggable: false,
-          selectable: true,
         };
       });
-      setReactFlowNodes(newNodes);
+      setNodes(newNodes);
     } else {
-      setReactFlowNodes([]);
+      setNodes([]);
     }
-  }, [mapData, setReactFlowNodes]);
-
-  useEffect(() => {
-    setReactFlowNodes((nodes) =>
-      nodes.map((node) => ({
-        ...node,
-        selected: node.id === selectedTileId,
-      }))
-    );
-  }, [selectedTileId, setReactFlowNodes]);
-
+  }, [mapData]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     onSelectTile(node.id);
@@ -163,6 +167,10 @@ const MapEditorComponent = ({ mapData, isCreatingNew, onSaveSuccess, onDeleteSuc
   return (
     <div className="w-full h-full bg-muted/30">
       <ReactFlow
+        nodes={nodes}
+        onNodesChange={() => {}}
+        edges={[]}
+        onEdgesChange={() => {}}
         nodeTypes={nodeTypes}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
@@ -170,7 +178,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, onSaveSuccess, onDeleteSuc
         fitView
       >
         <Controls />
-        <MiniMap nodeStrokeWidth={3} nodeColor={(n) => n.style?.background as string || '#fff'} />
+        <MiniMap />
         <Background />
       </ReactFlow>
     </div>
