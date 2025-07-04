@@ -46,9 +46,10 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     }), []);
     
     const grid = useMemo(() => {
+        if (!mapData) return null;
         const tiles = mapData.tiles.map(tile => new HexWithMetadata(tile));
         return new Grid(HexWithMetadata, tiles);
-    }, [mapData.tiles, HexWithMetadata]);
+    }, [mapData, HexWithMetadata]);
     
     // Pre-load icon images
     useEffect(() => {
@@ -73,7 +74,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
 
     const drawMap = useCallback(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !grid) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -104,16 +105,15 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
         });
     }, [grid, iconImageCache]);
     
-    // Draw map whenever the grid changes
     useEffect(() => {
         drawMap();
     }, [drawMap]);
     
     const handleCanvasInteraction = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (activeTool === 'data') return; // Data tool doesn't paint
+        if (activeTool === 'data') return;
 
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !grid) return;
 
         const rect = canvas.getBoundingClientRect();
         const transform = e.currentTarget.style.transform;
@@ -132,6 +132,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             const targetHex = grid.get(targetHexCoords);
             if (targetHex) {
                 setMapData(currentMapData => produce(currentMapData, draft => {
+                    if (!draft) return;
                     const tile = draft.tiles.find(t => t.q === targetHex.q && t.r === targetHex.r);
                     if (tile) {
                         tile.color = brush.color;
@@ -150,6 +151,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             const visited = new Set<string>([startHex.toString()]);
             
             setMapData(currentMapData => produce(currentMapData, draft => {
+                if (!draft) return;
                 while(queue.length > 0) {
                     const current = queue.shift()!;
                     const tile = draft.tiles.find(t => t.q === current.q && t.r === current.r);
