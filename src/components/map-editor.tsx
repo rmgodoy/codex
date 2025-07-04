@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { produce } from 'immer';
-import { Hex, Grid, defineHex, rectangle, hexagon } from 'honeycomb-grid';
+import { Hex, Grid, define, rectangle, hexagon } from 'honeycomb-grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { TILE_ICON_NAMES, getIconSVG } from '@/lib/map-data';
 import type { MapData, HexTile } from '@/lib/types';
 import { updateMap } from '@/lib/idb';
 import { useDebounce } from '@/hooks/use-debounce';
-import { Paintbrush, Spline, Trash2, Milestone, Hand } from 'lucide-react';
+import { PaintBrush, Spline, Trash2, Milestone, Hand } from 'lucide-react';
 
 const HEX_SIZE = 50;
 
@@ -41,7 +41,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     
     // Create the grid instance
     const grid = useMemo(() => {
-        const HexWithMetadata = defineHex<HexTile>({ 
+        const HexWithMetadata = define<HexTile>({ 
             dimensions: HEX_SIZE, 
             orientation: 'pointy',
             origin: 'center'
@@ -251,7 +251,7 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             </div>
             
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-gray-800/80 text-white p-2 rounded-full backdrop-blur-sm">
-                <Button variant="ghost" size="icon" className={`rounded-full ${activeTool === 'brush' ? 'bg-green-500/50' : ''}`} onClick={() => setActiveTool('brush')} title="Brush Tool"><Paintbrush/></Button>
+                <Button variant="ghost" size="icon" className={`rounded-full ${activeTool === 'brush' ? 'bg-green-500/50' : ''}`} onClick={() => setActiveTool('brush')} title="Brush Tool"><PaintBrush/></Button>
                 <Button variant="ghost" size="icon" className={`rounded-full ${activeTool === 'bucket' ? 'bg-green-500/50' : ''}`} onClick={() => setActiveTool('bucket')} title="Paint Bucket"><Spline/></Button>
                 <Separator orientation="vertical" className="h-6 bg-gray-600"/>
                 <Button variant="ghost" size="icon" className={`rounded-full ${activeTool === 'data' ? 'bg-green-500/50' : ''}`} onClick={() => setActiveTool('data')} title="Data Tool"><Milestone/></Button>
@@ -265,4 +265,3 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
         </div>
     );
 }
-    
