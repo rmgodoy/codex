@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +14,7 @@ import { ArrowLeft } from "lucide-react";
 import type { MapData, HexTile } from "@/lib/types";
 import { TILE_ICON_NAMES } from "@/lib/map-data";
 import { useDebounce } from "@/hooks/use-debounce";
+import { produce } from 'immer';
 
 const tileSchema = z.object({
   title: z.string().optional(),
@@ -29,11 +30,10 @@ interface TileEditorPanelProps {
   map: MapData;
   tileId: string;
   onBack: () => void;
-  onSave: () => void;
-  onMapUpdate: (updatedMap: MapData) => void;
+  onTileUpdate: (updatedTile: HexTile) => void;
 }
 
-export default function TileEditorPanel({ map, tileId, onBack, onSave, onMapUpdate }: TileEditorPanelProps) {
+export default function TileEditorPanel({ map, tileId, onBack, onTileUpdate }: TileEditorPanelProps) {
   const tile = map.tiles.find(t => t.id === tileId);
 
   const form = useForm<TileFormData>({
@@ -41,46 +41,43 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave, onMapUpda
     defaultValues: {
       title: tile?.title || "",
       description: tile?.description || "",
-      color: tile?.color || "#6B7280",
+      color: tile?.color || "#374151",
       icon: tile?.icon || "none",
       dungeonIds: tile?.dungeonIds || [],
     },
   });
 
-  const watchedValues = form.watch();
-  const debouncedWatchedValues = useDebounce(watchedValues, 50);
+  const watchedValues = useDebounce(form.watch(), 200);
 
+  // Update parent state when debounced form values change
+  useEffect(() => {
+    if (tile) {
+      const updatedTile = produce(tile, draft => {
+        draft.title = watchedValues.title;
+        draft.description = watchedValues.description;
+        draft.color = watchedValues.color;
+        draft.icon = watchedValues.icon === "none" ? undefined : watchedValues.icon;
+        draft.dungeonIds = watchedValues.dungeonIds;
+      });
+      onTileUpdate(updatedTile);
+    }
+  }, [watchedValues, tileId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Deliberately excluding onTileUpdate and tile to avoid loops, only reacting to value changes
+
+
+  // Reset form when tileId or map changes
   useEffect(() => {
     if (tile) {
       form.reset({
         title: tile.title || "",
         description: tile.description || "",
-        color: tile.color || "#6B7280",
+        color: tile.color || "#374151",
         icon: tile.icon || "none",
         dungeonIds: tile.dungeonIds || [],
       });
     }
   }, [tileId, map, form]);
 
-  useEffect(() => {
-    const updatedTileData = { ...debouncedWatchedValues };
-    const newTiles = map.tiles.map(t => {
-      if (t.id === tileId) {
-        return { 
-          ...t, 
-          ...updatedTileData,
-          icon: updatedTileData.icon === "none" ? undefined : updatedTileData.icon,
-        };
-      }
-      return t;
-    });
-    onMapUpdate({ ...map, tiles: newTiles });
-  }, [debouncedWatchedValues, onMapUpdate]);
-
-
-  const onSubmit = (data: TileFormData) => {
-    onSave();
-  };
 
   if (!tile) {
     return (
@@ -103,7 +100,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave, onMapUpda
         </div>
       </div>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-1 flex flex-col">
+        <form className="space-y-4 flex-1 flex flex-col">
           <div className="flex-1 overflow-y-auto pr-2 space-y-4">
             <FormField name="title" control={form.control} render={({ field }) => (
               <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
@@ -117,10 +114,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave, onMapUpda
             <FormField name="icon" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Icon</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || "none"}
-                >
+                <Select onValueChange={field.onChange} value={field.value || "none"}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Select an icon" /></SelectTrigger></FormControl>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
@@ -132,9 +126,6 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave, onMapUpda
               </FormItem>
             )} />
             {/* Dungeon linking would go here */}
-          </div>
-          <div className="flex justify-end pt-4 border-t">
-            <Button type="submit">Save Map</Button>
           </div>
         </form>
       </Form>
