@@ -23,19 +23,6 @@ interface HexGridBackgroundProps {
 
 export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, width, height }: HexGridBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const foregroundColor = useRef<string>('hsl(275 40% 90%)'); // Default color
-
-  // Effect to get the initial foreground color from CSS variables
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        try {
-            const color = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
-            foregroundColor.current = color;
-        } catch (e) {
-            console.error("Could not get foreground color from CSS", e);
-        }
-    }
-  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -96,7 +83,7 @@ export const HexGridBackground = ({ map, selectedTileId, hexSize, viewport, widt
                     ctx.translate(-12, -12); // Center the 24x24 icon unit
 
                     // Set drawing style
-                    ctx.strokeStyle = foregroundColor.current;
+                    ctx.strokeStyle = '#000000'; // Draw icon with black color
                     ctx.lineWidth = 2.5 / scaleFactor; // Adjust line width based on scale
 
                     // Draw the icon parts
