@@ -102,9 +102,10 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
     };
 
     const handleMouseUp = () => setIsPainting(false);
-    
-    const canvasWidth = (mapData.radius * 2 + 1) * HEX_SIZE * Math.sqrt(3);
-    const canvasHeight = (mapData.radius * 2 + 1) * HEX_SIZE * 1.5;
+
+    const radius = mapData.radius || 10;
+    const canvasWidth = (radius * 2 + 1) * HEX_SIZE * Math.sqrt(3);
+    const canvasHeight = (radius * 2 + 1) * HEX_SIZE * 1.5;
 
     return (
         <div className="w-full h-full bg-black relative" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
