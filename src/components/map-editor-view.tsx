@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
@@ -94,33 +94,13 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
     };
   }, []);
 
-  const handleNodeMouseDown = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (editMode === 'paint' && _event.button === 0) {
-      _event.preventDefault();
-      setIsPainting(true);
-      onBrushPaint(node.id);
-    }
-  }, [editMode, onBrushPaint]);
-
-  const handleNodeMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (isPainting && editMode === 'paint') {
-      onBrushPaint(node.id);
-    }
-  }, [isPainting, editMode, onBrushPaint]);
-
-  const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (editMode === 'data' && _event.button === 0) {
-      onSelectTile(node.id);
-    }
-  }, [editMode, onSelectTile]);
-
   useEffect(() => {
     if (mapData?.tiles) {
         const [x, y, zoom] = debouncedTransform;
 
         const visibleTiles = mapData.tiles.filter(tile => {
             const tileX = hexGridSize * Math.sqrt(3) * (tile.q + tile.r / 2);
-            const tileY = hexGridSize * 3 / 2 * tile.r;
+            const tileY = hexGridSize * 3 / 2 * r;
             
             const tileWidth = hexGridSize * Math.sqrt(3);
             const tileHeight = hexGridSize * 2;
@@ -143,9 +123,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
             color: tile.color,
             icon: tile.icon,
             width: hexGridSize * Math.sqrt(3),
-            height: hexGridSize * 2,
-            onMouseDown: handleNodeMouseDown,
-            onMouseEnter: handleNodeMouseEnter,
+            height: hexGridSize * 2
           },
           selectable: true,
         };
@@ -154,7 +132,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
     } else {
       setNodes([]);
     }
-  }, [mapData, setNodes, debouncedTransform, width, height, handleNodeMouseDown, handleNodeMouseEnter]);
+  }, [mapData, setNodes, debouncedTransform, width, height]);
   
   useEffect(() => {
     setNodes((nds) =>
@@ -164,6 +142,27 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
       })
     );
   }, [selectedTileId, setNodes]);
+
+  const handleNodeMouseDown = (_event: React.MouseEvent, node: Node) => {
+    if (editMode === 'paint' && _event.button === 0) {
+      _event.preventDefault();
+      setIsPainting(true);
+      onBrushPaint(node.id);
+    }
+  };
+
+  const handleNodeMouseEnter = (_event: React.MouseEvent, node: Node) => {
+    if (isPainting && editMode === 'paint') {
+      onBrushPaint(node.id);
+    }
+  };
+
+  const handleNodeClick = (_event: React.MouseEvent, node: Node) => {
+    if (editMode === 'data' && _event.button === 0) {
+      onSelectTile(node.id);
+    }
+  };
+
 
   const MapSettingsDialog = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -273,6 +272,8 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
         onPaneClick={() => onSelectTile(null)}
+        onNodeMouseDown={handleNodeMouseDown}
+        onNodeMouseEnter={handleNodeMouseEnter}
         onContextMenu={(e) => e.preventDefault()}
         fitView
         nodesDraggable={false}
