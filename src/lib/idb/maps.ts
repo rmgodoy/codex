@@ -24,12 +24,12 @@ export const getMapById = async (id: string): Promise<MapData | undefined> => {
     });
 };
 
-export const addMap = async (mapData: Pick<MapData, 'name' | 'description' | 'radius'>): Promise<string> => {
+export const addMap = async (mapData: Pick<MapData, 'name' | 'description'> & { size: number }): Promise<string> => {
     const db = await getDb();
     const store = db.transaction(MAPS_STORE_NAME, 'readwrite').objectStore(MAPS_STORE_NAME);
     
     const tiles = [];
-    const radius = mapData.radius;
+    const radius = mapData.size;
     for (let q = -radius; q <= radius; q++) {
         const r1 = Math.max(-radius, -q - radius);
         const r2 = Math.min(radius, -q + radius);
@@ -48,7 +48,8 @@ export const addMap = async (mapData: Pick<MapData, 'name' | 'description' | 'ra
     const newMap: NewMapData = { 
         name: mapData.name,
         description: mapData.description || '',
-        radius: mapData.radius,
+        width: (mapData.size * 2 + 1),
+        height: (mapData.size * 2 + 1),
         tags: [], 
         tiles 
     };
