@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { HexGrid, Layout, Hexagon } from 'react-hexgrid';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { produce } from 'immer';
@@ -145,14 +145,13 @@ export default function MapEditor({ initialMapData }: MapEditorProps) {
             style={{ cursor: isSpacePressed ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
             onMouseUp={handlePaintMouseUp} 
             onMouseLeave={handlePaintMouseUp}
-            onContextMenu={(e) => e.preventDefault()}
         >
              <TransformWrapper
                 panning={{ disabled: !isSpacePressed, excluded: ["button"] }}
                 wheel={{ step: 0.1 }}
                 options={{ minScale: 0.1, maxScale: 8, limitToBounds: false }}
             >
-                <TransformComponent>
+                <TransformComponent wrapperClass="w-full h-full" contentClass="">
                     <HexGrid width={canvasWidth} height={canvasHeight} viewBox={`-50 -50 ${canvasWidth} ${canvasHeight}`}>
                         <Layout size={{ x: HEX_SIZE, y: HEX_SIZE }} flat={false} spacing={1.05} origin={{ x: 0, y: 0 }}>
                             {mapData.tiles.map(tile => (
