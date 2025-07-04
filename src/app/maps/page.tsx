@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import MapListPanel from '@/components/map-list-panel';
 import MapEditorView from '@/components/map-editor-view';
 import TileEditorPanel from '@/components/tile-editor-panel';
 import type { MapData, NewMapData, HexTile } from '@/lib/types';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { getMapById, updateMap, addMap, deleteMap } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
 import { produce } from 'immer';
