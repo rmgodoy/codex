@@ -2,77 +2,22 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAllMaps, addMap } from '@/lib/idb';
+import { getAllMaps } from '@/lib/idb';
 import type { MapData } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Play, Trash2 } from 'lucide-react';
 import { Label } from './ui/label';
+import { TagInput } from '@/components/ui/tag-input';
+import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
-
-
-const mapCreationSchema = z.object({
-  name: z.string().min(1, "Map name is required"),
-  description: z.string().optional(),
-  size: z.coerce.number().min(1).max(100),
-});
-type MapCreationFormData = z.infer<typeof mapCreationSchema>;
-
-const NewMapDialog = ({ onMapCreated }: { onMapCreated: () => void }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const { toast } = useToast();
-    const form = useForm<MapCreationFormData>({
-        resolver: zodResolver(mapCreationSchema),
-        defaultValues: { name: "", description: "", size: 10 },
-    });
-    
-    const handleSaveNewMap = async (data: MapCreationFormData) => {
-        try {
-            await addMap(data);
-            toast({ title: "Map Created", description: `${data.name} has been created.` });
-            onMapCreated();
-            setIsOpen(false);
-            form.reset();
-        } catch (error) {
-            toast({ variant: 'destructive', title: "Error", description: "Could not create map." });
-        }
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button className="w-full"><PlusCircle /> New Map</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Create New Map</DialogTitle></DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSaveNewMap)} className="space-y-4">
-                        <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
-                        <FormField name="size" control={form.control} render={({ field }) => (<FormItem><FormLabel>Map Radius (Size)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <div className="flex justify-end gap-2 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                            <Button type="submit">Create Map</Button>
-                        </div>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
 
 interface MapListPanelProps {
   onSelectMap: (id: string | null) => void;
-  onNewMapCreated: () => void;
+  onNewMap: () => void;
   selectedMapId: string | null;
   dataVersion: number;
   onDeleteMap: (id: string) => void;
@@ -80,7 +25,7 @@ interface MapListPanelProps {
 
 export default function MapListPanel({ 
   onSelectMap, 
-  onNewMapCreated, 
+  onNewMap, 
   selectedMapId, 
   dataVersion,
   onDeleteMap,
@@ -88,6 +33,7 @@ export default function MapListPanel({
   const [maps, setMaps] = useState<MapData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
 
@@ -108,7 +54,14 @@ export default function MapListPanel({
   const filteredAndSortedMaps = useMemo(() => {
     let filtered = maps.filter(map => {
       const matchesSearch = map.name.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
+      
+      let matchesTags = true;
+      const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+      if (tags.length > 0) {
+        matchesTags = map.tags ? tags.every(tag => map.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
+      }
+
+      return matchesSearch && matchesTags;
     });
 
     const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));
@@ -118,12 +71,14 @@ export default function MapListPanel({
     }
     
     return sorted;
-  }, [maps, searchTerm, sortOrder]);
+  }, [maps, searchTerm, tagFilter, sortOrder]);
 
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <NewMapDialog onMapCreated={onNewMapCreated} />
+        <Button onClick={onNewMap} className="w-full">
+          <PlusCircle /> New Map
+        </Button>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -132,6 +87,18 @@ export default function MapListPanel({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
           />
+        </div>
+        <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label>Filter</Label>
+              <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(''); setTagFilter(''); }} className="text-xs h-auto p-1">Clear</Button>
+            </div>
+            <TagInput
+              value={tagFilter ? tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+              onChange={(tags) => setTagFilter(tags.join(','))}
+              placeholder="Tags..."
+              tagSource="map"
+            />
         </div>
          <div>
             <Label>Sort by Name</Label>
@@ -158,6 +125,15 @@ export default function MapListPanel({
                   >
                     {map.name}
                   </button>
+                  <Link
+                    href={`/maps/${map.id}/live`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-md hover:bg-accent/50"
+                    title="Run Map"
+                  >
+                    <Play className="h-4 w-4 text-accent-foreground" />
+                  </Link>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="invisible group-hover:visible text-destructive hover:text-destructive">
