@@ -3,14 +3,14 @@
 
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { TILE_ICON_COMPONENTS } from '@/lib/map-data';
+import { TILE_ICONS } from '@/lib/map-data';
 import { cn } from '@/lib/utils';
 
 // Hexagon points for a flat-top hexagon
 const points = "1,0 0.5,-0.866 -0.5,-0.866 -1,0 -0.5,0.866 0.5,0.866";
 
 export function HexNode({ data, selected }: NodeProps<{ color?: string; icon?: string; width: number; height: number }>) {
-  const Icon = data.icon ? TILE_ICON_COMPONENTS[data.icon as keyof typeof TILE_ICON_COMPONENTS] : null;
+  const Icon = data.icon ? TILE_ICONS[data.icon as keyof typeof TILE_ICONS] : null;
 
   return (
     <>
