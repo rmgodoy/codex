@@ -9,9 +9,8 @@ import MapEditorView from '@/components/map-editor-view';
 import TileEditorPanel from '@/components/tile-editor-panel';
 import type { MapData } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { getMapById } from '@/lib/idb';
-
-type SortByType = 'name';
+import { getMapById, updateMap } from '@/lib/idb';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MapsPage() {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
@@ -22,6 +21,7 @@ export default function MapsPage() {
   const [mapData, setMapData] = useState<MapData | null>(null);
   const [isClient, setIsClient] = useState(false);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -76,6 +76,22 @@ export default function MapsPage() {
       setSelectedTileId(null);
     }
   };
+  
+  const handleMapUpdate = (updatedMap: MapData) => {
+    setMapData(updatedMap);
+  };
+
+  const handleSave = async () => {
+    if (!mapData) return;
+    try {
+      await updateMap(mapData);
+      toast({ title: "Map Saved", description: "Your changes have been saved." });
+      refreshList();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Save Failed", description: "Could not save map changes." });
+    }
+  };
+
 
   if (!isClient) return null;
 
@@ -89,7 +105,8 @@ export default function MapsPage() {
                 map={mapData}
                 tileId={selectedTileId}
                 onBack={() => setSelectedTileId(null)}
-                onSave={refreshList}
+                onMapUpdate={handleMapUpdate}
+                onSave={handleSave}
               />
             ) : (
               <MapListPanel
@@ -103,12 +120,13 @@ export default function MapsPage() {
           <SidebarInset className="flex-1 overflow-y-auto">
             <MapEditorView
               key={selectedMapId ?? (isCreatingNew ? 'new' : 'placeholder')}
-              mapId={selectedMapId}
+              mapData={mapData}
               isCreatingNew={isCreatingNew}
               onSaveSuccess={handleSaveSuccess}
               onDeleteSuccess={handleDeleteSuccess}
               onEditCancel={handleEditCancel}
               onSelectTile={setSelectedTileId}
+              selectedTileId={selectedTileId}
             />
           </SidebarInset>
         </div>

@@ -10,11 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Mountain, Trees, Castle, Tent } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { updateMap } from "@/lib/idb";
+import { ArrowLeft } from "lucide-react";
 import type { MapData, HexTile } from "@/lib/types";
 import { TILE_ICON_NAMES } from "@/lib/map-data";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const tileSchema = z.object({
   title: z.string().optional(),
@@ -31,10 +30,10 @@ interface TileEditorPanelProps {
   tileId: string;
   onBack: () => void;
   onSave: () => void;
+  onMapUpdate: (updatedMap: MapData) => void;
 }
 
-export default function TileEditorPanel({ map, tileId, onBack, onSave }: TileEditorPanelProps) {
-  const { toast } = useToast();
+export default function TileEditorPanel({ map, tileId, onBack, onSave, onMapUpdate }: TileEditorPanelProps) {
   const tile = map.tiles.find(t => t.id === tileId);
 
   const form = useForm<TileFormData>({
@@ -42,36 +41,45 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave }: TileEdi
     defaultValues: {
       title: tile?.title || "",
       description: tile?.description || "",
-      color: tile?.color || "#6B7280", // Default to gray
-      icon: tile?.icon || "",
+      color: tile?.color || "#6B7280",
+      icon: tile?.icon || "none",
       dungeonIds: tile?.dungeonIds || [],
     },
   });
 
+  const watchedValues = form.watch();
+  const debouncedWatchedValues = useDebounce(watchedValues, 50);
+
   useEffect(() => {
-    const tile = map.tiles.find(t => t.id === tileId);
     if (tile) {
       form.reset({
         title: tile.title || "",
         description: tile.description || "",
         color: tile.color || "#6B7280",
-        icon: tile.icon || "",
+        icon: tile.icon || "none",
         dungeonIds: tile.dungeonIds || [],
       });
     }
   }, [tileId, map, form]);
 
-  const onSubmit = async (data: TileFormData) => {
-    try {
-      const updatedTiles = map.tiles.map(t =>
-        t.id === tileId ? { ...t, ...data } : t
-      );
-      await updateMap({ ...map, tiles: updatedTiles });
-      toast({ title: "Tile Saved", description: "The tile has been updated." });
-      onSave();
-    } catch (error) {
-      toast({ variant: "destructive", title: "Save Failed", description: "Could not save tile changes." });
-    }
+  useEffect(() => {
+    const updatedTileData = { ...debouncedWatchedValues };
+    const newTiles = map.tiles.map(t => {
+      if (t.id === tileId) {
+        return { 
+          ...t, 
+          ...updatedTileData,
+          icon: updatedTileData.icon === "none" ? undefined : updatedTileData.icon,
+        };
+      }
+      return t;
+    });
+    onMapUpdate({ ...map, tiles: newTiles });
+  }, [debouncedWatchedValues, onMapUpdate]);
+
+
+  const onSubmit = (data: TileFormData) => {
+    onSave();
   };
 
   if (!tile) {
@@ -110,7 +118,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave }: TileEdi
               <FormItem>
                 <FormLabel>Icon</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                  onValueChange={field.onChange}
                   value={field.value || "none"}
                 >
                   <FormControl><SelectTrigger><SelectValue placeholder="Select an icon" /></SelectTrigger></FormControl>
@@ -126,7 +134,7 @@ export default function TileEditorPanel({ map, tileId, onBack, onSave }: TileEdi
             {/* Dungeon linking would go here */}
           </div>
           <div className="flex justify-end pt-4 border-t">
-            <Button type="submit">Save Tile</Button>
+            <Button type="submit">Save Map</Button>
           </div>
         </form>
       </Form>
