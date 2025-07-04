@@ -1,15 +1,7 @@
+
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import ReactFlow, {
-  ReactFlowProvider,
-  Controls,
-  Background,
-  useNodesState,
-  MiniMap,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { useForm } from 'react-hook-form';
@@ -18,24 +10,12 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import type { MapData } from '@/lib/types';
+import type { MapData, NewMapData } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertTitle } from './ui/alert-dialog';
-import { HexNode } from './hex-grid-background';
-
-const nodeTypes = {
-  hex: HexNode,
-};
-
-const hexGridSize = 70;
-
-const axialToPixel = (q: number, r: number) => {
-  const x = hexGridSize * Math.sqrt(3) * (q + r / 2);
-  const y = hexGridSize * 3 / 2 * r;
-  return { x, y };
-};
+import MapCanvasComponent from './map-canvas';
 
 const mapCreationSchema = z.object({
   name: z.string().min(1, "Map name is required"),
@@ -62,41 +42,6 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
     defaultValues: { name: "", description: "", width: 20, height: 20 },
   });
   
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-
-  useEffect(() => {
-    if (mapData?.tiles) {
-      const newNodes = mapData.tiles.map((tile) => {
-        const { x, y } = axialToPixel(tile.q, tile.r);
-        return {
-          id: tile.id,
-          type: 'hex',
-          position: { x, y },
-          data: {
-            color: tile.color,
-            icon: tile.icon,
-            width: hexGridSize * Math.sqrt(3),
-            height: hexGridSize * 2
-          },
-          selectable: true,
-        };
-      });
-      setNodes(newNodes);
-    } else {
-      setNodes([]);
-    }
-  }, [mapData, setNodes]);
-  
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        node.selected = node.id === selectedTileId;
-        return node;
-      })
-    );
-  }, [selectedTileId, setNodes]);
-
-
   const MapSettingsDialog = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const settingsForm = useForm<MapCreationFormData>({
@@ -196,21 +141,12 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 
   return (
     <div className="w-full h-full bg-muted/30 relative">
-      <ReactFlow
-        nodes={nodes}
-        onNodesChange={onNodesChange}
-        nodeTypes={nodeTypes}
-        onNodeClick={(_, node) => onSelectTile(node.id)}
-        onPaneClick={() => onSelectTile(null)}
-        fitView
-        nodesDraggable={false}
-        className="bg-background"
-      >
-        <Controls />
-        <MiniMap nodeStrokeWidth={3} zoomable pannable />
-        <Background variant="dots" gap={16} size={1} />
-      </ReactFlow>
-      <div className="absolute top-4 right-4 z-10">
+      <MapCanvasComponent
+        mapData={mapData}
+        selectedTileId={selectedTileId}
+        onTileClick={onSelectTile}
+      />
+      <div className="absolute top-4 right-40 z-10">
         <MapSettingsDialog />
       </div>
     </div>
@@ -218,5 +154,5 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 };
 
 export default function MapEditorView(props: MapEditorViewProps) {
-  return <ReactFlowProvider><MapEditorComponent {...props} /></ReactFlowProvider>;
+  return <MapEditorComponent {...props} />;
 }

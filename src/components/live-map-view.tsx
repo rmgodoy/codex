@@ -1,48 +1,27 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import ReactFlow, {
-  ReactFlowProvider,
-  Controls,
-  Background,
-  useNodesState,
-  MiniMap,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-
 import { getMapById, getDungeonById } from "@/lib/idb";
 import type { MapData, Dungeon } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import MapCanvasComponent from './map-canvas';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { ScrollArea } from "./ui/scroll-area";
 import { TILE_ICON_COMPONENTS } from "@/lib/map-data";
-import { HexNode } from './hex-grid-background';
-
-const nodeTypes = {
-  hex: HexNode,
-};
-
-const hexGridSize = 70;
-
-const axialToPixel = (q: number, r: number) => {
-  const x = hexGridSize * Math.sqrt(3) * (q + r / 2);
-  const y = hexGridSize * 3 / 2 * r;
-  return { x, y };
-};
 
 interface LiveMapViewProps {
   mapId: string;
 }
 
-function LiveMapComponent({ mapId }: LiveMapViewProps) {
+export default function LiveMapView({ mapId }: LiveMapViewProps) {
   const [mapData, setMapData] = useState<MapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [linkedDungeons, setLinkedDungeons] = useState<Dungeon[]>([]);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
 
   const selectedTile = useMemo(() => {
     if (!mapData || !selectedTileId) return null;
@@ -54,37 +33,10 @@ function LiveMapComponent({ mapId }: LiveMapViewProps) {
       setLoading(true);
       const data = await getMapById(mapId);
       setMapData(data || null);
-      if (data) {
-        const newNodes = data.tiles.map((tile) => {
-          const { x, y } = axialToPixel(tile.q, tile.r);
-          return {
-            id: tile.id,
-            type: 'hex',
-            position: { x, y },
-            data: {
-              color: tile.color,
-              icon: tile.icon,
-              width: hexGridSize * Math.sqrt(3),
-              height: hexGridSize * 2,
-            },
-            selectable: true,
-          };
-        });
-        setNodes(newNodes);
-      }
       setLoading(false);
     };
     fetchMap();
-  }, [mapId, setNodes]);
-
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        node.selected = node.id === selectedTileId;
-        return node;
-      })
-    );
-  }, [selectedTileId, setNodes]);
+  }, [mapId]);
   
   useEffect(() => {
     const fetchDungeons = async () => {
@@ -157,24 +109,7 @@ function LiveMapComponent({ mapId }: LiveMapViewProps) {
          </div>
        )}
 
-      <ReactFlow
-        nodes={nodes}
-        onNodesChange={onNodesChange}
-        nodeTypes={nodeTypes}
-        onNodeClick={(_, node) => setSelectedTileId(node.id)}
-        onPaneClick={() => setSelectedTileId(null)}
-        fitView
-        nodesDraggable={false}
-        className="bg-background"
-      >
-        <Controls />
-        <MiniMap nodeStrokeWidth={3} zoomable pannable />
-        <Background variant="dots" gap={16} size={1} />
-      </ReactFlow>
+       <MapCanvasComponent mapData={mapData} selectedTileId={selectedTileId} onTileClick={setSelectedTileId} />
     </div>
   );
-}
-
-export default function LiveMapView(props: LiveMapViewProps) {
-  return <ReactFlowProvider><LiveMapComponent {...props} /></ReactFlowProvider>
 }
