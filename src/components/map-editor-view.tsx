@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
@@ -58,11 +58,11 @@ interface MapEditorViewProps {
   onSelectTile: (id: string | null) => void;
   selectedTileId: string | null;
   onMapSettingsSave: (data: Partial<MapData>) => void;
-  isBrushActive: boolean;
+  editMode: 'paint' | 'data';
   onBrushPaint: (tileId: string) => void;
 }
 
-const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave, isBrushActive, onBrushPaint }: MapEditorViewProps) => {
+const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, onEditCancel, onSelectTile, selectedTileId, onMapSettingsSave, editMode, onBrushPaint }: MapEditorViewProps) => {
   const form = useForm<MapCreationFormData>({
     resolver: zodResolver(mapCreationSchema),
     defaultValues: { name: "", description: "", width: 20, height: 20 },
@@ -70,21 +70,27 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [isPainting, setIsPainting] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   
   const { width, height, transform } = useStore(s => ({ width: s.width, height: s.height, transform: s.transform }));
   const debouncedTransform = useDebounce(transform, 100);
-
+  
   useEffect(() => {
-    const handleMouseUp = (e: MouseEvent) => {
-      if (e.button === 0) { // Only stop painting for left mouse button release
-        setIsPainting(false);
-      }
+    const handleMouseUp = () => {
+      setIsPainting(false);
     };
-    
-    window.addEventListener('mouseup', handleMouseUp);
-    
+
+    const wrapper = wrapperRef.current;
+    if (wrapper) {
+      wrapper.addEventListener('mouseup', handleMouseUp);
+      wrapper.addEventListener('mouseleave', handleMouseUp);
+    }
+
     return () => {
-      window.removeEventListener('mouseup', handleMouseUp);
+      if (wrapper) {
+        wrapper.removeEventListener('mouseup', handleMouseUp);
+        wrapper.removeEventListener('mouseleave', handleMouseUp);
+      }
     };
   }, []);
 
@@ -94,7 +100,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 
         const visibleTiles = mapData.tiles.filter(tile => {
             const tileX = hexGridSize * Math.sqrt(3) * (tile.q + tile.r / 2);
-            const tileY = hexGridSize * 3 / 2 * tile.r;
+            const tileY = hexGridSize * 3 / 2 * r;
             
             const tileWidth = hexGridSize * Math.sqrt(3);
             const tileHeight = hexGridSize * 2;
@@ -138,20 +144,21 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
   }, [selectedTileId, setNodes]);
 
   const handleNodeMouseDown = (_event: React.MouseEvent, node: Node) => {
-    if (isBrushActive && _event.button === 0) { // Only start painting with left click
+    if (editMode === 'paint' && _event.button === 0) {
+      _event.preventDefault();
       setIsPainting(true);
       onBrushPaint(node.id);
     }
   };
 
   const handleNodeMouseEnter = (_event: React.MouseEvent, node: Node) => {
-    if (isPainting && isBrushActive) {
+    if (isPainting && editMode === 'paint') {
       onBrushPaint(node.id);
     }
   };
 
   const handleNodeClick = (_event: React.MouseEvent, node: Node) => {
-    if (!isBrushActive && _event.button === 0) { // Only select with left click
+    if (editMode === 'data' && _event.button === 0) {
       onSelectTile(node.id);
     }
   };
@@ -256,6 +263,7 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 
   return (
     <div
+        ref={wrapperRef}
         className="w-full h-full bg-muted/30 relative"
     >
       <ReactFlow
@@ -286,5 +294,3 @@ const MapEditorComponent = ({ mapData, isCreatingNew, isLoading, onNewMapSave, o
 export default function MapEditorView(props: MapEditorViewProps) {
   return <ReactFlowProvider><MapEditorComponent {...props} /></ReactFlowProvider>;
 }
-
-    

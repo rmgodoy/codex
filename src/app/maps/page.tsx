@@ -24,7 +24,7 @@ export default function MapsPage() {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
-  const [isBrushActive, setIsBrushActive] = useState(false);
+  const [editMode, setEditMode] = useState<'paint' | 'data'>('paint');
   const [brushSettings, setBrushSettings] = useState({ color: '#cccccc', icon: 'none' });
 
   const debouncedMapData = useDebounce(mapData, 1000);
@@ -183,6 +183,10 @@ export default function MapsPage() {
       });
     });
   }, [brushSettings]);
+  
+  const handleSelectTile = (id: string | null) => {
+    setSelectedTileId(id);
+  };
 
 
   if (!isClient) return null;
@@ -217,8 +221,8 @@ export default function MapsPage() {
               return (
                 <MapPaintPanel
                   onBackToMapList={() => handleSelectMap(null)}
-                  isBrushActive={isBrushActive}
-                  onBrushActiveChange={setIsBrushActive}
+                  editMode={editMode}
+                  onEditModeChange={setEditMode}
                   onBrushSettingsChange={setBrushSettings}
                   brushSettings={brushSettings}
                 />
@@ -233,10 +237,10 @@ export default function MapsPage() {
               isLoading={loading}
               onNewMapSave={handleSaveNewMap}
               onEditCancel={handleNewMap}
-              onSelectTile={setSelectedTileId}
+              onSelectTile={handleSelectTile}
               selectedTileId={selectedTileId}
               onMapSettingsSave={handleMapSettingsSave}
-              isBrushActive={isBrushActive}
+              editMode={editMode}
               onBrushPaint={handleBrushPaint}
             />
           </SidebarInset>
