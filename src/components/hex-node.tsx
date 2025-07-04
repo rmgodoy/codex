@@ -14,14 +14,11 @@ export function HexNode({ data, selected }: NodeProps<{ color?: string; icon?: s
 
   return (
     <>
-      <div 
-        className="relative"
-        style={{ width: data.width, height: data.height }}
-      >
+      <div className={cn("relative", selected && "z-10")}>
         <svg
           viewBox="-1.1 -1.1 2.2 2.2"
-          width="100%"
-          height="100%"
+          width={data.width}
+          height={data.height}
           style={{ overflow: 'visible' }}
           className="drop-shadow-md"
         >
@@ -31,10 +28,8 @@ export function HexNode({ data, selected }: NodeProps<{ color?: string; icon?: s
             stroke={selected ? 'hsl(var(--ring))' : 'hsl(var(--border))'} 
             strokeWidth={selected ? 0.10 : 0.05} 
           />
+          {Icon && <Icon color="hsl(var(--card-foreground))" size={1} transform="scale(0.06) translate(-12, -12)" />}
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-            {Icon && <Icon color="#000000" size={data.width * 0.4} />}
-        </div>
       </div>
       <Handle type="source" position={Position.Top} style={{ visibility: 'hidden' }} />
       <Handle type="source" position={Position.Right} style={{ visibility: 'hidden' }} />
