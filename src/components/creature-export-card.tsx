@@ -71,6 +71,18 @@ export default function CreatureExportCard({ creature }: CreatureExportCardProps
         </div>
       </section>
 
+      {creature.abilities && creature.abilities.length > 0 && (
+          <section className="p-2 bg-white border-b border-stone-300">
+              <div className="space-y-1">
+                  {creature.abilities.map((ability, index) => (
+                      <p key={ability.id || index}>
+                          <span className="font-bold">{ability.name}:</span> {ability.description}
+                      </p>
+                  ))}
+              </div>
+          </section>
+      )}
+
       <section className="space-y-1">
         {sortedDeeds.map((deed) => (
           <div key={deed.id} className="p-2 border-t border-stone-300">

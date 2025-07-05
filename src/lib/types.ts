@@ -15,6 +15,12 @@ export interface CreatureAttributes {
   DMG: string;
 }
 
+export interface CreatureAbility {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface DeedEffects {
   start?: string;
   base?: string;
@@ -65,7 +71,7 @@ export interface Creature {
   TR: number;
   attributes: CreatureAttributes;
   deeds: string[];
-  abilities: string;
+  abilities: CreatureAbility[];
   description: string;
   tags: string[];
 }
@@ -109,7 +115,7 @@ export interface MonsterCombatant extends BaseCombatant {
   currentHp: number;
   attributes: CreatureAttributes;
   deeds: Deed[];
-  abilities: string;
+  abilities: CreatureAbility[];
   description: string;
   tags: string[];
   role: Role;

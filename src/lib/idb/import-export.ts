@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, TagSource } from '@/lib/types';
+import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, TagSource, CreatureAbility } from '@/lib/types';
 import { getDb, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME } from './db';
 
 // Import/Export
@@ -58,7 +58,23 @@ export const importData = async (data: any): Promise<void> => {
 
     if (data.creatures && Array.isArray(data.creatures)) {
         data.creatures.forEach((item: Creature) => {
-            stores[CREATURES_STORE_NAME].put(item);
+            let abilitiesAsArray: CreatureAbility[] = [];
+            if (typeof (item as any).abilities === 'string' && (item as any).abilities.length > 0) {
+              abilitiesAsArray = (item as any).abilities.split('\n\n').map((abilityStr: string) => {
+                  const match = abilityStr.match(/\*\*(.*?):\*\*\s*(.*)/s);
+                  if (match && match[1] && match[2]) {
+                      return { id: crypto.randomUUID(), name: match[1], description: match[2].trim() };
+                  }
+                  if (!match && abilityStr.trim()) {
+                      return { id: crypto.randomUUID(), name: 'Ability', description: abilityStr.trim() };
+                  }
+                  return null;
+              }).filter((a: any): a is CreatureAbility => a !== null);
+            } else if (Array.isArray(item.abilities)) {
+              abilitiesAsArray = item.abilities.map(a => ({...a, id: a.id || crypto.randomUUID()}));
+            }
+            const migratedItem = { ...item, abilities: abilitiesAsArray };
+            stores[CREATURES_STORE_NAME].put(migratedItem);
             processTags(item.tags, 'creature');
         });
     }

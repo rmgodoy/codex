@@ -8,7 +8,7 @@ import { z } from "zod";
 import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds, addTags } from "@/lib/idb";
 import { ROLES, getStatsForRoleAndLevel, getTR, stepDownDamageDie, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
-import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate } from "@/lib/types";
+import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate, CreatureAbility } from "@/lib/types";
 import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +54,12 @@ const deedSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+const creatureAbilitySchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Ability name is required"),
+  description: z.string().min(1, "Ability description is required"),
+});
+
 const creatureSchema = z.object({
   name: z.string().min(1, "Name is required"),
   level: z.coerce.number().int().min(1).max(10),
@@ -71,7 +77,7 @@ const creatureSchema = z.object({
     DMG: z.string(),
   }),
   deeds: z.array(deedSchema),
-  abilities: z.string().optional(),
+  abilities: z.array(creatureAbilitySchema).optional(),
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });
@@ -99,7 +105,7 @@ const defaultValues: CreatureFormData = {
   TR: 1,
   attributes: { HP: 20, Speed: 5, Initiative: 14, Accuracy: 16, Guard: 12, Resist: 12, rollBonus: 4, DMG: 'd6' },
   deeds: [],
-  abilities: "",
+  abilities: [],
   description: "",
   tags: [],
 };
@@ -223,7 +229,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
         const formData = {
           ...defaultValues,
           ...template,
-          abilities: template.abilities || '',
+          abilities: (template.abilities || []).map(a => ({...a, id: a.id || crypto.randomUUID()})),
           description: template.description || '',
           tags: template.tags || [],
           deeds: (template.deeds || []).map(deed => ({
@@ -258,6 +264,11 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "deeds",
+  });
+  
+  const { fields: abilityFields, append: appendAbility, remove: removeAbility } = useFieldArray({
+    control: form.control,
+    name: "abilities",
   });
 
   const { watch, setValue, getValues } = form;
@@ -317,8 +328,26 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
         const creatureFromDb = await getCreatureById(creatureId);
         if (creatureFromDb) {
           const deedObjects = await getDeedsByIds(creatureFromDb.deeds);
+          
+          let abilitiesAsArray: CreatureAbility[] = [];
+          if (typeof creatureFromDb.abilities === 'string' && (creatureFromDb.abilities as any).length > 0) {
+              abilitiesAsArray = (creatureFromDb.abilities as any).split('\n\n').map((abilityStr: string) => {
+                  const match = abilityStr.match(/\*\*(.*?):\*\*\s*(.*)/s);
+                  if (match && match[1] && match[2]) {
+                      return { id: crypto.randomUUID(), name: match[1], description: match[2].trim() };
+                  }
+                  if (!match && abilityStr.trim()) {
+                      return { id: crypto.randomUUID(), name: 'Ability', description: abilityStr.trim() };
+                  }
+                  return null;
+              }).filter((a: any): a is CreatureAbility => a !== null);
+          } else if (Array.isArray(creatureFromDb.abilities)) {
+              abilitiesAsArray = creatureFromDb.abilities.map(a => ({...a, id: a.id || crypto.randomUUID()}));
+          }
+
           const fullCreatureData: CreatureWithDeeds = {
             ...creatureFromDb,
+            abilities: abilitiesAsArray,
             deeds: deedObjects
           };
           setCreatureData(fullCreatureData);
@@ -326,7 +355,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
           const formData = {
             ...defaultValues,
             ...fullCreatureData,
-            abilities: fullCreatureData.abilities || '',
             description: fullCreatureData.description || '',
             template: fullCreatureData.template || 'Normal',
             tags: fullCreatureData.tags || [],
@@ -378,6 +406,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       const creatureToSave: Omit<Creature, 'id'> | Creature = {
         ...data,
         tags: data.tags || [],
+        abilities: data.abilities || [],
         deeds: deedIds,
       };
 
@@ -422,7 +451,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
         const formData = {
           ...defaultValues,
           ...creatureData,
-          abilities: creatureData.abilities || '',
           description: creatureData.description || '',
           template: creatureData.template || 'Normal',
           tags: creatureData.tags || [],
@@ -582,6 +610,19 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                         <div className="flex items-center gap-2"><Sword className="h-5 w-5 text-accent"/><div><Label>DMG</Label><p className="text-lg font-bold">{creatureData.attributes.DMG}</p></div></div>
                       </div>
                     </div>
+                    {creatureData.abilities && creatureData.abilities.length > 0 && <Separator className="my-6"/>}
+                    {creatureData.abilities && creatureData.abilities.length > 0 && (
+                        <div>
+                            <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Abilities</h3>
+                            <div className="space-y-2">
+                                {creatureData.abilities.map((ability) => (
+                                    <p key={ability.id} className="text-foreground/90 whitespace-pre-wrap">
+                                        <span className="font-bold">{ability.name}:</span> {ability.description}
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <Separator className="my-6"/>
                     <div>
                         <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
@@ -591,13 +632,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             <p className="text-muted-foreground">No deeds defined.</p>
                         )}
                     </div>
-                    {(creatureData.abilities || creatureData.description) && <Separator className="my-6"/>}
-                    {creatureData.abilities && (
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Abilities</h3>
-                            <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.abilities}</p>
-                        </div>
-                    )}
+                    {creatureData.description && <Separator className="my-6"/>}
                     {creatureData.description && (
                         <div className="mt-4">
                             <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Description</h3>
@@ -772,6 +807,42 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                   )} />
                 </div>
               </div>
+              
+              <Separator />
+
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-primary-foreground">Abilities</h3>
+                    <Button type="button" size="sm" variant="outline" onClick={() => appendAbility({ id: crypto.randomUUID(), name: '', description: '' })}>
+                      <Plus className="h-4 w-4 mr-2" /> Add Ability
+                    </Button>
+                </div>
+                <div className="space-y-4">
+                  {abilityFields.map((field, index) => (
+                    <div key={field.id} className="border bg-card-foreground/5 rounded-lg p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <FormField name={`abilities.${index}.name`} control={form.control} render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Ability Name</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Ogre's Wrath" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeAbility(index)} className="text-muted-foreground hover:text-destructive self-end">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <FormField name={`abilities.${index}.description`} control={form.control} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Ability Description</FormLabel>
+                                <FormControl><Textarea rows={3} {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <Separator />
 
@@ -917,12 +988,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
               <Separator />
 
-              <FormField name="abilities" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Abilities</FormLabel>
-                    <FormControl><Textarea placeholder="Special abilities, separated by commas..." {...field} /></FormControl>
-                  </FormItem>
-                )} />
               <FormField name="description" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description</FormLabel>
