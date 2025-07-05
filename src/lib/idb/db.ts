@@ -1,9 +1,8 @@
 
-
 "use client";
 
 export const DB_NAME = 'TresspasserBestiaryDB';
-export const DB_VERSION = 11;
+export const DB_VERSION = 12;
 export const CREATURES_STORE_NAME = 'creatures';
 export const DEEDS_STORE_NAME = 'deeds';
 export const ENCOUNTERS_STORE_NAME = 'encounters';
@@ -13,6 +12,7 @@ export const TREASURES_STORE_NAME = 'treasures';
 export const ALCHEMY_ITEMS_STORE_NAME = 'alchemicalItems';
 export const ROOMS_STORE_NAME = 'rooms';
 export const DUNGEONS_STORE_NAME = 'dungeons';
+export const ITEMS_STORE_NAME = 'items';
 
 export const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -56,6 +56,9 @@ export const getDb = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(DUNGEONS_STORE_NAME)) {
         db.createObjectStore(DUNGEONS_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(ITEMS_STORE_NAME)) {
+        db.createObjectStore(ITEMS_STORE_NAME, { keyPath: 'id' });
       }
     };
 

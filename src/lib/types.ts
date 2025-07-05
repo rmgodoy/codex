@@ -1,5 +1,4 @@
 
-
 import type { Role } from './roles';
 import type { StateEffect } from './states';
 
@@ -35,7 +34,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item';
 
 export interface Tag {
   name: string;
@@ -277,3 +276,52 @@ export interface Dungeon {
 }
 
 export type NewDungeon = Omit<Dungeon, 'id'>;
+
+// Item Types
+export const ITEM_TYPES = ['weapon', 'armor', 'shield', 'tool'] as const;
+export type ItemType = (typeof ITEM_TYPES)[number];
+
+export const ITEM_QUALITIES = ['crude', 'normal', 'fine', 'magical'] as const;
+export type ItemQuality = (typeof ITEM_QUALITIES)[number];
+
+export const WEAPON_DAMAGE_DIES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
+export type WeaponDamageDie = (typeof WEAPON_DAMAGE_DIES)[number];
+
+export const WEAPON_PROPERTIES = ['one-handed', 'two-handed', 'thrown'] as const;
+export type WeaponProperty = (typeof WEAPON_PROPERTIES)[number];
+
+export const ARMOR_PLACEMENTS = ['head', 'chest', 'arms', 'legs', 'outer'] as const;
+export const ITEM_PLACEMENTS = ['head', 'chest', 'arms', 'legs', 'outer', 'shield'] as const;
+export type ItemPlacement = (typeof ITEM_PLACEMENTS)[number];
+
+export const ARMOR_WEIGHTS = ['None', 'Light', 'Heavy'] as const;
+export type ArmorWeight = (typeof ARMOR_WEIGHTS)[number];
+
+export const ARMOR_DIES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
+export type ArmorDie = (typeof ARMOR_DIES)[number];
+
+export interface Item {
+    id: string;
+    name: string;
+    type: ItemType;
+    price: number;
+    quality: ItemQuality;
+    tags?: string[];
+    
+    // Weapon fields
+    damageDie?: WeaponDamageDie;
+    typeAndRange?: string;
+    property?: WeaponProperty;
+    weaponEffect?: string;
+
+    // Armor/Shield fields
+    placement?: ItemPlacement;
+    weight?: ArmorWeight;
+    AR?: string;
+    armorDie?: ArmorDie;
+
+    // Tool field
+    description?: string;
+}
+
+export type NewItem = Omit<Item, 'id'>;

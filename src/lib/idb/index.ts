@@ -1,5 +1,4 @@
 
-
 export * from './db';
 export * from './creatures';
 export * from './deeds';
@@ -9,5 +8,6 @@ export * from './treasures';
 export * from './alchemicalItems';
 export * from './rooms';
 export * from './dungeons';
+export * from './items';
 export * from './tags';
 export * from './import-export';
