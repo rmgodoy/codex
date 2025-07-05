@@ -28,7 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DeedDisplay } from "./deed-display";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -268,14 +268,14 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   useEffect(() => {
     const fetchCreatureData = async () => {
       if (isCreatingNew) {
-        let initialData = template ? { ...template } : { ...defaultValues };
-
+        // If we have a template, use its data directly. Otherwise, use defaults.
+        const initialData = template ? { ...template } : { ...defaultValues };
+        
         const formData = {
-          ...defaultValues,
-          ...initialData,
+          ...defaultValues, // Ensures all fields are present
+          ...initialData,   // Overwrites with template data
           abilities: initialData.abilities || '',
           description: initialData.description || '',
-          template: initialData.template || 'Normal',
           tags: initialData.tags || [],
           deeds: (initialData.deeds || []).map(deed => ({
             ...deed,
@@ -289,20 +289,26 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             tags: deed.tags || [],
           }))
         };
-        if (template) delete (formData as any).id;
+        
+        // If it's a template, don't copy the ID.
+        if (template) {
+          delete (formData as any).id;
+        } else {
+          // If it's a truly new creature, calculate initial stats.
+          const initialStats = getStatsForRoleAndLevel(formData.role, formData.level);
+          if (initialStats) {
+            formData.attributes = initialStats;
+          }
+        }
 
-        const initialStats = getStatsForRoleAndLevel(formData.role, formData.level);
-        form.reset({
-            ...formData,
-            attributes: initialStats || formData.attributes,
-        });
-
+        form.reset(formData);
+        
         setCreatureData(template ? (template as CreatureWithDeeds) : null);
         setIsEditing(true);
         setLoading(false);
         return;
       }
-
+      
       if (!creatureId) {
         setIsEditing(false);
         setLoading(false);
