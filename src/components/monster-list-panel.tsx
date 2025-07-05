@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Search, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Download, Loader2 } from 'lucide-react';
 import { TagInput } from '@/components/ui/tag-input';
 import {
   Dialog,
@@ -83,6 +83,7 @@ export default function CreatureListPanel({
   const [selectedForExport, setSelectedForExport] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const [creatureToRender, setCreatureToRender] = useState<CreatureWithDeeds | null>(null);
+  const [exportProgress, setExportProgress] = useState("");
   const exportCardRef = useRef<HTMLDivElement>(null);
 
 
@@ -118,12 +119,15 @@ export default function CreatureListPanel({
     try {
         const creaturesToExport = await getCreaturesWithDeedsByIds(Array.from(selectedForExport));
         const zip = new JSZip();
+        let count = 1;
 
         for (const creature of creaturesToExport) {
             setCreatureToRender(creature);
-            // Wait for the DOM to update with the new creature card.
-            await new Promise(resolve => setTimeout(resolve, 50)); 
+            setExportProgress(`Exporting ${count} of ${creaturesToExport.length}: ${creature.name}`);
             
+            // Await a couple of frames to ensure rendering
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50))); 
+
             if (exportCardRef.current) {
                 try {
                     const dataUrl = await htmlToImage.toPng(exportCardRef.current, { 
@@ -138,6 +142,7 @@ export default function CreatureListPanel({
                     toast({ variant: 'destructive', title: `Failed to export ${creature.name}`});
                 }
             }
+            count++;
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -153,8 +158,9 @@ export default function CreatureListPanel({
         console.error("Export failed", error);
         toast({ variant: "destructive", title: "Export Failed", description: "An unexpected error occurred." });
     } finally {
-        setCreatureToRender(null);
         setIsExporting(false);
+        setCreatureToRender(null);
+        setExportProgress("");
         setIsExportDialogOpen(false);
         setSelectedForExport(new Set());
     }
@@ -214,166 +220,186 @@ export default function CreatureListPanel({
   }, [creatures, filters]);
 
   return (
-    <div className="border-r border-border bg-card flex flex-col h-full">
-      {creatureToRender && (
-        <div ref={exportCardRef} className="fixed -left-[9999px] top-0">
-          <CreatureExportCard creature={creatureToRender} />
-        </div>
-      )}
-      <div className="p-4 space-y-4">
-        <div className="flex gap-2">
-            <Button onClick={onNewCreature} className="w-full">
-              <PlusCircle /> New Creature
-            </Button>
-            <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="px-3" title="Export as PNG">
-                  <Download />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Export Creatures to PNG</DialogTitle>
-                  <DialogDescription>Select the creatures you want to export. They will be downloaded as a single ZIP file.</DialogDescription>
-                </DialogHeader>
-                <div className="flex items-center justify-between">
-                    <Label>{selectedForExport.size} of {creatures.length} selected</Label>
-                    <Button variant="link" className="p-0 h-auto" onClick={() => {
-                        if (selectedForExport.size === creatures.length) {
-                            setSelectedForExport(new Set());
-                        } else {
-                            setSelectedForExport(new Set(creatures.map(c => c.id)));
-                        }
-                    }}>
-                        {selectedForExport.size === creatures.length ? 'Deselect All' : 'Select All'}
-                    </Button>
+    <>
+      <Dialog open={isExporting}>
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+            <DialogTitle>Exporting Creatures</DialogTitle>
+            <DialogDescription>
+                Please wait while the creature cards are being generated.
+            </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center gap-4 p-4">
+                {/* The element to be captured */}
+                <div className="min-h-[200px]">
+                    <div ref={exportCardRef}>
+                        {creatureToRender && <CreatureExportCard creature={creatureToRender} />}
+                    </div>
                 </div>
-                <ScrollArea className="h-64 border rounded-md">
-                   <div className="p-4 space-y-2">
-                        {creatures.map(creature => (
-                            <div key={creature.id} className="flex items-center gap-2">
-                                <Checkbox
-                                    id={`export-${creature.id}`}
-                                    checked={selectedForExport.has(creature.id)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedForExport(prev => {
-                                            const newSet = new Set(prev);
-                                            if (checked) {
-                                                newSet.add(creature.id);
-                                            } else {
-                                                newSet.delete(creature.id);
-                                            }
-                                            return newSet;
-                                        });
-                                    }}
-                                />
-                                <Label htmlFor={`export-${creature.id}`} className="font-normal">{creature.name}</Label>
-                            </div>
-                        ))}
-                   </div>
-                </ScrollArea>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleExport} disabled={isExporting || selectedForExport.size === 0}>
-                        {isExporting ? 'Exporting...' : `Export ${selectedForExport.size} Creature(s)`}
-                    </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search creatures..."
-            value={filters.searchTerm}
-            onChange={(e) => setFilters.setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label>Filter</Label>
-              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+                {/* Progress indicator */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    <span>{exportProgress}</span>
+                </div>
             </div>
-             <Select value={filters.templateFilter} onValueChange={setFilters.setTemplateFilter}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by template" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Templates</SelectItem>
-                    {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by role" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Roles</SelectItem>
-                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <div className="flex gap-2">
-                <Input placeholder="Min Lvl" type="number" value={filters.minLevel} onChange={e => setFilters.setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                <Input placeholder="Max Lvl" type="number" value={filters.maxLevel} onChange={e => setFilters.setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-            </div>
-            <div className="flex gap-2">
-                <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-            </div>
-            <TagInput
-              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
-              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-              placeholder="Tags (e.g. undead, goblin)"
-              tagSource="creature"
+        </DialogContent>
+      </Dialog>
+      <div className="border-r border-border bg-card flex flex-col h-full">
+        <div className="p-4 space-y-4">
+          <div className="flex gap-2">
+              <Button onClick={onNewCreature} className="w-full">
+                <PlusCircle /> New Creature
+              </Button>
+              <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="px-3" title="Export as PNG">
+                    <Download />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Export Creatures to PNG</DialogTitle>
+                    <DialogDescription>Select the creatures you want to export. They will be downloaded as a single ZIP file.</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex items-center justify-between">
+                      <Label>{selectedForExport.size} of {creatures.length} selected</Label>
+                      <Button variant="link" className="p-0 h-auto" onClick={() => {
+                          if (selectedForExport.size === creatures.length) {
+                              setSelectedForExport(new Set());
+                          } else {
+                              setSelectedForExport(new Set(creatures.map(c => c.id)));
+                          }
+                      }}>
+                          {selectedForExport.size === creatures.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                  </div>
+                  <ScrollArea className="h-64 border rounded-md">
+                    <div className="p-4 space-y-2">
+                          {creatures.map(creature => (
+                              <div key={creature.id} className="flex items-center gap-2">
+                                  <Checkbox
+                                      id={`export-${creature.id}`}
+                                      checked={selectedForExport.has(creature.id)}
+                                      onCheckedChange={(checked) => {
+                                          setSelectedForExport(prev => {
+                                              const newSet = new Set(prev);
+                                              if (checked) {
+                                                  newSet.add(creature.id);
+                                              } else {
+                                                  newSet.delete(creature.id);
+                                              }
+                                              return newSet;
+                                          });
+                                      }}
+                                  />
+                                  <Label htmlFor={`export-${creature.id}`} className="font-normal">{creature.name}</Label>
+                              </div>
+                          ))}
+                    </div>
+                  </ScrollArea>
+                  <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>Cancel</Button>
+                      <Button onClick={handleExport} disabled={isExporting || selectedForExport.size === 0}>
+                          {isExporting ? 'Exporting...' : `Export ${selectedForExport.size} Creature(s)`}
+                      </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search creatures..."
+              value={filters.searchTerm}
+              onChange={(e) => setFilters.setSearchTerm(e.target.value)}
+              className="pl-9"
             />
-        </div>
+          </div>
 
-        <div>
-            <Label>Sort by</Label>
-            <div className="flex items-center gap-2">
-              <Select value={filters.sortBy} onValueChange={(value: 'name' | 'TR' | 'level') => setFilters.setSortBy(value)}>
+          <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Filter</Label>
+                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+              </div>
+              <Select value={filters.templateFilter} onValueChange={setFilters.setTemplateFilter}>
                   <SelectTrigger>
-                      <SelectValue placeholder="Sort by" />
+                      <SelectValue placeholder="Filter by template" />
                   </SelectTrigger>
                   <SelectContent>
-                      <SelectItem value="name">Name</SelectItem>
-                      <SelectItem value="TR">TR</SelectItem>
-                      <SelectItem value="level">Level</SelectItem>
+                      <SelectItem value="all">All Templates</SelectItem>
+                      {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" onClick={() => setFilters.setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
-                  {filters.sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
-                  <span className="sr-only">Toggle sort order</span>
-              </Button>
-            </div>
-        </div>
+              <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
+                  <SelectTrigger>
+                      <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                  <Input placeholder="Min Lvl" type="number" value={filters.minLevel} onChange={e => setFilters.setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                  <Input placeholder="Max Lvl" type="number" value={filters.maxLevel} onChange={e => setFilters.setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+              </div>
+              <div className="flex gap-2">
+                  <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                  <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+              </div>
+              <TagInput
+                value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+                onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+                placeholder="Tags (e.g. undead, goblin)"
+                tagSource="creature"
+              />
+          </div>
 
-      </div>
-      <Separator />
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          {isLoading ? (
-            <p className="text-muted-foreground text-center">Loading creatures...</p>
-          ) : filteredAndSortedCreatures.length > 0 ? (
-            <ul className="space-y-1">
-              {filteredAndSortedCreatures.map(creature => (
-                <li key={creature.id}>
-                  <button
-                    onClick={() => onSelectCreature(creature.id)}
-                    className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
-                  >
-                    {creature.name} <span className="text-xs opacity-70">(Lvl {creature.level} / TR {creature.TR})</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground text-center">No creatures found.</p>
-          )}
+          <div>
+              <Label>Sort by</Label>
+              <div className="flex items-center gap-2">
+                <Select value={filters.sortBy} onValueChange={(value: 'name' | 'TR' | 'level') => setFilters.setSortBy(value)}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="TR">TR</SelectItem>
+                        <SelectItem value="level">Level</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button variant="ghost" size="icon" onClick={() => setFilters.setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}>
+                    {filters.sortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                    <span className="sr-only">Toggle sort order</span>
+                </Button>
+              </div>
+          </div>
+
         </div>
-      </ScrollArea>
-    </div>
+        <Separator />
+        <ScrollArea className="flex-1">
+          <div className="p-4">
+            {isLoading ? (
+              <p className="text-muted-foreground text-center">Loading creatures...</p>
+            ) : filteredAndSortedCreatures.length > 0 ? (
+              <ul className="space-y-1">
+                {filteredAndSortedCreatures.map(creature => (
+                  <li key={creature.id}>
+                    <button
+                      onClick={() => onSelectCreature(creature.id)}
+                      className={`w-full text-left p-2 rounded-md transition-colors ${selectedCreatureId === creature.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
+                    >
+                      {creature.name} <span className="text-xs opacity-70">(Lvl {creature.level} / TR {creature.TR})</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-center">No creatures found.</p>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </>
   );
 }
