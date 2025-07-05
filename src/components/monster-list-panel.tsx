@@ -126,7 +126,11 @@ export default function CreatureListPanel({
             
             if (exportCardRef.current) {
                 try {
-                    const dataUrl = await htmlToImage.toPng(exportCardRef.current, { quality: 1, pixelRatio: 2 });
+                    const dataUrl = await htmlToImage.toPng(exportCardRef.current, { 
+                        quality: 1, 
+                        pixelRatio: 2,
+                        backgroundColor: '#e7e5e4', // stone-200
+                    });
                     const blob = await (await fetch(dataUrl)).blob();
                     zip.file(`${creature.name.replace(/ /g, '_')}.png`, blob);
                 } catch (error) {
