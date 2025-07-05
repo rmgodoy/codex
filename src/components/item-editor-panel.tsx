@@ -564,10 +564,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
                     <FormField name="assignedDeedId" control={form.control} render={({ field }) => (
                       <FormItem>
                         <FormLabel>Granted Deed</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)} value={field.value || 'none'}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select a deed..." /></SelectTrigger></FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {allDeeds.map(deed => <SelectItem key={deed.id} value={deed.id}>{deed.name} ({deed.tier})</SelectItem>)}
                           </SelectContent>
                         </Select>
