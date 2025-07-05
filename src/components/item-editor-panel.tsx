@@ -112,7 +112,8 @@ const defaultValues: ItemFormData = {
   tags: [],
   property: 'one-handed',
   weaponType: 'melee',
-  damageDie: 'd6',
+  damageDie: 'd4',
+  assignedDeedId: 'none',
 };
 
 export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSaveSuccess, onDeleteSuccess, onUseAsTemplate, onEditCancel, onBack }: ItemEditorPanelProps) {
@@ -123,7 +124,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   const isMobile = useIsMobile();
   
   const [allDeeds, setAllDeeds] = useState<Deed[]>([]);
-  const [weaponData, setWeaponData] = useState<Partial<WeaponSpecificData>>({ property: 'one-handed', weaponType: 'melee', damageDie: 'd6' });
+  const [weaponData, setWeaponData] = useState<Partial<WeaponSpecificData>>({});
   const [armorData, setArmorData] = useState<Partial<ArmorSpecificData>>({});
   const [shieldData, setShieldData] = useState<Partial<ShieldSpecificData>>({});
   
@@ -210,17 +211,16 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
     const fetchItemData = async () => {
       if (isCreatingNew) {
         form.reset(initialFormValues);
-        setItemData(template as Item || null);
-        setWeaponData(template || { damageDie: 'd6', weaponType: 'melee', property: 'one-handed' });
-        if (template?.type === 'armor') {
-            setArmorData(template);
-            setShieldData({});
-        } else if (template?.type === 'shield') {
-            setShieldData(template);
-            setArmorData({});
+        if (template) {
+          setItemData(template as Item || null);
+          setWeaponData(template);
+          setArmorData(template);
+          setShieldData(template);
         } else {
-            setArmorData({});
-            setShieldData({});
+          setItemData(null);
+          setWeaponData({ property: 'one-handed', weaponType: 'melee', damageDie: 'd4' });
+          setArmorData({ placement: 'head', weight: 'None', AR: '0', armorDie: 'd4' });
+          setShieldData({ placement: 'shield', weight: 'None', AR: '0', armorDie: 'd4' });
         }
         previousTypeRef.current = template?.type || 'weapon';
         setIsEditing(true);
@@ -511,7 +511,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FormField name="placement" control={form.control} render={({ field }) => (<FormItem><FormLabel>Placement</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{(watchedType === 'shield' ? [ 'shield' ] : ARMOR_PLACEMENTS).map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weight" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_WEIGHTS.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField name="AR" control={form.control} render={({ field }) => (<FormItem><FormLabel>AR</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="+1" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="AR" control={form.control} render={({ field }) => (<FormItem><FormLabel>AR</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="e.g., +1" /></FormControl><FormMessage /></FormItem>)} />
                 <FormField name="armorDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Armor Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
           </>
