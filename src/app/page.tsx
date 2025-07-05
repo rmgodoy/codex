@@ -130,7 +130,8 @@ export default function Home() {
 
   const handleUseAsTemplate = (creatureData: CreatureWithDeeds) => {
     const template = { ...creatureData };
-    template.name = `Copy of ${creatureData.name || 'creature'}`;
+    const baseName = (creatureData.name || 'creature').replace(/^(Copy of\s*)+/, '');
+    template.name = `Copy of ${baseName}`;
     delete template.id;
 
     setSelectedCreatureId(null);

@@ -97,7 +97,7 @@ const defaultValues: CreatureFormData = {
   role: 'Archer',
   template: 'Normal',
   TR: 1,
-  attributes: { HP: 10, Speed: 6, Initiative: 1, Accuracy: 0, Guard: 10, Resist: 10, rollBonus: 0, DMG: 'd6' },
+  attributes: { HP: 20, Speed: 5, Initiative: 14, Accuracy: 16, Guard: 12, Resist: 12, rollBonus: 4, DMG: 'd6' },
   deeds: [],
   abilities: "",
   description: "",
@@ -273,7 +273,6 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
         const formData = {
           ...defaultValues,
           ...initialData,
-          name: template ? `Copy of ${template.name || 'creature'}` : defaultValues.name,
           abilities: initialData.abilities || '',
           description: initialData.description || '',
           template: initialData.template || 'Normal',
