@@ -216,10 +216,45 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   const [allDeeds, setAllDeeds] = useState<Deed[]>([]);
   const isMobile = useIsMobile();
   
+  const initialFormValues = useMemo(() => {
+    if (isCreatingNew) {
+      if (template) {
+        // We are creating from a template
+        const formData = {
+          ...defaultValues,
+          ...template,
+          abilities: template.abilities || '',
+          description: template.description || '',
+          tags: template.tags || [],
+          deeds: (template.deeds || []).map(deed => ({
+            ...deed,
+            effects: {
+              start: deed.effects?.start || '',
+              base: deed.effects?.base || '',
+              hit: deed.effects?.hit || '',
+              shadow: deed.effects?.shadow || '',
+              end: deed.effects?.end || '',
+            },
+            tags: deed.tags || [],
+          }))
+        };
+        delete (formData as any).id;
+        return formData;
+      } else {
+        // We are creating a brand new creature from scratch
+        const initialStats = getStatsForRoleAndLevel(defaultValues.role, defaultValues.level);
+        return { ...defaultValues, attributes: initialStats || defaultValues.attributes };
+      }
+    }
+    // We are editing an existing creature, so start with defaults and let useEffect populate
+    return defaultValues;
+  }, [isCreatingNew, template]);
+  
   const form = useForm<CreatureFormData>({
     resolver: zodResolver(creatureSchema),
-    defaultValues: defaultValues,
+    defaultValues: initialFormValues,
   });
+
   const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "deeds",
@@ -266,53 +301,13 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   }, [dataVersion]);
 
   useEffect(() => {
+    // Creation logic is now handled by useForm defaultValues via useMemo.
+    // This effect is now only for loading an existing creature for editing.
     const fetchCreatureData = async () => {
-      if (isCreatingNew) {
-        // If we have a template, use its data directly. Otherwise, use defaults.
-        const initialData = template ? { ...template } : { ...defaultValues };
-        
-        const formData = {
-          ...defaultValues, // Ensures all fields are present
-          ...initialData,   // Overwrites with template data
-          abilities: initialData.abilities || '',
-          description: initialData.description || '',
-          tags: initialData.tags || [],
-          deeds: (initialData.deeds || []).map(deed => ({
-            ...deed,
-            effects: {
-              start: deed.effects?.start || '',
-              base: deed.effects?.base || '',
-              hit: deed.effects?.hit || '',
-              shadow: deed.effects?.shadow || '',
-              end: deed.effects?.end || '',
-            },
-            tags: deed.tags || [],
-          }))
-        };
-        
-        // If it's a template, don't copy the ID.
-        if (template) {
-          delete (formData as any).id;
-        } else {
-          // If it's a truly new creature, calculate initial stats.
-          const initialStats = getStatsForRoleAndLevel(formData.role, formData.level);
-          if (initialStats) {
-            formData.attributes = initialStats;
-          }
-        }
-
-        form.reset(formData);
-        
-        setCreatureData(template ? (template as CreatureWithDeeds) : null);
-        setIsEditing(true);
+      if (isCreatingNew || !creatureId) {
+        setIsEditing(isCreatingNew);
         setLoading(false);
-        return;
-      }
-      
-      if (!creatureId) {
-        setIsEditing(false);
-        setLoading(false);
-        setCreatureData(null);
+        setCreatureData(template || null);
         return;
       }
 
@@ -357,7 +352,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
       }
     };
     fetchCreatureData();
-  }, [creatureId, isCreatingNew, template, form, toast, dataVersion]);
+  }, [creatureId, isCreatingNew, form, toast, dataVersion, template]);
 
 
   const onSubmit = async (data: CreatureFormData) => {
