@@ -188,7 +188,36 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
 
   const onSubmit = async (data: ItemFormData) => {
     try {
-      const itemToSave: NewItem | Item = { ...data, tags: data.tags || [] };
+      const baseData: Partial<Item> = {
+        name: data.name,
+        type: data.type,
+        price: data.price,
+        quality: data.quality,
+        tags: data.tags || [],
+      };
+
+      switch (data.type) {
+        case 'weapon':
+          baseData.damageDie = data.damageDie;
+          baseData.weaponType = data.weaponType;
+          baseData.range = data.range;
+          baseData.property = data.property;
+          baseData.weaponEffect = data.weaponEffect;
+          break;
+        case 'armor':
+        case 'shield':
+          baseData.placement = data.placement;
+          baseData.weight = data.weight;
+          baseData.AR = data.AR;
+          baseData.armorDie = data.armorDie;
+          break;
+        case 'tool':
+          baseData.description = data.description;
+          break;
+      }
+      
+      const itemToSave = baseData as NewItem;
+
       const tagsToSave = data.tags || [];
       if (tagsToSave.length > 0) {
         await addTags(tagsToSave, 'item');
@@ -200,7 +229,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         toast({ title: "Item Created!", description: `${data.name} has been added.` });
       } else if (itemId) {
         savedId = itemId;
-        await updateItem({ ...itemToSave, id: itemId });
+        await updateItem({ ...itemToSave, id: itemId } as Item);
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
       } else {
         return; 
