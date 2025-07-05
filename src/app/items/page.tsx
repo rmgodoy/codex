@@ -196,7 +196,7 @@ export default function ItemsPage() {
                 template={templateData}
                 onSaveSuccess={onSaveSuccess}
                 onDeleteSuccess={onDeleteSuccess}
-                onUseAsTemplate={onUseAsTemplate}
+                onUseAsTemplate={handleUseAsTemplate}
                 onEditCancel={onEditCancel}
               />
             </div>
