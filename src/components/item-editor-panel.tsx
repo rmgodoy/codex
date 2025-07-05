@@ -98,13 +98,13 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [tierFilter, setTierFilter] = useState<string>('all');
-  const [tagFilter, setTagFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
 
   const filteredDeeds = useMemo(() => {
     return allDeeds.filter(deed => {
         const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
-        const tagsToFilter = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        const tagsToFilter = tagFilter.map(t => t.toLowerCase());
         const matchesTags = tagsToFilter.length === 0 || 
                             (deed.tags && tagsToFilter.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))));
         return matchesSearch && matchesTier && matchesTags;
@@ -116,8 +116,17 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
     setIsOpen(false);
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setSearchTerm("");
+      setTierFilter("all");
+      setTagFilter([]);
+    }
+    setIsOpen(open);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl h-[70vh] flex flex-col">
         <DialogHeader><DialogTitle>Select a Deed</DialogTitle></DialogHeader>
@@ -137,12 +146,14 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
                 <SelectItem value="mighty">Mighty</SelectItem>
             </SelectContent>
           </Select>
-           <Input 
-            placeholder="Filter by tags..."
-            value={tagFilter}
-            onChange={e => setTagFilter(e.target.value)}
-            className="flex-1 min-w-[150px]"
-          />
+           <div className="flex-1 min-w-[150px]">
+             <TagInput
+              value={tagFilter}
+              onChange={setTagFilter}
+              placeholder="Filter by tags..."
+              tagSource="deed"
+            />
+          </div>
         </div>
         <ScrollArea className="flex-1 border rounded-md p-4">
           <div className="space-y-2">
