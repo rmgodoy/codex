@@ -45,6 +45,8 @@
     "elkjs": "^0.9.3",
     "embla-carousel-react": "^8.6.0",
     "genkit": "^1.13.0",
+    "html-to-image": "^1.11.11",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
@@ -59,6 +61,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/jszip": "^3.4.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

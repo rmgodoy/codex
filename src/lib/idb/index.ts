@@ -11,3 +11,4 @@ export * from './dungeons';
 export * from './items';
 export * from './tags';
 export * from './import-export';
+export * from './exportHelpers';

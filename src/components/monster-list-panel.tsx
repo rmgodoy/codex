@@ -2,9 +2,9 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { getAllCreatures } from '@/lib/idb';
-import type { Creature, CreatureTemplate } from '@/lib/types';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { getAllCreatures, getCreaturesWithDeedsByIds } from '@/lib/idb';
+import type { Creature, CreatureTemplate, CreatureWithDeeds } from '@/lib/types';
 import { ROLES, type Role } from '@/lib/roles';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,22 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import { TagInput } from '@/components/ui/tag-input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import CreatureExportCard from './creature-export-card';
+import * as htmlToImage from 'html-to-image';
+import JSZip from 'jszip';
+
 
 type SortByType = 'name' | 'TR' | 'level';
 
@@ -64,6 +78,13 @@ export default function CreatureListPanel({
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedForExport, setSelectedForExport] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
+  const [creatureToRender, setCreatureToRender] = useState<CreatureWithDeeds | null>(null);
+  const exportCardRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     const fetchCreatures = async () => {
@@ -80,6 +101,61 @@ export default function CreatureListPanel({
     };
     fetchCreatures();
   }, [dataVersion, toast]);
+  
+  const handleExport = async () => {
+    if (selectedForExport.size === 0) {
+        toast({
+            variant: "destructive",
+            title: "No creatures selected",
+            description: "Please select at least one creature to export.",
+        });
+        return;
+    }
+
+    setIsExporting(true);
+    toast({ title: "Starting Export...", description: `Preparing ${selectedForExport.size} creature(s).` });
+
+    try {
+        const creaturesToExport = await getCreaturesWithDeedsByIds(Array.from(selectedForExport));
+        const zip = new JSZip();
+
+        for (const creature of creaturesToExport) {
+            setCreatureToRender(creature);
+            // Wait for the DOM to update with the new creature card.
+            await new Promise(resolve => setTimeout(resolve, 50)); 
+            
+            if (exportCardRef.current) {
+                try {
+                    const dataUrl = await htmlToImage.toPng(exportCardRef.current, { quality: 1, pixelRatio: 2 });
+                    const blob = await (await fetch(dataUrl)).blob();
+                    zip.file(`${creature.name.replace(/ /g, '_')}.png`, blob);
+                } catch (error) {
+                    console.error(`Failed to export ${creature.name}:`, error);
+                    toast({ variant: 'destructive', title: `Failed to export ${creature.name}`});
+                }
+            }
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = "exported_creatures.zip";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({ title: 'Export finished!', description: `${creaturesToExport.length} creature(s) have been exported.` });
+    } catch (error) {
+        console.error("Export failed", error);
+        toast({ variant: "destructive", title: "Export Failed", description: "An unexpected error occurred." });
+    } finally {
+        setCreatureToRender(null);
+        setIsExporting(false);
+        setIsExportDialogOpen(false);
+        setSelectedForExport(new Set());
+    }
+  };
+
 
   const filteredAndSortedCreatures = useMemo(() => {
     let filtered = creatures.filter(creature => {
@@ -135,10 +211,72 @@ export default function CreatureListPanel({
 
   return (
     <div className="border-r border-border bg-card flex flex-col h-full">
+      {creatureToRender && (
+        <div ref={exportCardRef} className="fixed -left-[9999px] top-0">
+          <CreatureExportCard creature={creatureToRender} />
+        </div>
+      )}
       <div className="p-4 space-y-4">
-        <Button onClick={onNewCreature} className="w-full">
-          <PlusCircle /> New Creature
-        </Button>
+        <div className="flex gap-2">
+            <Button onClick={onNewCreature} className="w-full">
+              <PlusCircle /> New Creature
+            </Button>
+            <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="px-3" title="Export as PNG">
+                  <Download />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Export Creatures to PNG</DialogTitle>
+                  <DialogDescription>Select the creatures you want to export. They will be downloaded as a single ZIP file.</DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center justify-between">
+                    <Label>{selectedForExport.size} of {creatures.length} selected</Label>
+                    <Button variant="link" className="p-0 h-auto" onClick={() => {
+                        if (selectedForExport.size === creatures.length) {
+                            setSelectedForExport(new Set());
+                        } else {
+                            setSelectedForExport(new Set(creatures.map(c => c.id)));
+                        }
+                    }}>
+                        {selectedForExport.size === creatures.length ? 'Deselect All' : 'Select All'}
+                    </Button>
+                </div>
+                <ScrollArea className="h-64 border rounded-md">
+                   <div className="p-4 space-y-2">
+                        {creatures.map(creature => (
+                            <div key={creature.id} className="flex items-center gap-2">
+                                <Checkbox
+                                    id={`export-${creature.id}`}
+                                    checked={selectedForExport.has(creature.id)}
+                                    onCheckedChange={(checked) => {
+                                        setSelectedForExport(prev => {
+                                            const newSet = new Set(prev);
+                                            if (checked) {
+                                                newSet.add(creature.id);
+                                            } else {
+                                                newSet.delete(creature.id);
+                                            }
+                                            return newSet;
+                                        });
+                                    }}
+                                />
+                                <Label htmlFor={`export-${creature.id}`} className="font-normal">{creature.name}</Label>
+                            </div>
+                        ))}
+                   </div>
+                </ScrollArea>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleExport} disabled={isExporting || selectedForExport.size === 0}>
+                        {isExporting ? 'Exporting...' : `Export ${selectedForExport.size} Creature(s)`}
+                    </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
