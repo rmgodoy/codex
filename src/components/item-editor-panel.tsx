@@ -98,13 +98,13 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [tierFilter, setTierFilter] = useState<string>('all');
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string>('');
 
   const filteredDeeds = useMemo(() => {
     return allDeeds.filter(deed => {
         const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
-        const tagsToFilter = tagFilter.map(t => t.toLowerCase());
+        const tagsToFilter = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
         const matchesTags = tagsToFilter.length === 0 || 
                             (deed.tags && tagsToFilter.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))));
         return matchesSearch && matchesTier && matchesTags;
@@ -120,7 +120,7 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
     if (!open) {
       setSearchTerm("");
       setTierFilter("all");
-      setTagFilter([]);
+      setTagFilter("");
     }
     setIsOpen(open);
   };
@@ -148,8 +148,8 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
           </Select>
            <div className="flex-1 min-w-[150px]">
              <TagInput
-              value={tagFilter}
-              onChange={setTagFilter}
+              value={tagFilter ? tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+              onChange={(tags) => setTagFilter(tags.join(','))}
               placeholder="Filter by tags..."
               tagSource="deed"
             />
@@ -642,7 +642,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             <CardContent className="space-y-6">
                 <h3 className="text-lg font-semibold text-primary-foreground">Base Properties</h3>
                 <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Item Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage/></FormItem>)} />
+                <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={4} /></FormControl><FormMessage/></FormItem>)} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <FormField name="type" control={form.control} render={({ field }) => (<FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ITEM_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField name="magicTier" control={form.control} render={({ field }) => (<FormItem><FormLabel>Tier</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ITEM_MAGIC_TIERS.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
