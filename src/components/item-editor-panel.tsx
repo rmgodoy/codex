@@ -6,11 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { getItemById, addItem, updateItem, deleteItem, addTags } from "@/lib/idb";
-import type { Item, NewItem, ItemType, WeaponDamageDie, WeaponType, WeaponProperty, ItemPlacement, ArmorWeight, ArmorDie } from "@/lib/types";
+import { getItemById, addItem, updateItem, deleteItem, addTags, getAllDeeds } from "@/lib/idb";
+import type { Item, NewItem, ItemType, WeaponDamageDie, WeaponType, WeaponProperty, ItemPlacement, ArmorWeight, ArmorDie, ItemMagicTier, Deed } from "@/lib/types";
 import { 
     ITEM_TYPES, 
-    ITEM_QUALITIES, 
+    ITEM_QUALITIES,
+    ITEM_MAGIC_TIERS,
     WEAPON_TYPES,
     WEAPON_DAMAGE_DIES, 
     WEAPON_PROPERTIES, 
@@ -39,6 +40,11 @@ const itemSchema = z.object({
   type: z.enum(ITEM_TYPES),
   price: z.coerce.number().min(0, "Price must be a non-negative number"),
   quality: z.enum(ITEM_QUALITIES),
+  description: z.string().min(1, "Description is required"),
+  magicTier: z.enum(ITEM_MAGIC_TIERS),
+  enchantment: z.string().optional(),
+  assignedDeedId: z.string().optional(),
+  magicalTrait: z.string().optional(),
   tags: z.array(z.string()).optional(),
   
   damageDie: z.enum(WEAPON_DAMAGE_DIES).optional(),
@@ -51,7 +57,6 @@ const itemSchema = z.object({
   weight: z.enum(ARMOR_WEIGHTS).optional(),
   AR: z.string().optional(),
   armorDie: z.enum(ARMOR_DIES).optional(),
-  description: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.type === 'weapon') {
         if (!data.damageDie) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Damage Die is required for weapons.', path: ['damageDie'] });
@@ -72,8 +77,11 @@ const itemSchema = z.object({
     if (data.type === 'shield' && data.placement !== 'shield') {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Shields must have shield placement.', path: ['placement'] });
     }
-    if (data.type === 'tool') {
-        if (!data.description?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Description is required for tools.', path: ['description'] });
+    if ((data.magicTier === 'magical' || data.magicTier === 'artifact') && !data.enchantment?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Enchantment is required for magical items and artifacts.', path: ['enchantment'] });
+    }
+    if (data.magicTier === 'artifact' && !data.magicalTrait?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Magical Trait is required for artifacts.', path: ['magicalTrait'] });
     }
 });
 
@@ -82,7 +90,6 @@ type ItemFormData = z.infer<typeof itemSchema>;
 type WeaponSpecificData = Pick<Item, 'damageDie' | 'weaponType' | 'range' | 'property' | 'weaponEffect'>;
 type ArmorSpecificData = Pick<Item, 'placement' | 'weight' | 'AR' | 'armorDie'>;
 type ShieldSpecificData = Pick<Item, 'placement' | 'weight' | 'AR' | 'armorDie'>;
-type ToolSpecificData = Pick<Item, 'description'>;
 
 interface ItemEditorPanelProps {
   itemId: string | null;
@@ -100,6 +107,8 @@ const defaultValues: ItemFormData = {
   type: 'weapon',
   price: 0,
   quality: 'normal',
+  magicTier: 'normal',
+  description: "",
   tags: [],
   property: 'one-handed',
   weaponType: 'melee',
@@ -113,10 +122,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   const [itemData, setItemData] = useState<Item | null>(null);
   const isMobile = useIsMobile();
   
+  const [allDeeds, setAllDeeds] = useState<Deed[]>([]);
   const [weaponData, setWeaponData] = useState<Partial<WeaponSpecificData>>({ property: 'one-handed', weaponType: 'melee', damageDie: 'd6' });
   const [armorData, setArmorData] = useState<Partial<ArmorSpecificData>>({});
   const [shieldData, setShieldData] = useState<Partial<ShieldSpecificData>>({});
-  const [toolData, setToolData] = useState<Partial<ToolSpecificData>>({});
   
   const initialFormValues = useMemo(() => {
     if (isCreatingNew) {
@@ -133,7 +142,20 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   const { watch, setValue, getValues } = form;
   const watchedType = watch('type');
   const watchedWeaponType = watch('weaponType');
+  const watchedMagicTier = watch('magicTier');
   const previousTypeRef = useRef<ItemType | undefined>(watchedType);
+  
+  useEffect(() => {
+    getAllDeeds().then(setAllDeeds);
+  }, []);
+
+  useEffect(() => {
+    if (isEditing) {
+      if (watchedMagicTier === 'magical' || watchedMagicTier === 'artifact') {
+        setValue('quality', 'fine');
+      }
+    }
+  }, [watchedMagicTier, isEditing, setValue]);
 
   useEffect(() => {
     const previousType = previousTypeRef.current;
@@ -162,13 +184,11 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         AR: currentValues.AR,
         armorDie: currentValues.armorDie,
       });
-    } else if (previousType === 'tool') {
-      setToolData({ description: currentValues.description });
     }
 
     const allSpecificKeys: (keyof ItemFormData)[] = [
       'damageDie', 'weaponType', 'range', 'property', 'weaponEffect',
-      'placement', 'weight', 'AR', 'armorDie', 'description'
+      'placement', 'weight', 'AR', 'armorDie'
     ];
     allSpecificKeys.forEach(key => setValue(key, undefined));
 
@@ -180,12 +200,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
       Object.entries(shieldData).forEach(([key, value]) => setValue(key as keyof ItemFormData, value));
       setValue('placement', 'shield', { shouldValidate: true });
       setValue('weight', 'None', { shouldValidate: true });
-    } else if (watchedType === 'tool') {
-      Object.entries(toolData).forEach(([key, value]) => setValue(key as keyof ItemFormData, value));
     }
 
     previousTypeRef.current = watchedType;
-  }, [watchedType, getValues, setValue, isEditing, weaponData, armorData, shieldData, toolData]);
+  }, [watchedType, getValues, setValue, isEditing, weaponData, armorData, shieldData]);
 
 
   useEffect(() => {
@@ -194,7 +212,6 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         form.reset(initialFormValues);
         setItemData(template as Item || null);
         setWeaponData(template || { damageDie: 'd6', weaponType: 'melee', property: 'one-handed' });
-        setToolData(template || {});
         if (template?.type === 'armor') {
             setArmorData(template);
             setShieldData({});
@@ -226,7 +243,6 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
           form.reset(itemFromDb);
           setItemData(itemFromDb);
           setWeaponData(itemFromDb);
-          setToolData(itemFromDb);
           if (itemFromDb.type === 'armor') {
             setArmorData(itemFromDb);
             setShieldData({});
@@ -256,7 +272,6 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
     } else if (itemData) {
         form.reset(itemData);
         setWeaponData(itemData);
-        setToolData(itemData);
         if (itemData.type === 'armor') {
             setArmorData(itemData);
             setShieldData({});
@@ -285,6 +300,8 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         type: data.type,
         price: data.price,
         quality: data.quality,
+        description: data.description,
+        magicTier: data.magicTier,
         tags: data.tags || [],
       };
 
@@ -304,8 +321,15 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
           baseData.armorDie = data.armorDie;
           break;
         case 'tool':
-          baseData.description = data.description;
           break;
+      }
+      
+      if (data.magicTier === 'magical' || data.magicTier === 'artifact') {
+          baseData.enchantment = data.enchantment;
+      }
+      if (data.magicTier === 'artifact') {
+          baseData.assignedDeedId = data.assignedDeedId;
+          baseData.magicalTrait = data.magicalTrait;
       }
       
       const itemToSave = baseData as NewItem;
@@ -356,13 +380,15 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
 
   const renderViewDetails = () => {
     if (!itemData) return null;
+    let typeSpecificDetails;
+
     switch(itemData.type) {
       case 'weapon':
         const typeAndRange = (itemData.weaponType === 'missile' || itemData.weaponType === 'spell') && itemData.range
             ? `${itemData.weaponType} (${itemData.range})`
             : itemData.weaponType;
 
-        return (
+        typeSpecificDetails = (
           <div className="space-y-4">
             <h4 className="text-md font-semibold text-primary-foreground">Weapon Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -373,9 +399,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             {itemData.weaponEffect && <div><p className="font-semibold text-muted-foreground">Effect:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.weaponEffect}</p></div>}
           </div>
         );
+        break;
       case 'armor':
       case 'shield':
-        return (
+        typeSpecificDetails = (
            <div className="space-y-4">
             <h4 className="text-md font-semibold text-primary-foreground">Armor/Shield Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -386,15 +413,33 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             </div>
           </div>
         );
+        break;
       case 'tool':
-        return (
-           <div className="space-y-2">
-            <h4 className="text-md font-semibold text-primary-foreground">Tool Details</h4>
-            <p className="text-foreground/80 whitespace-pre-wrap">{itemData.description}</p>
-          </div>
-        );
-      default: return null;
+        typeSpecificDetails = null;
+        break;
+      default: typeSpecificDetails = null;
     }
+    
+    const deed = itemData.assignedDeedId ? allDeeds.find(d => d.id === itemData.assignedDeedId) : null;
+
+    return (
+      <>
+        {itemData.description && <div><h4 className="text-md font-semibold text-primary-foreground">Description</h4><p className="text-foreground/80 whitespace-pre-wrap">{itemData.description}</p></div>}
+        {typeSpecificDetails && <Separator />}
+        {typeSpecificDetails}
+        {(itemData.magicTier === 'magical' || itemData.magicTier === 'artifact') && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <h4 className="text-md font-semibold text-primary-foreground">{itemData.magicTier === 'magical' ? 'Magical Properties' : 'Artifact Properties'}</h4>
+              {itemData.enchantment && <div><p className="font-semibold text-muted-foreground">Enchantment:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.enchantment}</p></div>}
+              {itemData.magicTier === 'artifact' && itemData.magicalTrait && <div><p className="font-semibold text-muted-foreground">Magical Trait:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.magicalTrait}</p></div>}
+              {deed && <div><p className="font-semibold text-muted-foreground">Granted Deed:</p><p className="text-accent">{deed.name}</p></div>}
+            </div>
+          </>
+        )}
+      </>
+    )
   }
 
   if (!isEditing && itemData) {
@@ -408,7 +453,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
                             <div>
                                 <CardTitle className="text-3xl font-bold">{itemData.name}</CardTitle>
                                 <CardDescription className="capitalize flex flex-wrap gap-x-4">
-                                    <span>{itemData.type}</span>
+                                    <span>{itemData.magicTier} {itemData.type}</span>
                                     <span>Quality: {itemData.quality}</span>
                                     <span>Price: {itemData.price}gp</span>
                                 </CardDescription>
@@ -439,7 +484,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
     );
   }
 
-  const renderFormFields = () => {
+  const renderTypeSpecificFields = () => {
     switch (watchedType) {
       case 'weapon':
         return (
@@ -472,13 +517,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
           </>
         );
       case 'tool':
-        return (
-           <>
-            <Separator />
-            <h3 className="text-lg font-semibold text-primary-foreground">Tool Properties</h3>
-            <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={4} /></FormControl><FormMessage/></FormItem>)} />
-           </>
-        );
+        return null;
       default:
         return null;
     }
@@ -501,12 +540,43 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             <CardContent className="space-y-6">
                 <h3 className="text-lg font-semibold text-primary-foreground">Base Properties</h3>
                 <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Item Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage/></FormItem>)} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <FormField name="type" control={form.control} render={({ field }) => (<FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ITEM_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                  <FormField name="quality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Quality</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ITEM_QUALITIES.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField name="magicTier" control={form.control} render={({ field }) => (<FormItem><FormLabel>Tier</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ITEM_MAGIC_TIERS.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField name="quality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Quality</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedMagicTier !== 'normal'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ITEM_QUALITIES.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField name="price" control={form.control} render={({ field }) => (<FormItem><FormLabel>Price (gp)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)} />
                 </div>
-                {renderFormFields()}
+                
+                {renderTypeSpecificFields()}
+
+                {(watchedMagicTier === 'magical' || watchedMagicTier === 'artifact') && (
+                  <>
+                    <Separator />
+                    <h3 className="text-lg font-semibold text-primary-foreground">Magical Properties</h3>
+                    <FormField name="enchantment" control={form.control} render={({ field }) => (<FormItem><FormLabel>Enchantment</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+                )}
+
+                {watchedMagicTier === 'artifact' && (
+                  <>
+                    <FormField name="magicalTrait" control={form.control} render={({ field }) => (<FormItem><FormLabel>Magical Trait</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={2} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="assignedDeedId" control={form.control} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Granted Deed</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select a deed..." /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {allDeeds.map(deed => <SelectItem key={deed.id} value={deed.id}>{deed.name} ({deed.tier})</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </>
+                )}
+
                 <Separator/>
                 <FormField name="tags" control={form.control} render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel><FormControl><TagInput value={field.value || []} onChange={field.onChange} placeholder="Add tags..." tagSource="item" /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>

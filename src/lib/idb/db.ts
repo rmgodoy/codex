@@ -2,7 +2,7 @@
 "use client";
 
 export const DB_NAME = 'TresspasserBestiaryDB';
-export const DB_VERSION = 12;
+export const DB_VERSION = 13;
 export const CREATURES_STORE_NAME = 'creatures';
 export const DEEDS_STORE_NAME = 'deeds';
 export const ENCOUNTERS_STORE_NAME = 'encounters';

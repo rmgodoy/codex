@@ -281,8 +281,11 @@ export type NewDungeon = Omit<Dungeon, 'id'>;
 export const ITEM_TYPES = ['weapon', 'armor', 'shield', 'tool'] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 
-export const ITEM_QUALITIES = ['crude', 'normal', 'fine', 'magical'] as const;
+export const ITEM_QUALITIES = ['crude', 'normal', 'fine'] as const;
 export type ItemQuality = (typeof ITEM_QUALITIES)[number];
+
+export const ITEM_MAGIC_TIERS = ['normal', 'magical', 'artifact'] as const;
+export type ItemMagicTier = (typeof ITEM_MAGIC_TIERS)[number];
 
 export const WEAPON_TYPES = ['melee', 'missile', 'spell', 'unarmed'] as const;
 export type WeaponType = (typeof WEAPON_TYPES)[number];
@@ -309,6 +312,11 @@ export interface Item {
     type: ItemType;
     price: number;
     quality: ItemQuality;
+    description: string;
+    magicTier: ItemMagicTier;
+    enchantment?: string;
+    assignedDeedId?: string;
+    magicalTrait?: string;
     tags?: string[];
     
     // Weapon fields
@@ -323,9 +331,6 @@ export interface Item {
     weight?: ArmorWeight;
     AR?: string;
     armorDie?: ArmorDie;
-
-    // Tool field
-    description?: string;
 }
 
 export type NewItem = Omit<Item, 'id'>;

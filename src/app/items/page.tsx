@@ -20,6 +20,7 @@ export default function ItemsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [qualityFilter, setQualityFilter] = useState('all');
+  const [magicTierFilter, setMagicTierFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -36,6 +37,7 @@ export default function ItemsPage() {
     searchTerm,
     typeFilter,
     qualityFilter,
+    magicTierFilter,
     tagFilter,
     sortBy,
     sortOrder
@@ -45,6 +47,7 @@ export default function ItemsPage() {
     setSearchTerm,
     setTypeFilter,
     setQualityFilter,
+    setMagicTierFilter,
     setTagFilter,
     setSortBy,
     setSortOrder
@@ -54,6 +57,7 @@ export default function ItemsPage() {
     setSearchTerm('');
     setTypeFilter('all');
     setQualityFilter('all');
+    setMagicTierFilter('all');
     setTagFilter('');
     setSortBy('name');
     setSortOrder('asc');
@@ -192,7 +196,7 @@ export default function ItemsPage() {
                 template={templateData}
                 onSaveSuccess={onSaveSuccess}
                 onDeleteSuccess={onDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
+                onUseAsTemplate={onUseAsTemplate}
                 onEditCancel={onEditCancel}
               />
             </div>

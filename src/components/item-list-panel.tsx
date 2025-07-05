@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getAllItems } from '@/lib/idb';
-import type { Item } from '@/lib/types';
-import { ITEM_TYPES, ITEM_QUALITIES } from '@/lib/types';
+import type { Item, ItemMagicTier } from '@/lib/types';
+import { ITEM_TYPES, ITEM_QUALITIES, ITEM_MAGIC_TIERS } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,6 +26,7 @@ interface ItemListPanelProps {
     searchTerm: string;
     typeFilter: string;
     qualityFilter: string;
+    magicTierFilter: string;
     tagFilter: string;
     sortBy: SortByType;
     sortOrder: 'asc' | 'desc';
@@ -34,6 +35,7 @@ interface ItemListPanelProps {
     setSearchTerm: (value: string) => void;
     setTypeFilter: (value: string) => void;
     setQualityFilter: (value: string) => void;
+    setMagicTierFilter: (value: string) => void;
     setTagFilter: (value: string) => void;
     setSortBy: (value: SortByType) => void;
     setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
@@ -73,6 +75,7 @@ export default function ItemListPanel({
         const matchesSearch = item.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
         const matchesType = filters.typeFilter === 'all' || item.type === filters.typeFilter;
         const matchesQuality = filters.qualityFilter === 'all' || item.quality === filters.qualityFilter;
+        const matchesMagicTier = filters.magicTierFilter === 'all' || item.magicTier === filters.magicTierFilter;
         
         let matchesTags = true;
         const tags = filters.tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
@@ -80,7 +83,7 @@ export default function ItemListPanel({
           matchesTags = item.tags ? tags.every(tag => item.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
         }
 
-        return matchesSearch && matchesType && matchesQuality && matchesTags;
+        return matchesSearch && matchesType && matchesQuality && matchesMagicTier && matchesTags;
     });
 
     const qualityOrder: Record<string, number> = { crude: 0, normal: 1, fine: 2, magical: 3 };
@@ -143,6 +146,13 @@ export default function ItemListPanel({
                     {ITEM_QUALITIES.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}
                 </SelectContent>
             </Select>
+            <Select value={filters.magicTierFilter} onValueChange={(value) => setFilters.setMagicTierFilter(value as ItemMagicTier | 'all')}>
+                <SelectTrigger><SelectValue placeholder="Filter by Tier" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Tiers</SelectItem>
+                    {ITEM_MAGIC_TIERS.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}
+                </SelectContent>
+            </Select>
             <TagInput
               value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
               onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
@@ -182,7 +192,8 @@ export default function ItemListPanel({
                     onClick={() => onSelectItem(item.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors ${selectedItemId === item.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
-                    {item.name} <span className="text-xs opacity-70 capitalize">({item.type})</span>
+                    {item.name} 
+                    <span className="text-xs opacity-70 capitalize"> ({item.type}{item.magicTier !== 'normal' ? `, ${item.magicTier}` : ''})</span>
                   </button>
                 </li>
               ))}
