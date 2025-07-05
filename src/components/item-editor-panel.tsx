@@ -28,12 +28,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Edit, Tag, X, ArrowLeft, Copy } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Copy, Library } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "./ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "./ui/scroll-area";
+import { Label } from "./ui/label";
 
 const itemSchema = z.object({
   name: z.string().min(1, "Item name is required"),
@@ -91,6 +94,73 @@ type WeaponSpecificData = Pick<Item, 'damageDie' | 'weaponType' | 'range' | 'pro
 type ArmorSpecificData = Pick<Item, 'placement' | 'weight' | 'AR' | 'armorDie'>;
 type ShieldSpecificData = Pick<Item, 'placement' | 'weight' | 'AR' | 'armorDie'>;
 
+const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSelectDeed: (deed: Deed) => void, allDeeds: Deed[], children: React.ReactNode }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tierFilter, setTierFilter] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState("");
+
+  const filteredDeeds = useMemo(() => {
+    return allDeeds.filter(deed => {
+        const matchesSearch = deed.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTier = tierFilter === 'all' || deed.tier === tierFilter;
+        const tagsToFilter = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        const matchesTags = tagsToFilter.length === 0 || 
+                            (deed.tags && tagsToFilter.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))));
+        return matchesSearch && matchesTier && matchesTags;
+    });
+  }, [allDeeds, searchTerm, tierFilter, tagFilter]);
+
+  const handleSelect = (deed: Deed) => {
+    onSelectDeed(deed);
+    setIsOpen(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-2xl h-[70vh] flex flex-col">
+        <DialogHeader><DialogTitle>Select a Deed</DialogTitle></DialogHeader>
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <Input 
+            placeholder="Search deeds..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="flex-1 min-w-[150px]"
+          />
+          <Select value={tierFilter} onValueChange={setTierFilter}>
+            <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Filter tier" /></SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Tiers</SelectItem>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="heavy">Heavy</SelectItem>
+                <SelectItem value="mighty">Mighty</SelectItem>
+            </SelectContent>
+          </Select>
+           <Input 
+            placeholder="Filter by tags..."
+            value={tagFilter}
+            onChange={e => setTagFilter(e.target.value)}
+            className="flex-1 min-w-[150px]"
+          />
+        </div>
+        <ScrollArea className="flex-1 border rounded-md p-4">
+          <div className="space-y-2">
+            {filteredDeeds.map(deed => (
+              <div key={deed.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-accent cursor-pointer" onClick={() => handleSelect(deed)}>
+                <div className="flex-1">
+                  <p className="font-semibold">{deed.name} <span className="text-xs text-muted-foreground">({deed.tier})</span></p>
+                  <p className="text-xs text-muted-foreground truncate">{deed.effects.hit}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 interface ItemEditorPanelProps {
   itemId: string | null;
   isCreatingNew: boolean;
@@ -113,7 +183,10 @@ const defaultValues: ItemFormData = {
   property: 'one-handed',
   weaponType: 'melee',
   damageDie: 'd4',
-  assignedDeedId: 'none',
+  AR: '0',
+  armorDie: 'd4',
+  weight: 'None',
+  placement: 'head',
 };
 
 export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSaveSuccess, onDeleteSuccess, onUseAsTemplate, onEditCancel, onBack }: ItemEditorPanelProps) {
@@ -145,10 +218,21 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   const watchedWeaponType = watch('weaponType');
   const watchedMagicTier = watch('magicTier');
   const previousTypeRef = useRef<ItemType | undefined>(watchedType);
+  const watchedAssignedDeedId = watch('assignedDeedId');
+  const [assignedDeed, setAssignedDeed] = useState<Deed | null>(null);
   
   useEffect(() => {
     getAllDeeds().then(setAllDeeds);
   }, []);
+  
+  useEffect(() => {
+    if (watchedAssignedDeedId && allDeeds.length > 0) {
+      const deed = allDeeds.find(d => d.id === watchedAssignedDeedId);
+      setAssignedDeed(deed || null);
+    } else {
+      setAssignedDeed(null);
+    }
+  }, [watchedAssignedDeedId, allDeeds]);
 
   useEffect(() => {
     if (isEditing) {
@@ -217,7 +301,6 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
           setArmorData(template);
           setShieldData(template);
         } else {
-          setItemData(null);
           setWeaponData({ property: 'one-handed', weaponType: 'melee', damageDie: 'd4' });
           setArmorData({ placement: 'head', weight: 'None', AR: '0', armorDie: 'd4' });
           setShieldData({ placement: 'shield', weight: 'None', AR: '0', armorDie: 'd4' });
@@ -377,6 +460,14 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
       </div>
     );
   }
+  
+  const handleSelectDeed = (deed: Deed) => {
+    setValue('assignedDeedId', deed.id, { shouldValidate: true });
+  };
+
+  const handleRemoveDeed = () => {
+    setValue('assignedDeedId', undefined, { shouldValidate: true });
+  };
 
   const renderViewDetails = () => {
     if (!itemData) return null;
@@ -561,19 +652,28 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
                 {watchedMagicTier === 'artifact' && (
                   <>
                     <FormField name="magicalTrait" control={form.control} render={({ field }) => (<FormItem><FormLabel>Magical Trait</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={2} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField name="assignedDeedId" control={form.control} render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Granted Deed</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)} value={field.value || 'none'}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select a deed..." /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {allDeeds.map(deed => <SelectItem key={deed.id} value={deed.id}>{deed.name} ({deed.tier})</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <div className="space-y-2">
+                      <Label>Granted Deed</Label>
+                      {assignedDeed ? (
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <p className="font-semibold">{assignedDeed.name} <span className="text-xs text-muted-foreground">({assignedDeed.tier})</span></p>
+                          <div className="flex items-center gap-2">
+                            <SingleDeedSelectionDialog onSelectDeed={handleSelectDeed} allDeeds={allDeeds}>
+                              <Button type="button" variant="outline" size="sm">Change</Button>
+                            </SingleDeedSelectionDialog>
+                            <Button type="button" variant="ghost" size="icon" onClick={handleRemoveDeed}><X className="h-4 w-4" /></Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <SingleDeedSelectionDialog onSelectDeed={handleSelectDeed} allDeeds={allDeeds}>
+                          <Button type="button" variant="outline" size="sm" className="w-full">
+                            <Library className="h-4 w-4 mr-2" />
+                            Select a Deed
+                          </Button>
+                        </SingleDeedSelectionDialog>
+                      )}
+                      <FormField name="assignedDeedId" control={form.control} render={() => <FormMessage />} />
+                    </div>
                   </>
                 )}
 
