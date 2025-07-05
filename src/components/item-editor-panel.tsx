@@ -11,6 +11,7 @@ import type { Item, NewItem } from "@/lib/types";
 import { 
     ITEM_TYPES, 
     ITEM_QUALITIES, 
+    WEAPON_TYPES,
     WEAPON_DAMAGE_DIES, 
     WEAPON_PROPERTIES, 
     ITEM_PLACEMENTS, 
@@ -41,9 +42,11 @@ const itemSchema = z.object({
   tags: z.array(z.string()).optional(),
   
   damageDie: z.enum(WEAPON_DAMAGE_DIES).optional(),
-  typeAndRange: z.string().optional(),
+  weaponType: z.enum(WEAPON_TYPES).optional(),
+  range: z.coerce.number().optional(),
   property: z.enum(WEAPON_PROPERTIES).optional(),
   weaponEffect: z.string().optional(),
+  
   placement: z.enum(ITEM_PLACEMENTS).optional(),
   weight: z.enum(ARMOR_WEIGHTS).optional(),
   AR: z.string().optional(),
@@ -52,7 +55,10 @@ const itemSchema = z.object({
 }).superRefine((data, ctx) => {
     if (data.type === 'weapon') {
         if (!data.damageDie) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Damage Die is required for weapons.', path: ['damageDie'] });
-        if (!data.typeAndRange?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Type & Range is required for weapons.', path: ['typeAndRange'] });
+        if (!data.weaponType) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Weapon Type is required for weapons.', path: ['weaponType'] });
+        if ((data.weaponType === 'missile' || data.weaponType === 'spell') && (data.range === undefined || data.range < 1)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Range is required for this weapon type.', path: ['range'] });
+        }
         if (!data.property) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Property is required for weapons.', path: ['property'] });
     }
     if (data.type === 'armor' || data.type === 'shield') {
@@ -90,6 +96,8 @@ const defaultValues: ItemFormData = {
   price: 0,
   quality: 'normal',
   tags: [],
+  property: 'one-handed',
+  weaponType: 'melee',
 };
 
 export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSaveSuccess, onDeleteSuccess, onUseAsTemplate, onEditCancel, onBack }: ItemEditorPanelProps) {
@@ -113,6 +121,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
 
   const { watch, setValue } = form;
   const watchedType = watch('type');
+  const watchedWeaponType = watch('weaponType');
 
   useEffect(() => {
     if (isEditing) {
@@ -218,8 +227,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   if (!itemId && !isCreatingNew) {
     return (
       <div className="w-full max-w-5xl mx-auto">
-        <Card className="h-full flex items-center justify-center min-h-[300px]">
-          <CardContent className="text-center pt-6"><p className="text-xl text-muted-foreground">Select an item to view or create a new one.</p></CardContent>
+        <Card className="h-full flex items-center justify-center min-h-[300px]"><CardContent className="text-center pt-6"><p className="text-xl text-muted-foreground">Select an item to view or create a new one.</p></CardContent>
         </Card>
       </div>
     );
@@ -229,13 +237,17 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
     if (!itemData) return null;
     switch(itemData.type) {
       case 'weapon':
+        const typeAndRange = (itemData.weaponType === 'missile' || itemData.weaponType === 'spell') && itemData.range
+            ? `${itemData.weaponType} (${itemData.range})`
+            : itemData.weaponType;
+
         return (
           <div className="space-y-4">
             <h4 className="text-md font-semibold text-primary-foreground">Weapon Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div><span className="font-semibold text-muted-foreground">Damage:</span> {itemData.damageDie}</div>
-                <div><span className="font-semibold text-muted-foreground">Type/Range:</span> {itemData.typeAndRange}</div>
-                <div><span className="font-semibold text-muted-foreground">Property:</span> {itemData.property}</div>
+                <div className="capitalize"><span className="font-semibold text-muted-foreground">Type:</span> {typeAndRange}</div>
+                <div className="capitalize"><span className="font-semibold text-muted-foreground">Property:</span> {itemData.property}</div>
             </div>
             {itemData.weaponEffect && <div><p className="font-semibold text-muted-foreground">Effect:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.weaponEffect}</p></div>}
           </div>
@@ -313,9 +325,12 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
           <>
             <Separator />
             <h3 className="text-lg font-semibold text-primary-foreground">Weapon Properties</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <FormField name="damageDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Damage Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_DAMAGE_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField name="typeAndRange" control={form.control} render={({ field }) => (<FormItem><FormLabel>Type & Range</FormLabel><FormControl><Input {...field} placeholder="e.g., Melee or Missile 30" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="weaponType" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                {(watchedWeaponType === 'missile' || watchedWeaponType === 'spell') && (
+                  <FormField name="range" control={form.control} render={({ field }) => (<FormItem><FormLabel>Range</FormLabel><FormControl><Input type="number" {...field} placeholder="e.g., 30" /></FormControl><FormMessage /></FormItem>)} />
+                )}
                 <FormField name="property" control={form.control} render={({ field }) => (<FormItem><FormLabel>Property</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_PROPERTIES.map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
             <FormField name="weaponEffect" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Effect</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />

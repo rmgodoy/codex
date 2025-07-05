@@ -284,6 +284,9 @@ export type ItemType = (typeof ITEM_TYPES)[number];
 export const ITEM_QUALITIES = ['crude', 'normal', 'fine', 'magical'] as const;
 export type ItemQuality = (typeof ITEM_QUALITIES)[number];
 
+export const WEAPON_TYPES = ['melee', 'missile', 'spell', 'unarmed'] as const;
+export type WeaponType = (typeof WEAPON_TYPES)[number];
+
 export const WEAPON_DAMAGE_DIES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
 export type WeaponDamageDie = (typeof WEAPON_DAMAGE_DIES)[number];
 
@@ -310,7 +313,8 @@ export interface Item {
     
     // Weapon fields
     damageDie?: WeaponDamageDie;
-    typeAndRange?: string;
+    weaponType?: WeaponType;
+    range?: number;
     property?: WeaponProperty;
     weaponEffect?: string;
 
