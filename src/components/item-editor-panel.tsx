@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { getItemById, addItem, updateItem, deleteItem, addTags } from "@/lib/idb";
-import type { Item, NewItem } from "@/lib/types";
+import type { Item, NewItem, ItemType, WeaponDamageDie, WeaponType, WeaponProperty, ItemPlacement, ArmorWeight, ArmorDie } from "@/lib/types";
 import { 
     ITEM_TYPES, 
     ITEM_QUALITIES, 
@@ -79,6 +79,10 @@ const itemSchema = z.object({
 
 type ItemFormData = z.infer<typeof itemSchema>;
 
+type WeaponSpecificData = Pick<Item, 'damageDie' | 'weaponType' | 'range' | 'property' | 'weaponEffect'>;
+type ArmorSpecificData = Pick<Item, 'placement' | 'weight' | 'AR' | 'armorDie'>;
+type ToolSpecificData = Pick<Item, 'description'>;
+
 interface ItemEditorPanelProps {
   itemId: string | null;
   isCreatingNew: boolean;
@@ -98,6 +102,7 @@ const defaultValues: ItemFormData = {
   tags: [],
   property: 'one-handed',
   weaponType: 'melee',
+  damageDie: 'd6',
 };
 
 export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSaveSuccess, onDeleteSuccess, onUseAsTemplate, onEditCancel, onBack }: ItemEditorPanelProps) {
@@ -106,6 +111,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   const [loading, setLoading] = useState(!isCreatingNew && !!itemId);
   const [itemData, setItemData] = useState<Item | null>(null);
   const isMobile = useIsMobile();
+  
+  const [weaponData, setWeaponData] = useState<Partial<WeaponSpecificData>>({ property: 'one-handed', weaponType: 'melee', damageDie: 'd6' });
+  const [armorData, setArmorData] = useState<Partial<ArmorSpecificData>>({});
+  const [toolData, setToolData] = useState<Partial<ToolSpecificData>>({});
   
   const initialFormValues = useMemo(() => {
     if (isCreatingNew) {
@@ -119,27 +128,78 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
     defaultValues: initialFormValues,
   });
 
-  const { watch, setValue } = form;
+  const { watch, setValue, getValues } = form;
   const watchedType = watch('type');
   const watchedWeaponType = watch('weaponType');
+  const previousTypeRef = useRef<ItemType | undefined>(watchedType);
 
   useEffect(() => {
-    if (isEditing) {
-      if (watchedType === 'shield') {
-          setValue('placement', 'shield', { shouldValidate: true });
-          setValue('weight', 'None', { shouldValidate: true });
-      }
-      if (watchedType === 'armor' && form.getValues('placement') === 'shield') {
-          setValue('placement', undefined, { shouldValidate: true });
-      }
+    const previousType = previousTypeRef.current;
+    if (previousType === watchedType || !isEditing) return;
+
+    const currentValues = getValues();
+    if (previousType === 'weapon') {
+      setWeaponData({
+        damageDie: currentValues.damageDie,
+        weaponType: currentValues.weaponType,
+        range: currentValues.range,
+        property: currentValues.property,
+        weaponEffect: currentValues.weaponEffect,
+      });
+    } else if (previousType === 'armor' || previousType === 'shield') {
+      setArmorData({
+        placement: currentValues.placement,
+        weight: currentValues.weight,
+        AR: currentValues.AR,
+        armorDie: currentValues.armorDie,
+      });
+    } else if (previousType === 'tool') {
+      setToolData({ description: currentValues.description });
     }
-  }, [watchedType, form, setValue, isEditing]);
+
+    const allSpecificKeys: (keyof ItemFormData)[] = [
+      'damageDie', 'weaponType', 'range', 'property', 'weaponEffect',
+      'placement', 'weight', 'AR', 'armorDie', 'description'
+    ];
+    allSpecificKeys.forEach(key => setValue(key, undefined));
+
+    if (watchedType === 'weapon') {
+      Object.entries(weaponData).forEach(([key, value]) => setValue(key as keyof ItemFormData, value));
+    } else if (watchedType === 'armor' || watchedType === 'shield') {
+      Object.entries(armorData).forEach(([key, value]) => setValue(key as keyof ItemFormData, value));
+    } else if (watchedType === 'tool') {
+      Object.entries(toolData).forEach(([key, value]) => setValue(key as keyof ItemFormData, value));
+    }
+
+    if (watchedType === 'shield') {
+        setValue('placement', 'shield', { shouldValidate: true });
+        setValue('weight', 'None', { shouldValidate: true });
+    }
+
+    previousTypeRef.current = watchedType;
+  }, [watchedType, getValues, setValue, isEditing, weaponData, armorData, toolData]);
+
 
   useEffect(() => {
     const fetchItemData = async () => {
       if (isCreatingNew) {
         form.reset(initialFormValues);
         setItemData(template as Item || null);
+        setWeaponData({
+          damageDie: template?.damageDie || 'd6',
+          weaponType: template?.weaponType || 'melee',
+          range: template?.range,
+          property: template?.property || 'one-handed',
+          weaponEffect: template?.weaponEffect,
+        });
+        setArmorData({
+          placement: template?.placement,
+          weight: template?.weight,
+          AR: template?.AR,
+          armorDie: template?.armorDie,
+        });
+        setToolData({ description: template?.description });
+        previousTypeRef.current = template?.type || 'weapon';
         setIsEditing(true);
         setLoading(false);
         return;
@@ -159,6 +219,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         if (itemFromDb) {
           form.reset(itemFromDb);
           setItemData(itemFromDb);
+          setWeaponData(itemFromDb);
+          setArmorData(itemFromDb);
+          setToolData(itemFromDb);
+          previousTypeRef.current = itemFromDb.type;
         } else {
           setItemData(null);
         }
@@ -176,6 +240,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         onEditCancel();
     } else if (itemData) {
         form.reset(itemData);
+        setWeaponData(itemData);
+        setArmorData(itemData);
+        setToolData(itemData);
+        previousTypeRef.current = itemData.type;
         setIsEditing(false);
     }
   };
@@ -358,17 +426,11 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
                 <FormField name="damageDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Damage Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_DAMAGE_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weaponType" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 {(watchedWeaponType === 'missile' || watchedWeaponType === 'spell') && (
-                  <FormField name="range" control={form.control} render={({ field }) => {
-                    const { value, ...rest } = field;
-                    return (<FormItem><FormLabel>Range</FormLabel><FormControl><Input type="number" {...rest} value={value ?? ''} placeholder="e.g., 30" /></FormControl><FormMessage /></FormItem>)
-                  }} />
+                  <FormField name="range" control={form.control} render={({ field }) => (<FormItem><FormLabel>Range</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} placeholder="e.g., 30" /></FormControl><FormMessage /></FormItem>)} />
                 )}
                 <FormField name="property" control={form.control} render={({ field }) => (<FormItem><FormLabel>Property</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_PROPERTIES.map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
-            <FormField name="weaponEffect" control={form.control} render={({ field }) => {
-              const { value, ...rest } = field;
-              return (<FormItem><FormLabel>Weapon Effect</FormLabel><FormControl><Textarea {...rest} value={value ?? ''} rows={3} /></FormControl></FormItem>)
-            }} />
+            <FormField name="weaponEffect" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Effect</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={3} /></FormControl></FormItem>)} />
           </>
         );
       case 'armor':
@@ -380,10 +442,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FormField name="placement" control={form.control} render={({ field }) => (<FormItem><FormLabel>Placement</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{(watchedType === 'shield' ? [ 'shield' ] : ARMOR_PLACEMENTS).map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weight" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_WEIGHTS.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField name="AR" control={form.control} render={({ field }) => {
-                  const { value, ...rest } = field;
-                  return (<FormItem><FormLabel>AR</FormLabel><FormControl><Input {...rest} value={value ?? ''} placeholder="+1" /></FormControl><FormMessage /></FormItem>)
-                }} />
+                <FormField name="AR" control={form.control} render={({ field }) => (<FormItem><FormLabel>AR</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="+1" /></FormControl><FormMessage /></FormItem>)} />
                 <FormField name="armorDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Armor Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
           </>
@@ -393,10 +452,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
            <>
             <Separator />
             <h3 className="text-lg font-semibold text-primary-foreground">Tool Properties</h3>
-            <FormField name="description" control={form.control} render={({ field }) => {
-              const { value, ...rest } = field;
-              return (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...rest} value={value ?? ''} rows={4} /></FormControl><FormMessage/></FormItem>)
-            }} />
+            <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={4} /></FormControl><FormMessage/></FormItem>)} />
            </>
         );
       default:
