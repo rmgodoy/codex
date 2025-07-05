@@ -699,7 +699,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <FormField name="template" control={form.control} render={({ field }) => (
                     <FormItem>
                         <FormLabel>Template</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select a template" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -711,7 +711,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <FormField name="role" control={form.control} render={({ field }) => (
                     <FormItem>
                         <FormLabel>Role</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -819,7 +819,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                   <FormField name={`deeds.${index}.tier`} control={form.control} render={({ field }) => (
                                       <FormItem>
                                           <FormLabel>Tier</FormLabel>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id || watchedTemplate === 'Underling'}>
+                                          <Select onValueChange={field.onChange} value={field.value} disabled={!!watchedData.deeds?.[index]?.id || watchedTemplate === 'Underling'}>
                                               <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
                                               <SelectContent>
                                                   <SelectItem value="light">Light</SelectItem>
@@ -836,7 +836,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                   <FormField name={`deeds.${index}.deedType`} control={form.control} render={({ field }) => (
                                       <FormItem>
                                           <FormLabel>Deed Type</FormLabel>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                          <Select onValueChange={field.onChange} value={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
                                               <FormControl><SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
                                               <SelectContent>
                                                   {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
@@ -848,7 +848,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                   <FormField name={`deeds.${index}.actionType`} control={form.control} render={({ field }) => (
                                       <FormItem>
                                           <FormLabel>Action Type</FormLabel>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                          <Select onValueChange={field.onChange} value={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
                                               <FormControl><SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger></FormControl>
                                               <SelectContent>
                                                   {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
@@ -860,7 +860,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                   <FormField name={`deeds.${index}.versus`} control={form.control} render={({ field }) => (
                                       <FormItem>
                                           <FormLabel>Versus</FormLabel>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
+                                          <Select onValueChange={field.onChange} value={field.value} disabled={!!watchedData.deeds?.[index]?.id}>
                                               <FormControl><SelectTrigger><SelectValue placeholder="Versus" /></SelectTrigger></FormControl>
                                               <SelectContent>
                                                   {DEED_VERSUS.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
