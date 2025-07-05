@@ -16,8 +16,8 @@ const tierAbbreviation = (tier: Deed['tier']) => {
     }
 }
 
-const processEffect = (text: string | undefined, dmg: string): string => {
-    if (!text) return '';
+const processEffect = (text: string | undefined, dmg: string): React.ReactNode => {
+    if (!text) return null;
     const processed = text.replace(/\\dd/g, dmg);
     const parts = processed.split(/(\bconfer\s+\w+\s+\d+\b)/gi);
     return parts.map((part, index) => {
@@ -31,6 +31,32 @@ const processEffect = (text: string | undefined, dmg: string): string => {
       }
       return part;
     });
+};
+
+const TemplateDescription = ({ template }: { template: CreatureWithDeeds['template'] }) => {
+    switch (template) {
+        case 'Underling':
+        return (
+            <p>
+            <span className="font-bold">Underling:</span> Any amount of damage from a hit is enough to kill this creature. It is immune to state damage, environmental damage and damage from missed attacks.
+            </p>
+        );
+        case 'Paragon':
+        return (
+            <p>
+            <span className="font-bold">Extra Turn:</span> This creature takes an additional turn at the end of the round. Immune to effects that delay its turn (loses an action point on its next turn instead).
+            </p>
+        );
+        case 'Tyrant':
+        return (
+            <>
+            <p><span className="font-bold">Extra Turn:</span> This creature takes an additional turn at the end of the round. Immune to effects that delay its turn (loses an action point on its next turn instead).</p>
+            <p className="mt-1"><span className="font-bold">Unstoppable:</span> Can make a free prevail check against one state at the end of each round.</p>
+            </>
+        );
+        default:
+        return null;
+    }
 };
 
 export default function CreatureExportCard({ creature }: CreatureExportCardProps) {
@@ -58,7 +84,7 @@ export default function CreatureExportCard({ creature }: CreatureExportCardProps
 
       <section className="p-2 grid grid-cols-2 gap-x-4 bg-white border-b border-stone-300">
         <div className="space-y-1">
-          <p className="flex items-center gap-1.5"><Diamond className="w-2 h-2 fill-current" /> {creature.role} {creature.level}</p>
+          <p className="flex items-center gap-1.5"><Diamond className="w-2 h-2 fill-current" /> {creature.role} {creature.template !== 'Normal' && creature.template} {creature.level}</p>
           <p className="flex items-center gap-1.5"><Diamond className="w-2 h-2 fill-current" /> HP: {creature.attributes.HP}</p>
           <p className="flex items-center gap-1.5"><Diamond className="w-2 h-2 fill-current" /> Speed: {creature.attributes.Speed}</p>
           <p className="flex items-center gap-1.5"><Diamond className="w-2 h-2 fill-current" /> Initiative: {creature.attributes.Initiative}</p>
@@ -70,6 +96,12 @@ export default function CreatureExportCard({ creature }: CreatureExportCardProps
           <p className="flex items-center gap-1.5"><Diamond className="w-2 h-2 fill-current" /> Roll Bonus: {creature.attributes.rollBonus > 0 ? `+${creature.attributes.rollBonus}` : creature.attributes.rollBonus}</p>
         </div>
       </section>
+      
+      {creature.template !== 'Normal' && (
+        <section className="p-2 bg-stone-100 border-b border-stone-300 text-stone-800">
+          <TemplateDescription template={creature.template} />
+        </section>
+      )}
 
       {creature.abilities && creature.abilities.length > 0 && (
           <section className="p-2 bg-white border-b border-stone-300">
