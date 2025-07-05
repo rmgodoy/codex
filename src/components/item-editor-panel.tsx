@@ -329,11 +329,17 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
                 <FormField name="damageDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Damage Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_DAMAGE_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weaponType" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 {(watchedWeaponType === 'missile' || watchedWeaponType === 'spell') && (
-                  <FormField name="range" control={form.control} render={({ field }) => (<FormItem><FormLabel>Range</FormLabel><FormControl><Input type="number" {...field} placeholder="e.g., 30" /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField name="range" control={form.control} render={({ field }) => {
+                    const { value, ...rest } = field;
+                    return (<FormItem><FormLabel>Range</FormLabel><FormControl><Input type="number" {...rest} value={value ?? ''} placeholder="e.g., 30" /></FormControl><FormMessage /></FormItem>)
+                  }} />
                 )}
                 <FormField name="property" control={form.control} render={({ field }) => (<FormItem><FormLabel>Property</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_PROPERTIES.map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
-            <FormField name="weaponEffect" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Effect</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
+            <FormField name="weaponEffect" control={form.control} render={({ field }) => {
+              const { value, ...rest } = field;
+              return (<FormItem><FormLabel>Weapon Effect</FormLabel><FormControl><Textarea {...rest} value={value ?? ''} rows={3} /></FormControl></FormItem>)
+            }} />
           </>
         );
       case 'armor':
@@ -345,7 +351,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FormField name="placement" control={form.control} render={({ field }) => (<FormItem><FormLabel>Placement</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{(watchedType === 'shield' ? [ 'shield' ] : ARMOR_PLACEMENTS).map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weight" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_WEIGHTS.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField name="AR" control={form.control} render={({ field }) => (<FormItem><FormLabel>AR</FormLabel><FormControl><Input {...field} placeholder="+1" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="AR" control={form.control} render={({ field }) => {
+                  const { value, ...rest } = field;
+                  return (<FormItem><FormLabel>AR</FormLabel><FormControl><Input {...rest} value={value ?? ''} placeholder="+1" /></FormControl><FormMessage /></FormItem>)
+                }} />
                 <FormField name="armorDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Armor Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
             </div>
           </>
@@ -355,7 +364,10 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
            <>
             <Separator />
             <h3 className="text-lg font-semibold text-primary-foreground">Tool Properties</h3>
-            <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage/></FormItem>)} />
+            <FormField name="description" control={form.control} render={({ field }) => {
+              const { value, ...rest } = field;
+              return (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...rest} value={value ?? ''} rows={4} /></FormControl><FormMessage/></FormItem>)
+            }} />
            </>
         );
       default:
