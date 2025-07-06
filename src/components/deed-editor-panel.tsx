@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,6 +28,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
   base: z.string().optional(),
+  spark: z.string().optional(),
   hit: z.string().optional(),
   shadow: z.string().optional(),
   after: z.string().optional(),
@@ -67,7 +67,7 @@ const defaultValues: DeedFormData = {
   deedType: 'melee',
   versus: 'guard',
   target: "",
-  effects: { start: '', base: '', hit: '', shadow: '', after: '' },
+  effects: { start: '', base: '', spark: '', hit: '', shadow: '', after: '' },
   tags: [],
 };
 
@@ -423,6 +423,12 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                   <FormItem>
                       <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                       <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} /></FormControl>
+                  </FormItem>
+              )} />
+              <FormField name="effects.spark" control={form.control} render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Spark <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                      <FormControl><Textarea placeholder="Effect on critical hit or other trigger..." {...field} rows={2} /></FormControl>
                   </FormItem>
               )} />
               <FormField name="effects.hit" control={form.control} render={({ field }) => (

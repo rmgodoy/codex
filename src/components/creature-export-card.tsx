@@ -127,6 +127,7 @@ export default function CreatureExportCard({ creature }: CreatureExportCardProps
               {deed.target && <p>Target: {deed.target}</p>}
               {renderEffectLine('Start', deed.effects.start)}
               {renderEffectLine('Base', deed.effects.base)}
+              {renderEffectLine('Spark', deed.effects.spark)}
               {renderEffectLine('Hit', deed.effects.hit)}
               {renderEffectLine('Shadow', deed.effects.shadow)}
               {renderEffectLine('After', deed.effects.after)}

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -38,6 +37,7 @@ const TEMPLATES: CreatureTemplate[] = ['Normal', 'Underling', 'Paragon', 'Tyrant
 const deedEffectsSchema = z.object({
   start: z.string().optional(),
   base: z.string().optional(),
+  spark: z.string().optional(),
   hit: z.string().optional(),
   shadow: z.string().optional(),
   after: z.string().optional(),
@@ -238,6 +238,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             effects: {
               start: deed.effects?.start || '',
               base: deed.effects?.base || '',
+              spark: deed.effects?.spark || '',
               hit: deed.effects?.hit || '',
               shadow: deed.effects?.shadow || '',
               after: deed.effects?.after || '',
@@ -364,6 +365,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               effects: {
                 start: deed.effects?.start || '',
                 base: deed.effects?.base || '',
+                spark: deed.effects?.spark || '',
                 hit: deed.effects?.hit || '',
                 shadow: deed.effects?.shadow || '',
                 after: deed.effects?.after || '',
@@ -460,6 +462,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
             effects: {
               start: deed.effects?.start || '',
               base: deed.effects?.base || '',
+              spark: deed.effects?.spark || '',
               hit: deed.effects?.hit || '',
               shadow: deed.effects?.shadow || '',
               after: deed.effects?.after || '',
@@ -852,7 +855,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                   <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                   <div className="flex flex-wrap justify-end gap-2">
                     <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', after: '' }, tags: [] })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', spark: '', hit: '', shadow: '', after: '' }, tags: [] })}>
                       <Plus className="h-4 w-4 mr-2" /> Create New
                     </Button>
                   </div>
@@ -960,6 +963,12 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                   <FormItem>
                                       <FormLabel>Base <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                                       <FormControl><Textarea placeholder="Base effect of the deed..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
+                                  </FormItem>
+                              )} />
+                              <FormField name={`deeds.${index}.effects.spark`} control={form.control} render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Spark <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormControl><Textarea placeholder="Effect on critical hit or other trigger..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                   </FormItem>
                               )} />
                                   <FormField name={`deeds.${index}.effects.hit`} control={form.control} render={({ field }) => (

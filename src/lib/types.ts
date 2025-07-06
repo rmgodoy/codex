@@ -24,6 +24,7 @@ export interface CreatureAbility {
 export interface DeedEffects {
   start?: string;
   base?: string;
+  spark?: string;
   hit?: string;
   shadow?: string;
   after?: string;
