@@ -13,6 +13,8 @@ const tierAbbreviation = (tier: Deed['tier']) => {
         case 'light': return 'L';
         case 'heavy': return 'H';
         case 'mighty': return 'M';
+        case 'tyrant': return 'T';
+        case 'special': return 'S';
     }
 }
 
@@ -62,7 +64,7 @@ const TemplateDescription = ({ template }: { template: CreatureWithDeeds['templa
 export default function CreatureExportCard({ creature }: CreatureExportCardProps) {
   if (!creature) return null;
 
-  const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2 };
+  const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2, tyrant: 3, special: 4 };
   const sortedDeeds = [...creature.deeds].sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
   
   const renderEffectLine = (label: string, text: string | undefined) => {
@@ -127,7 +129,7 @@ export default function CreatureExportCard({ creature }: CreatureExportCardProps
               {renderEffectLine('Base', deed.effects.base)}
               {renderEffectLine('Hit', deed.effects.hit)}
               {renderEffectLine('Shadow', deed.effects.shadow)}
-              {renderEffectLine('End', deed.effects.end)}
+              {renderEffectLine('After', deed.effects.after)}
             </div>
           </div>
         ))}

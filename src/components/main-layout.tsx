@@ -97,7 +97,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
 
   const navLinks = [
     { href: '/alchemy', label: 'Alchemy', group: 'Compendium' },
-    { href: '/deeds', label: 'Creature Deeds', group: 'Compendium' },
+    { href: '/deeds', label: 'Deeds', group: 'Compendium' },
     { href: '/', label: 'Bestiary', group: 'Compendium' },
     { href: '/items', label: 'Items', group: 'Compendium' },
     { href: '/rooms', label: 'Rooms', group: 'Compendium' },

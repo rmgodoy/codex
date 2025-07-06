@@ -26,7 +26,7 @@ export interface DeedEffects {
   base?: string;
   hit?: string;
   shadow?: string;
-  end?: string;
+  after?: string;
 }
 
 export const DEED_ACTION_TYPES = ['attack', 'support'] as const;
@@ -38,7 +38,7 @@ export type DeedType = (typeof DEED_TYPES)[number];
 export const DEED_VERSUS = ['guard', 'resist', '10', 'special'] as const;
 export type DeedVersus = (typeof DEED_VERSUS)[number];
 
-export type DeedTier = 'light' | 'heavy' | 'mighty';
+export type DeedTier = 'light' | 'heavy' | 'mighty' | 'tyrant' | 'special';
 
 export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item';
 

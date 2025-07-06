@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -8,7 +9,7 @@ import { z } from "zod";
 import { getCreatureById, addCreature, updateCreature, deleteCreature, addDeed, getDeedsByIds, getAllDeeds, addTags } from "@/lib/idb";
 import { ROLES, getStatsForRoleAndLevel, getTR, stepDownDamageDie, type Role } from '@/lib/roles';
 import { useToast } from "@/hooks/use-toast";
-import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate, CreatureAbility } from "@/lib/types";
+import type { Creature, Deed, DeedData, CreatureWithDeeds, CreatureTemplate, CreatureAbility, DeedTier } from "@/lib/types";
 import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -39,13 +40,13 @@ const deedEffectsSchema = z.object({
   base: z.string().optional(),
   hit: z.string().optional(),
   shadow: z.string().optional(),
-  end: z.string().optional(),
+  after: z.string().optional(),
 });
 
 const deedSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Deed name is required"),
-  tier: z.enum(['light', 'heavy', 'mighty']),
+  tier: z.enum(['light', 'heavy', 'mighty', 'tyrant', 'special']),
   actionType: z.enum(DEED_ACTION_TYPES),
   deedType: z.enum(DEED_TYPES),
   versus: z.enum(DEED_VERSUS),
@@ -239,7 +240,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               base: deed.effects?.base || '',
               hit: deed.effects?.hit || '',
               shadow: deed.effects?.shadow || '',
-              end: deed.effects?.end || '',
+              after: deed.effects?.after || '',
             },
             tags: deed.tags || [],
           }))
@@ -365,7 +366,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 base: deed.effects?.base || '',
                 hit: deed.effects?.hit || '',
                 shadow: deed.effects?.shadow || '',
-                end: deed.effects?.end || '',
+                after: deed.effects?.after || '',
               },
               tags: deed.tags || [],
             })),
@@ -461,7 +462,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               base: deed.effects?.base || '',
               hit: deed.effects?.hit || '',
               shadow: deed.effects?.shadow || '',
-              end: deed.effects?.end || '',
+              after: deed.effects?.after || '',
             },
             tags: deed.tags || [],
           })),
@@ -492,7 +493,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
     }
   };
   
-  const tierOrder: Record<Deed['tier'], number> = { light: 0, heavy: 1, mighty: 2 };
+  const tierOrder: Record<DeedTier, number> = { light: 0, heavy: 1, mighty: 2, tyrant: 3, special: 4 };
   
   const existingDeedIds = useMemo(() => new Set(fields.map(field => field.id).filter(Boolean)), [fields]);
 
@@ -851,7 +852,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                   <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
                   <div className="flex flex-wrap justify-end gap-2">
                     <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', end: '' }, tags: [] })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', shadow: '', after: '' }, tags: [] })}>
                       <Plus className="h-4 w-4 mr-2" /> Create New
                     </Button>
                   </div>
@@ -891,6 +892,8 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                                   <SelectItem value="light">Light</SelectItem>
                                                   <SelectItem value="heavy">Heavy</SelectItem>
                                                   <SelectItem value="mighty">Mighty</SelectItem>
+                                                  <SelectItem value="tyrant">Tyrant</SelectItem>
+                                                  <SelectItem value="special">Special</SelectItem>
                                               </SelectContent>
                                           </Select>
                                           <FormMessage />
@@ -973,9 +976,9 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                                       <FormMessage />
                                   </FormItem>
                                   )} />
-                                  <FormField name={`deeds.${index}.effects.end`} control={form.control} render={({ field }) => (
+                                  <FormField name={`deeds.${index}.effects.after`} control={form.control} render={({ field }) => (
                                   <FormItem>
-                                      <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                                      <FormLabel>After <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                                       <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} disabled={!!watchedData.deeds?.[index]?.id} /></FormControl>
                                   </FormItem>
                                   )} />

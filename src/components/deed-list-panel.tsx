@@ -79,7 +79,7 @@ export default function DeedListPanel({
         return matchesSearch && matchesTier && matchesTags;
     });
 
-    const tierOrder: Record<string, number> = { light: 1, heavy: 2, mighty: 3 };
+    const tierOrder: Record<string, number> = { light: 1, heavy: 2, mighty: 3, tyrant: 4, special: 5 };
     const sorted = filtered.sort((a, b) => {
         if (filters.sortBy === 'tier') {
             const tierA = tierOrder[a.tier] || 0;
@@ -126,6 +126,8 @@ export default function DeedListPanel({
                     <SelectItem value="light">Light</SelectItem>
                     <SelectItem value="heavy">Heavy</SelectItem>
                     <SelectItem value="mighty">Mighty</SelectItem>
+                    <SelectItem value="tyrant">Tyrant</SelectItem>
+                    <SelectItem value="special">Special</SelectItem>
                 </SelectContent>
             </Select>
             <TagInput

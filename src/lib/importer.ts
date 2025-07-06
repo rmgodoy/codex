@@ -90,7 +90,7 @@ function parseDeedBlock(deedBlock: string, tier: DeedTier): DeedData[] {
         let currentEffectKey: keyof DeedData['effects'] | null = null;
         
         for (const line of effectLines) {
-             const match = line.match(/^(Start|Base|Hit|Shadow|End):\s*(.*)$/i);
+             const match = line.match(/^(Start|Base|Hit|Shadow|After):\s*(.*)$/i);
              if (match) {
                  const effectName = match[1].toLowerCase() as keyof DeedData['effects'];
                  const effectValue = match[2].trim();
@@ -186,7 +186,7 @@ export async function importLegacyData(jsonString: string): Promise<{ creaturesA
                 rollBonus: parseInt((legacy.roll || '0').replace('+', ''), 10) || 0,
                 DMG: getStatsForRoleAndLevel(legacy.role, level)?.DMG || 'd6',
             },
-            abilities: Object.entries(legacy.features || {}).map(([name, desc]) => `**${name}:** ${desc}`).join('\n\n'),
+            abilities: Object.entries(legacy.features || {}).map(([name, desc]) => ({ id: crypto.randomUUID(), name, description: desc })),
             description: '',
             tags: [],
             deeds: creatureDeedIds,

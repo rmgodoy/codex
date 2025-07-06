@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { getDeedById, addDeed, updateDeed, deleteDeed, addTags } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Deed, DeedData } from "@/lib/types";
+import type { Deed, DeedData, DeedTier } from "@/lib/types";
 import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -31,12 +31,12 @@ const deedEffectsSchema = z.object({
   base: z.string().optional(),
   hit: z.string().optional(),
   shadow: z.string().optional(),
-  end: z.string().optional(),
+  after: z.string().optional(),
 });
 
 const deedSchema = z.object({
   name: z.string().min(1, "Deed name is required"),
-  tier: z.enum(['light', 'heavy', 'mighty']),
+  tier: z.enum(['light', 'heavy', 'mighty', 'tyrant', 'special']),
   actionType: z.enum(DEED_ACTION_TYPES),
   deedType: z.enum(DEED_TYPES),
   versus: z.enum(DEED_VERSUS),
@@ -56,7 +56,7 @@ interface DeedEditorPanelProps {
   onUseAsTemplate: (deedData: Deed) => void;
   onEditCancel: () => void;
   dataVersion: number;
-  onFilterByClick: (updates: { tierFilter?: 'light' | 'heavy' | 'mighty', tagFilter?: string }, e: React.MouseEvent) => void;
+  onFilterByClick: (updates: { tierFilter?: DeedTier, tagFilter?: string }, e: React.MouseEvent) => void;
   onBack?: () => void;
 }
 
@@ -67,7 +67,7 @@ const defaultValues: DeedFormData = {
   deedType: 'melee',
   versus: 'guard',
   target: "",
-  effects: { start: '', base: '', hit: '', shadow: '', end: '' },
+  effects: { start: '', base: '', hit: '', shadow: '', after: '' },
   tags: [],
 };
 
@@ -336,6 +336,8 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                                 <SelectItem value="light">Light</SelectItem>
                                 <SelectItem value="heavy">Heavy</SelectItem>
                                 <SelectItem value="mighty">Mighty</SelectItem>
+                                <SelectItem value="tyrant">Tyrant</SelectItem>
+                                <SelectItem value="special">Special</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -437,9 +439,9 @@ export default function DeedEditorPanel({ deedId, isCreatingNew, template, onDee
                   <FormMessage />
               </FormItem>
               )} />
-              <FormField name="effects.end" control={form.control} render={({ field }) => (
+              <FormField name="effects.after" control={form.control} render={({ field }) => (
               <FormItem>
-                  <FormLabel>End <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
+                  <FormLabel>After <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>
                   <FormControl><Textarea placeholder="Effect at the end of a creature's turn..." {...field} rows={2} /></FormControl>
               </FormItem>
               )} />

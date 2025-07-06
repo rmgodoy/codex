@@ -8,11 +8,15 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
         light: 'border-sky-400',
         heavy: 'border-amber-400',
         mighty: 'border-fuchsia-400',
+        tyrant: 'border-red-600',
+        special: 'border-yellow-400',
     };
     const tierTextBg = {
         light: 'text-sky-300 bg-sky-900/50',
         heavy: 'text-amber-300 bg-amber-900/50',
         mighty: 'text-fuchsia-300 bg-fuchsia-900/50',
+        tyrant: 'text-red-300 bg-red-900/50',
+        special: 'text-yellow-300 bg-yellow-900/50',
     }
     
     const processEffect = (text: string | undefined): string | undefined => {
@@ -40,7 +44,7 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
                 {deed.effects.base && <div><Label className="text-primary-foreground/90 font-semibold uppercase">Base</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.base)}</p></div>}
                 {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold uppercase">Hit</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.hit)}</p></div>}
                 {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold uppercase">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.shadow)}</p></div>}
-                {deed.effects.end && <div><Label className="text-primary-foreground/90 font-semibold uppercase">End</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.end)}</p></div>}
+                {deed.effects.after && <div><Label className="text-primary-foreground/90 font-semibold uppercase">After</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.after)}</p></div>}
             </div>
         </div>
     );
