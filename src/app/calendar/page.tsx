@@ -19,6 +19,9 @@ import type { CalendarEvent, Calendar as CalendarType, NewCalendar } from "@/lib
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars: CalendarType[], onCalendarsUpdate: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -94,7 +97,6 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
     );
 }
 
-
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
@@ -163,102 +165,104 @@ export default function CalendarPage() {
   const eventDays = events.map(event => ({ from: new Date(event.startDate), to: new Date(event.endDate) }));
 
   return (
-    <MainLayout showSidebarTrigger={false}>
-      <div className="container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-                <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
-                    <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select a calendar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Calendars</SelectItem>
-                        {calendars.map(cal => <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                 <CalendarManagementDialog calendars={calendars} onCalendarsUpdate={refreshData} />
+    <SidebarProvider>
+        <MainLayout>
+            <div className="flex w-full h-full overflow-hidden">
+                <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
+                    <div className="p-4 space-y-4 h-full flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
+                                <SelectTrigger className="flex-1">
+                                    <SelectValue placeholder="Select a calendar" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Calendars</SelectItem>
+                                    {calendars.map(cal => <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <CalendarManagementDialog calendars={calendars} onCalendarsUpdate={refreshData} />
+                        </div>
+                        <Button onClick={() => { setEditingEvent(null); setIsDialogOpen(true); }}>Add Event</Button>
+                        <Separator />
+                        <Card className="flex-1 flex flex-col">
+                            <CardHeader>
+                                <CardTitle>Events for {format(selectedDate, 'PPP')}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 min-h-0">
+                                <ScrollArea className="h-full">
+                                    {eventsForSelectedDay.length > 0 ? (
+                                    <div className="space-y-4 pr-4">
+                                        {eventsForSelectedDay.map(event => (
+                                        <Card key={event.id} className="bg-card-foreground/5">
+                                            <CardHeader className="pb-2">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <CardTitle className="text-lg">{event.title}</CardTitle>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditEvent(event)}><Edit className="h-4 w-4"/></Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>This will permanently delete "{event.title}".</AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteEvent(event.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <CardDescription className="text-xs">
+                                                    From: {format(new Date(event.startDate), 'P')} To: {format(new Date(event.endDate), 'P')}
+                                                </CardDescription>
+                                                {event.description && <p className="text-sm mt-2">{event.description}</p>}
+                                                <p className="text-xs text-muted-foreground mt-2">Party: <span className="font-semibold text-accent">{event.party.name} ({event.party.type})</span></p>
+                                                {event.tags && event.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-2">
+                                                        {event.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                        ))}
+                                    </div>
+                                    ) : (
+                                    <p className="text-muted-foreground text-center py-8">No events for this day.</p>
+                                    )}
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </Sidebar>
+                <SidebarInset className="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6 md:p-8">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => setSelectedDate(date || new Date())}
+                        className="rounded-md border"
+                        modifiers={{ events: eventDays }}
+                        modifiersClassNames={{
+                            events: 'bg-primary/20 text-primary-foreground rounded-full'
+                        }}
+                    />
+                </SidebarInset>
             </div>
-            <Button onClick={() => { setEditingEvent(null); setIsDialogOpen(true); }}>Add Event</Button>
-        </div>
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1 flex justify-center lg:justify-start">
-             <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => setSelectedDate(date || new Date())}
-                className="rounded-md border"
-                modifiers={{ events: eventDays }}
-                modifiersClassNames={{
-                  events: 'bg-primary/20 text-primary-foreground rounded-full'
-                }}
-              />
-          </div>
-          <div className="w-full lg:w-2/5">
-            <Card>
-              <CardHeader>
-                <CardTitle>Events for {format(selectedDate, 'PPP')}</CardTitle>
-                <CardDescription>All scheduled events for this day.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {eventsForSelectedDay.length > 0 ? (
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                    {eventsForSelectedDay.map(event => (
-                      <Card key={event.id}>
-                        <CardHeader>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <CardTitle className="text-xl">{event.title}</CardTitle>
-                                    <CardDescription>
-                                        From: {format(new Date(event.startDate), 'PPP')} To: {format(new Date(event.endDate), 'PPP')}
-                                    </CardDescription>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEditEvent(event)}><Edit className="h-4 w-4"/></Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>This will permanently delete "{event.title}".</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteEvent(event.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm mb-2">{event.description}</p>
-                            <p className="text-xs text-muted-foreground">Party: <span className="font-semibold text-accent">{event.party.name} ({event.party.type})</span></p>
-                            {event.tags && event.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                    {event.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
-                                </div>
-                            )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">No events for this day.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-      <CalendarEventDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onSaveSuccess={handleSaveSuccess}
-        event={editingEvent}
-        selectedDate={selectedDate}
-        calendars={calendars}
-        defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
-      />
-    </MainLayout>
+        </MainLayout>
+        <CalendarEventDialog
+            isOpen={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            onSaveSuccess={handleSaveSuccess}
+            event={editingEvent}
+            selectedDate={selectedDate}
+            calendars={calendars}
+            defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
+        />
+    </SidebarProvider>
   );
 }
