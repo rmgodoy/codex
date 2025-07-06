@@ -4,7 +4,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, isSameDay, isWithinInterval, startOfDay, eachDayOfInterval } from "date-fns";
 import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
 
 import MainLayout from "@/components/main-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -276,7 +275,7 @@ export default function CalendarPage() {
                         </Card>
                     </div>
                 </Sidebar>
-                <SidebarInset className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden bg-background/50">
+                <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-background/50">
                     <Calendar
                         onChange={(value) => {
                             if (value instanceof Date) {

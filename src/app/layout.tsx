@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import 'react-calendar/dist/Calendar.css';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
