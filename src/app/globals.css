@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -55,10 +56,11 @@
 .react-calendar__navigation button:disabled {
   @apply opacity-50 cursor-not-allowed;
 }
-.react-calendar__navigation__prev-button {
+/* Ensure both single and double arrow buttons are positioned correctly */
+.react-calendar__navigation__prev-button, .react-calendar__navigation__prev2-button {
   @apply absolute left-0;
 }
-.react-calendar__navigation__next-button {
+.react-calendar__navigation__next-button, .react-calendar__navigation__next2-button {
   @apply absolute right-0;
 }
 
@@ -67,10 +69,23 @@
   @apply font-bold text-xl text-primary-foreground cursor-pointer hover:text-primary-foreground/80;
 }
 
-.react-calendar__month-view {
-  @apply flex flex-col flex-1;
+/* Base View styles */
+.react-calendar__viewContainer {
+    @apply flex-1;
 }
 
+.react-calendar__month-view, .react-calendar__year-view, .react-calendar__decade-view, .react-calendar__century-view {
+  @apply h-full;
+}
+.react-calendar__month-view > div, .react-calendar__year-view > div, .react-calendar__decade-view > div, .react-calendar__century-view > div {
+  @apply h-full;
+}
+.react-calendar__month-view > div > div, .react-calendar__year-view > div > div, .react-calendar__decade-view > div > div, .react-calendar__century-view > div > div {
+  @apply h-full flex flex-col;
+}
+
+
+/* Month View (Days) */
 .react-calendar__month-view__weekdays {
   @apply grid grid-cols-7;
 }
@@ -87,20 +102,36 @@
   @apply grid grid-cols-7 grid-rows-6 gap-2 flex-1;
 }
 
+/* Year/Decade/Century Views (Months/Years/Decades) */
+.react-calendar__year-view__months, .react-calendar__decade-view__years, .react-calendar__century-view__decades {
+    @apply grid grid-cols-4 gap-4 flex-1;
+}
+
+
+/* Generic Tile Styling for all views */
 .react-calendar__tile {
-  @apply flex items-start justify-start p-2 rounded-lg border border-transparent text-left align-top transition-colors;
+  @apply flex items-center justify-center p-2 rounded-lg border border-transparent text-center align-middle transition-colors;
   @apply hover:bg-accent/20;
   @apply relative; /* For the dot */
 }
 
+/* Day-specific tile styling */
+.react-calendar__month-view__days__day {
+    @apply items-start justify-start;
+}
+
+/* Remove special styling for weekends */
+.react-calendar__month-view__days__day--weekend {
+  @apply text-inherit;
+}
+
 .react-calendar__tile--active {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90 border-primary-foreground/50;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
 }
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
   @apply bg-primary/90;
 }
-
 
 .react-calendar__tile:disabled {
   @apply text-muted-foreground/50 hover:bg-transparent;
@@ -111,8 +142,25 @@
 }
 
 .event-dot {
-  @apply absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary;
+  @apply absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent;
 }
+
 .react-calendar__tile--active .event-dot {
     @apply bg-primary-foreground;
+}
+
+/* Remove today highlight */
+.react-calendar__tile--now {
+    @apply bg-transparent text-inherit font-normal;
+}
+.react-calendar__tile--now:hover {
+    @apply bg-accent/20;
+}
+.react-calendar__tile--now:enabled:hover, .react-calendar__tile--now:enabled:focus {
+    @apply bg-accent/20;
+}
+
+/* Ensure active styles override today styles */
+.react-calendar__tile--active.react-calendar__tile--now {
+    @apply bg-primary text-primary-foreground;
 }
