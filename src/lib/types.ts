@@ -41,7 +41,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty' | 'tyrant' | 'special';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction';
 
 export interface Tag {
   name: string;
@@ -341,3 +341,31 @@ export interface Item {
 }
 
 export type NewItem = Omit<Item, 'id'>;
+
+// Faction Types
+export interface Faction {
+  id: string;
+  name: string;
+  description: string;
+  goals: string;
+  tags: string[];
+}
+
+export type NewFaction = Omit<Faction, 'id'>;
+
+// NPC Types
+export interface Npc {
+  id: string;
+  name: string;
+  personality: string;
+  motivation: string;
+  backstory: string;
+  role: string;
+  age: string;
+  appearance: string;
+  race: string;
+  factionId?: string;
+  tags: string[];
+}
+
+export type NewNpc = Omit<Npc, 'id'>;
