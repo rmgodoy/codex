@@ -354,6 +354,12 @@ export interface Faction {
 export type NewFaction = Omit<Faction, 'id'>;
 
 // NPC Types
+export interface NpcRelationship {
+  id: string;
+  targetNpcId: string;
+  type: string;
+}
+
 export interface Npc {
   id: string;
   name: string;
@@ -366,6 +372,7 @@ export interface Npc {
   race: string;
   factionIds?: string[];
   tags: string[];
+  relationships?: NpcRelationship[];
 }
 
 export type NewNpc = Omit<Npc, 'id'>;

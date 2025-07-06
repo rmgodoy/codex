@@ -2,12 +2,12 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getNpcById, addNpc, updateNpc, deleteNpc, addTags, getAllFactions } from "@/lib/idb";
+import { getNpcById, addNpc, updateNpc, deleteNpc, addTags, getAllFactions, getAllNpcs } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Npc, NewNpc, Faction } from "@/lib/types";
+import type { Npc, NewNpc, Faction, NpcRelationship } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Copy } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Copy, Plus, Users } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
@@ -24,6 +24,15 @@ import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const npcRelationshipSchema = z.object({
+  id: z.string(),
+  targetNpcId: z.string().min(1, "Target NPC is required"),
+  type: z.string().min(1, "Relationship type is required"),
+});
 
 const npcSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -36,34 +45,10 @@ const npcSchema = z.object({
   appearance: z.string().optional(),
   factionIds: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
+  relationships: z.array(npcRelationshipSchema).optional(),
 });
 
 type NpcFormData = z.infer<typeof npcSchema>;
-
-interface NpcEditorPanelProps {
-  npcId: string | null;
-  isCreatingNew: boolean;
-  template: Partial<Npc> | null;
-  onSaveSuccess: (id: string) => void;
-  onDeleteSuccess: () => void;
-  onUseAsTemplate: (npcData: Npc) => void;
-  onEditCancel: () => void;
-  onBack?: () => void;
-  dataVersion: number;
-}
-
-const defaultValues: NpcFormData = {
-  name: "",
-  race: "",
-  age: "",
-  role: "",
-  personality: "",
-  motivation: "",
-  backstory: "",
-  appearance: "",
-  factionIds: [],
-  tags: [],
-};
 
 const FactionSelectionDialog = ({
   onConfirm,
@@ -141,30 +126,152 @@ const FactionSelectionDialog = ({
   );
 };
 
+const AddRelationshipDialog = ({ currentNpcId, allNpcs, onAdd }: { currentNpcId: string | null, allNpcs: Npc[], onAdd: (relationship: NpcRelationship) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [targetNpcId, setTargetNpcId] = useState<string>('');
+  const [relationshipType, setRelationshipType] = useState('');
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const availableNpcs = useMemo(() => {
+    return allNpcs.filter(npc => npc.id !== currentNpcId);
+  }, [allNpcs, currentNpcId]);
+
+  const handleAdd = () => {
+    if (targetNpcId && relationshipType) {
+      onAdd({
+        id: crypto.randomUUID(),
+        targetNpcId: targetNpcId,
+        type: relationshipType,
+      });
+      setIsOpen(false);
+      setTargetNpcId('');
+      setRelationshipType('');
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" size="sm" variant="outline"><Plus className="h-4 w-4 mr-2" /> Add Relationship</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Add New Relationship</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="target-npc">Target NPC</Label>
+             <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        id="target-npc"
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                    >
+                        {targetNpcId ? availableNpcs.find(npc => npc.id === targetNpcId)?.name : "Select an NPC..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                    <ScrollArea className="h-48">
+                      {availableNpcs.map(npc => (
+                          <Button
+                              key={npc.id}
+                              variant="ghost"
+                              onClick={() => {
+                                  setTargetNpcId(npc.id);
+                                  setIsPickerOpen(false);
+                              }}
+                              className={cn("w-full justify-start", targetNpcId === npc.id && "bg-accent")}
+                          >
+                              {npc.name}
+                          </Button>
+                      ))}
+                    </ScrollArea>
+                </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="relationship-type">Relationship Type</Label>
+            <Input
+              id="relationship-type"
+              value={relationshipType}
+              onChange={(e) => setRelationshipType(e.target.value)}
+              placeholder="e.g., friends with, hates, sibling of..."
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button onClick={handleAdd} disabled={!targetNpcId || !relationshipType}>Add</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
+interface NpcEditorPanelProps {
+  npcId: string | null;
+  isCreatingNew: boolean;
+  template: Partial<Npc> | null;
+  onSaveSuccess: (id: string) => void;
+  onDeleteSuccess: () => void;
+  onUseAsTemplate: (npcData: Npc) => void;
+  onEditCancel: () => void;
+  onBack?: () => void;
+  dataVersion: number;
+}
+
+const defaultValues: NpcFormData = {
+  name: "",
+  race: "",
+  age: "",
+  role: "",
+  personality: "",
+  motivation: "",
+  backstory: "",
+  appearance: "",
+  factionIds: [],
+  tags: [],
+  relationships: [],
+};
 
 export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveSuccess, onDeleteSuccess, onUseAsTemplate, onEditCancel, onBack, dataVersion }: NpcEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!npcId);
   const [npcData, setNpcData] = useState<Npc | null>(null);
-  const [factions, setFactions] = useState<Faction[]>([]);
+  const [allNpcs, setAllNpcs] = useState<Npc[]>([]);
+  const [allFactions, setAllFactions] = useState<Faction[]>([]);
   const isMobile = useIsMobile();
   
-  const factionMap = useMemo(() => new Map(factions.map(f => [f.id, f.name])), [factions]);
+  const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f.name])), [allFactions]);
+  const npcMap = useMemo(() => new Map(allNpcs.map(n => [n.id, n.name])), [allNpcs]);
 
   const form = useForm<NpcFormData>({
     resolver: zodResolver(npcSchema),
-    defaultValues: template || defaultValues,
+    defaultValues: template ? {...defaultValues, ...template} : defaultValues,
+  });
+
+  const { fields: relationshipFields, append: appendRelationship, remove: removeRelationship } = useFieldArray({
+    control: form.control,
+    name: "relationships",
   });
 
   useEffect(() => {
-    getAllFactions().then(setFactions);
+    Promise.all([
+      getAllNpcs(),
+      getAllFactions()
+    ]).then(([npcs, factions]) => {
+      setAllNpcs(npcs);
+      setAllFactions(factions);
+    });
   }, [dataVersion]);
 
   useEffect(() => {
     const fetchNpcData = async () => {
       if (isCreatingNew) {
-        form.reset(template ? { ...template, factionIds: template.factionIds || [] } : defaultValues);
+        form.reset(template ? { ...defaultValues, ...template } : defaultValues);
         setNpcData(template as Npc | null);
         setIsEditing(true);
         setLoading(false);
@@ -183,7 +290,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
       try {
         const npcFromDb = await getNpcById(npcId);
         if (npcFromDb) {
-          form.reset({ ...npcFromDb, factionIds: npcFromDb.factionIds || [] });
+          form.reset({ ...defaultValues, ...npcFromDb });
           setNpcData(npcFromDb);
         } else {
           setNpcData(null);
@@ -201,7 +308,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     if (isCreatingNew) {
       onEditCancel();
     } else if (npcData) {
-      form.reset({ ...npcData, factionIds: npcData.factionIds || [] });
+      form.reset({ ...defaultValues, ...npcData });
       setIsEditing(false);
     }
   };
@@ -218,6 +325,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
         ...data,
         tags: data.tags || [],
         factionIds: data.factionIds || [],
+        relationships: data.relationships || [],
       };
 
       const tagsToSave = data.tags || [];
@@ -244,6 +352,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     if (!npcId) return;
     try {
       await deleteNpc(npcId);
+      // TODO: Also remove relationships pointing to this NPC from other NPCs
       toast({ title: "NPC Deleted", description: "The NPC has been removed." });
       onDeleteSuccess();
     } catch (error) {
@@ -312,6 +421,21 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                                     <Badge key={id} variant="secondary">{factionMap.get(id) || 'Unknown'}</Badge>
                                     ))}
                                 </div>
+                                </div>
+                                <Separator />
+                            </>
+                        )}
+                        {npcData.relationships && npcData.relationships.length > 0 && (
+                             <>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-primary-foreground mb-2">Relationships</h3>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        {npcData.relationships.map(rel => (
+                                            <li key={rel.id} className="text-sm">
+                                                <span className="capitalize">{rel.type}</span> <span className="font-semibold text-accent">{npcMap.get(rel.targetNpcId) || 'Unknown NPC'}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                                 <Separator />
                             </>
@@ -385,37 +509,24 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                             <FormItem>
                             <FormLabel>Factions</FormLabel>
                             <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2 min-h-10 p-2 border rounded-md border-input">
+                                <FactionSelectionDialog
+                                    onConfirm={field.onChange}
+                                    allFactions={allFactions}
+                                    initialSelectedIds={field.value || []}
+                                >
+                                    <Button type="button" variant="outline" className="w-full justify-between">
+                                        <span>{field.value?.length ? `${field.value.length} selected` : 'Select Factions...'}</span>
+                                        <Users className="h-4 w-4 opacity-50" />
+                                    </Button>
+                                </FactionSelectionDialog>
+                                <div className="flex flex-wrap gap-1">
                                 {(field.value || []).map(id => {
                                     const factionName = factionMap.get(id);
                                     if (!factionName) return null;
-                                    return (
-                                        <Badge key={id} variant="secondary">
-                                        {factionName}
-                                        <button
-                                            type="button"
-                                            className="ml-1 rounded-full outline-none"
-                                            onClick={() => field.onChange(field.value?.filter(fid => fid !== id))}
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                        </Badge>
-                                    )
-                                    })}
-                                    {(!field.value || field.value.length === 0) && (
-                                        <span className="text-sm text-muted-foreground self-center">No factions selected</span>
-                                    )}
+                                    return ( <Badge key={id} variant="secondary">{factionName}</Badge> )
+                                })}
                                 </div>
-                                <FactionSelectionDialog
-                                    onConfirm={field.onChange}
-                                    allFactions={factions}
-                                    initialSelectedIds={field.value || []}
-                                >
-                                    <Button type="button" variant="outline" className="w-full">
-                                        Select Factions...
-                                    </Button>
-                                </FactionSelectionDialog>
-                                </div>
+                            </div>
                             <FormMessage />
                             </FormItem>
                         )}
@@ -425,6 +536,34 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                 <FormField name="personality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Personality</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
                 <FormField name="motivation" control={form.control} render={({ field }) => (<FormItem><FormLabel>Motivation</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
                 <FormField name="backstory" control={form.control} render={({ field }) => (<FormItem><FormLabel>Backstory</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>)} />
+                
+                <Separator />
+                
+                 <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-primary-foreground">Relationships</h3>
+                        <AddRelationshipDialog currentNpcId={npcId} allNpcs={allNpcs} onAdd={appendRelationship} />
+                    </div>
+                    <div className="space-y-2">
+                        {relationshipFields.map((field, index) => {
+                            const targetNpc = npcMap.get(field.targetNpcId);
+                            return (
+                                <div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card-foreground/5">
+                                <p className="flex-1">
+                                    <span className="capitalize">{field.type}</span> <span className="font-semibold text-accent">{targetNpc || '...'}</span>
+                                </p>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)} className="text-muted-foreground hover:text-destructive shrink-0">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                </div>
+                            );
+                        })}
+                        {relationshipFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No relationships defined.</p>}
+                    </div>
+                </div>
+
+                <Separator />
+                
                 <FormField
                     name="tags"
                     control={form.control}
