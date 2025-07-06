@@ -42,9 +42,9 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
             <div className="space-y-3 text-sm">
                 {deed.effects.start && <div><Label className="text-primary-foreground/90 font-semibold uppercase">Start</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.start)}</p></div>}
                 {deed.effects.base && <div><Label className="text-primary-foreground/90 font-semibold uppercase">Base</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.base)}</p></div>}
-                {deed.effects.spark && <div><Label className="text-primary-foreground/90 font-semibold uppercase">Spark</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.spark)}</p></div>}
                 {deed.effects.hit && <div><Label className="text-primary-foreground font-semibold uppercase">Hit</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.hit)}</p></div>}
-                {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold uppercase">Shadow</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.shadow)}</p></div>}
+                {deed.effects.spark && <div><Label className="text-primary-foreground/90 font-semibold uppercase">Spark (Critical Hit)</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.spark)}</p></div>}
+                {deed.effects.shadow && <div><Label className="text-primary-foreground font-semibold uppercase">Shadow (Critical Failure)</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.shadow)}</p></div>}
                 {deed.effects.after && <div><Label className="text-primary-foreground/90 font-semibold uppercase">After</Label><p className="text-foreground/90 mt-0.5 whitespace-pre-wrap pl-2 font-light">{processEffect(deed.effects.after)}</p></div>}
             </div>
         </div>
