@@ -93,10 +93,6 @@
   @apply relative; /* For the dot */
 }
 
-.react-calendar__tile--now {
-  @apply bg-accent/20 border-accent;
-}
-
 .react-calendar__tile--active {
   @apply bg-primary text-primary-foreground hover:bg-primary/90 border-primary-foreground/50;
 }
