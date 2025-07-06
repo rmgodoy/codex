@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { format, isSameDay, isWithinInterval } from "date-fns";
+import { useState, useEffect, useMemo } from "react";
+import { format, isSameDay, isWithinInterval, startOfDay, eachDayOfInterval } from "date-fns";
 import MainLayout from "@/components/main-layout";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,7 +23,7 @@ import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
-function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars: CalendarType[], onCalendarsUpdate: () => void }) {
+function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars: CalendarType[], onCalendarsUpdate: (newCalendarId?: string) => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newCalendarName, setNewCalendarName] = useState("");
     const { toast } = useToast();
@@ -31,10 +31,11 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
     const handleAddCalendar = async () => {
         if (!newCalendarName.trim()) return;
         try {
-            await addCalendar({ name: newCalendarName.trim() });
+            const newId = await addCalendar({ name: newCalendarName.trim() });
             toast({ title: 'Calendar Created', description: `"${newCalendarName}" has been added.` });
             setNewCalendarName("");
-            onCalendarsUpdate();
+            onCalendarsUpdate(newId);
+            setIsDialogOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to create calendar.' });
         }
@@ -101,39 +102,63 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [month, setMonth] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { toast } = useToast();
 
-  const fetchCalendarsAndEvents = async () => {
+  const fetchCalendarsAndEvents = async (calendarId: string) => {
     try {
-      const [allCalendars, allEvents] = await Promise.all([
-        getAllCalendars(),
-        getAllCalendarEvents(selectedCalendarId)
-      ]);
+      const allCalendars = await getAllCalendars();
        if (allCalendars.length === 0) {
             const defaultCalendarId = await addCalendar({ name: "Default" });
-            setCalendars([{ id: defaultCalendarId, name: "Default" }]);
+            const defaultCalendars = [{ id: defaultCalendarId, name: "Default" }];
+            setCalendars(defaultCalendars);
             setSelectedCalendarId(defaultCalendarId);
-        } else {
-            setCalendars(allCalendars);
-            if (!allCalendars.find(c => c.id === selectedCalendarId) && selectedCalendarId !== 'all') {
-                setSelectedCalendarId('all');
-            }
-        }
+            setEvents([]);
+            const yearOne = new Date(1, 0, 1);
+            setSelectedDate(yearOne);
+            setMonth(yearOne);
+            return;
+       } 
+       setCalendars(allCalendars);
+       
+       let finalCalendarId = calendarId;
+       if (!allCalendars.find(c => c.id === calendarId) && calendarId !== 'all') {
+           finalCalendarId = 'all';
+           setSelectedCalendarId('all');
+       }
+
+      const allEvents = await getAllCalendarEvents(finalCalendarId);
       setEvents(allEvents);
+      
+      if (allEvents.length > 0) {
+        const sortedEvents = [...allEvents].sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+        const firstEventDate = startOfDay(new Date(sortedEvents[0].startDate));
+        setSelectedDate(firstEventDate);
+        setMonth(firstEventDate);
+      } else {
+        const yearOne = new Date(1, 0, 1);
+        setSelectedDate(yearOne);
+        setMonth(yearOne);
+      }
+
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to load calendar data.' });
     }
   };
   
-  const refreshData = () => {
-      fetchCalendarsAndEvents();
+  const refreshData = (newCalendarId?: string) => {
+      if (newCalendarId) {
+        setSelectedCalendarId(newCalendarId);
+      } else {
+        fetchCalendarsAndEvents(selectedCalendarId);
+      }
   };
 
   useEffect(() => {
-    fetchCalendarsAndEvents();
+    fetchCalendarsAndEvents(selectedCalendarId);
   }, [selectedCalendarId]);
 
   const handleSaveSuccess = () => {
@@ -157,14 +182,40 @@ export default function CalendarPage() {
     }
   }
 
-  const eventsForSelectedDay = events.filter(event =>
-    isWithinInterval(selectedDate, { start: new Date(event.startDate), end: new Date(event.endDate) }) ||
-    isSameDay(selectedDate, new Date(event.startDate))
-  ).sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  const eventsForSelectedDay = useMemo(() => {
+    if (!selectedDate) return [];
+    return events.filter(event =>
+      isWithinInterval(selectedDate, { start: startOfDay(new Date(event.startDate)), end: startOfDay(new Date(event.endDate)) })
+    ).sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }, [events, selectedDate]);
   
-  const eventDays = events.map(event => ({ from: new Date(event.startDate), to: new Date(event.endDate) }));
+  const eventDays = useMemo(() => {
+    return events.flatMap(event => 
+      eachDayOfInterval({ 
+        start: startOfDay(new Date(event.startDate)), 
+        end: startOfDay(new Date(event.endDate)) 
+      })
+    );
+  }, [events]);
 
   return (
+    <>
+    <style>{`
+        .day-with-event:not([aria-disabled]) {
+          position: relative;
+        }
+        .day-with-event:not([aria-disabled])::after {
+          content: '';
+          position: absolute;
+          bottom: 6px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background-color: hsl(var(--primary));
+        }
+      `}</style>
     <SidebarProvider>
         <MainLayout>
             <div className="flex w-full h-full overflow-hidden">
@@ -184,9 +235,9 @@ export default function CalendarPage() {
                         </div>
                         <Button onClick={() => { setEditingEvent(null); setIsDialogOpen(true); }}>Add Event</Button>
                         <Separator />
-                        <Card className="flex-1 flex flex-col">
+                        <Card className="flex-1 flex flex-col min-h-0">
                             <CardHeader>
-                                <CardTitle>Events for {format(selectedDate, 'PPP')}</CardTitle>
+                                <CardTitle>Events for {selectedDate ? format(selectedDate, 'PPP') : '...'}</CardTitle>
                             </CardHeader>
                             <CardContent className="flex-1 min-h-0">
                                 <ScrollArea className="h-full">
@@ -240,16 +291,37 @@ export default function CalendarPage() {
                         </Card>
                     </div>
                 </Sidebar>
-                <SidebarInset className="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6 md:p-8">
+                <SidebarInset className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden">
                     <Calendar
                         mode="single"
                         selected={selectedDate}
-                        onSelect={(date) => setSelectedDate(date || new Date())}
-                        className="rounded-md border"
-                        modifiers={{ events: eventDays }}
-                        modifiersClassNames={{
-                            events: 'bg-primary/20 text-primary-foreground rounded-full'
+                        onSelect={(date) => setSelectedDate(date)}
+                        month={month}
+                        onMonthChange={setMonth}
+                        className="p-0 h-full w-full"
+                        classNames={{
+                            root: "flex flex-col h-full",
+                            months: "flex-1",
+                            month: "flex flex-col h-full",
+                            caption_label: "text-xl font-bold",
+                            table: "flex-1 flex flex-col",
+                            head_row: "grid grid-cols-7",
+                            head_cell: "text-center font-semibold text-muted-foreground p-2",
+                            body: "flex-1 grid grid-cols-7 grid-rows-6",
+                            row: "contents",
+                            cell: "relative border text-sm",
+                            day: "h-full w-full p-2 text-left align-top transition-colors hover:bg-accent/50",
+                            day_today: "bg-accent text-accent-foreground",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90",
+                            day_outside: "text-muted-foreground/50",
                         }}
+                        modifiers={{ event: eventDays }}
+                        modifiersClassNames={{
+                            event: 'day-with-event'
+                        }}
+                        fromYear={1}
+                        toYear={new Date().getFullYear() + 100}
+                        captionLayout="dropdown-buttons"
                     />
                 </SidebarInset>
             </div>
@@ -264,5 +336,7 @@ export default function CalendarPage() {
             defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
         />
     </SidebarProvider>
+    </>
   );
 }
+
