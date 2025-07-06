@@ -2,17 +2,20 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAllNpcs } from '@/lib/idb';
-import type { Npc } from '@/lib/types';
+import { getAllNpcs, getAllFactions } from '@/lib/idb';
+import type { Npc, Faction } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { TagInput } from '@/components/ui/tag-input';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Checkbox } from './ui/checkbox';
+import { Badge } from './ui/badge';
 
 type SortByType = 'name' | 'race';
 
@@ -24,12 +27,14 @@ interface NpcListPanelProps {
   filters: {
     searchTerm: string;
     tagFilter: string;
+    factionFilter: string[];
     sortBy: SortByType;
     sortOrder: 'asc' | 'desc';
   };
   setFilters: {
     setSearchTerm: (value: string) => void;
     setTagFilter: (value: string) => void;
+    setFactionFilter: (value: string[]) => void;
     setSortBy: (value: SortByType) => void;
     setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
   };
@@ -46,21 +51,24 @@ export default function NpcListPanel({
   onClearFilters,
 }: NpcListPanelProps) {
   const [npcs, setNpcs] = useState<Npc[]>([]);
+  const [factions, setFactions] = useState<Faction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchNpcs = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        setNpcs(await getAllNpcs());
+        const [npcsData, factionsData] = await Promise.all([getAllNpcs(), getAllFactions()]);
+        setNpcs(npcsData);
+        setFactions(factionsData);
       } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Could not fetch NPCs from database." });
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch NPC or faction data from database." });
       } finally {
         setIsLoading(false);
       }
     };
-    fetchNpcs();
+    fetchData();
   }, [dataVersion, toast]);
 
   const filteredAndSortedNpcs = useMemo(() => {
@@ -73,7 +81,12 @@ export default function NpcListPanel({
         matchesTags = npc.tags ? tags.every(tag => npc.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
       }
 
-      return matchesSearch && matchesTags;
+      let matchesFactions = true;
+      if (filters.factionFilter.length > 0) {
+        matchesFactions = filters.factionFilter.every(factionId => npc.factionIds?.includes(factionId));
+      }
+
+      return matchesSearch && matchesTags && matchesFactions;
     });
 
     const sorted = filtered.sort((a, b) => {
@@ -111,6 +124,35 @@ export default function NpcListPanel({
               <Label>Filter</Label>
               <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
             </div>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                        {filters.factionFilter.length > 0
+                        ? `${filters.factionFilter.length} faction(s) selected`
+                        : 'Filter by Faction'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <ScrollArea className="h-48">
+                    {factions.map(faction => (
+                        <div key={faction.id} className="flex items-center space-x-2 p-2 hover:bg-accent">
+                            <Checkbox 
+                                id={`filter-faction-${faction.id}`} 
+                                checked={filters.factionFilter.includes(faction.id)}
+                                onCheckedChange={(checked) => {
+                                    const newFilter = checked
+                                        ? [...filters.factionFilter, faction.id]
+                                        : filters.factionFilter.filter(id => id !== faction.id);
+                                    setFilters.setFactionFilter(newFilter);
+                                }}
+                            />
+                            <Label htmlFor={`filter-faction-${faction.id}`} className="font-normal flex-1">{faction.name}</Label>
+                        </div>
+                    ))}
+                  </ScrollArea>
+                </PopoverContent>
+            </Popover>
             <TagInput
               value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
               onChange={(tags) => setFilters.setTagFilter(tags.join(','))}

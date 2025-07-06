@@ -15,13 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Copy } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Copy, ChevronsUpDown } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "./ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Checkbox } from "./ui/checkbox";
+import { ScrollArea } from "./ui/scroll-area";
 
 const npcSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -32,7 +34,7 @@ const npcSchema = z.object({
   motivation: z.string().optional(),
   backstory: z.string().optional(),
   appearance: z.string().optional(),
-  factionId: z.string().optional(),
+  factionIds: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -59,7 +61,7 @@ const defaultValues: NpcFormData = {
   motivation: "",
   backstory: "",
   appearance: "",
-  factionId: "none",
+  factionIds: [],
   tags: [],
 };
 
@@ -85,7 +87,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
   useEffect(() => {
     const fetchNpcData = async () => {
       if (isCreatingNew) {
-        form.reset(template || defaultValues);
+        form.reset(template ? { ...template, factionIds: template.factionIds || [] } : defaultValues);
         setNpcData(template as Npc | null);
         setIsEditing(true);
         setLoading(false);
@@ -104,7 +106,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
       try {
         const npcFromDb = await getNpcById(npcId);
         if (npcFromDb) {
-          form.reset({ ...npcFromDb, factionId: npcFromDb.factionId || 'none' });
+          form.reset({ ...npcFromDb, factionIds: npcFromDb.factionIds || [] });
           setNpcData(npcFromDb);
         } else {
           setNpcData(null);
@@ -122,7 +124,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     if (isCreatingNew) {
       onEditCancel();
     } else if (npcData) {
-      form.reset({ ...npcData, factionId: npcData.factionId || 'none' });
+      form.reset({ ...npcData, factionIds: npcData.factionIds || [] });
       setIsEditing(false);
     }
   };
@@ -138,7 +140,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
       const npcToSave: NewNpc | Npc = {
         ...data,
         tags: data.tags || [],
-        factionId: data.factionId === 'none' ? undefined : data.factionId,
+        factionIds: data.factionIds || [],
       };
 
       const tagsToSave = data.tags || [];
@@ -224,7 +226,19 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
-                        {npcData.factionId && <p><span className="font-semibold text-muted-foreground">Faction:</span> {factionMap.get(npcData.factionId) || 'Unknown'}</p>}
+                        {npcData.factionIds && npcData.factionIds.length > 0 && (
+                            <>
+                                <div>
+                                <h3 className="text-lg font-semibold text-primary-foreground mb-2">Factions</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {npcData.factionIds.map(id => (
+                                    <Badge key={id} variant="secondary">{factionMap.get(id) || 'Unknown'}</Badge>
+                                    ))}
+                                </div>
+                                </div>
+                                <Separator />
+                            </>
+                        )}
                         <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Appearance</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.appearance || "Not specified."}</p></div>
                         <Separator />
                         <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Personality</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.personality || "Not specified."}</p></div>
@@ -287,18 +301,44 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField name="role" control={form.control} render={({ field }) => (<FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField name="factionId" control={form.control} render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Faction</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="No Faction"/></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">No Faction</SelectItem>
-                            {factions.map(faction => <SelectItem key={faction.id} value={faction.id}>{faction.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )} />
+                    <FormField
+                      control={form.control}
+                      name="factionIds"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Factions</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        {field.value?.length ? `${field.value.length} selected` : "Select factions"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <ScrollArea className="h-48">
+                                        {factions.map((faction) => (
+                                        <div key={faction.id} className="flex items-center space-x-2 p-2">
+                                            <Checkbox
+                                                id={`faction-check-${faction.id}`}
+                                                checked={field.value?.includes(faction.id)}
+                                                onCheckedChange={(checked) => {
+                                                return checked
+                                                    ? field.onChange([...(field.value || []), faction.id])
+                                                    : field.onChange((field.value || []).filter((value) => value !== faction.id))
+                                                }}
+                                            />
+                                            <label htmlFor={`faction-check-${faction.id}`} className="font-normal">{faction.name}</label>
+                                        </div>
+                                        ))}
+                                    </ScrollArea>
+                                </PopoverContent>
+                            </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                 </div>
                 <FormField name="appearance" control={form.control} render={({ field }) => (<FormItem><FormLabel>Appearance</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
                 <FormField name="personality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Personality</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />

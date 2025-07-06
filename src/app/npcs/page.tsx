@@ -19,6 +19,7 @@ export default function NpcsPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [factionFilter, setFactionFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -33,6 +34,7 @@ export default function NpcsPage() {
   const filters = {
     searchTerm,
     tagFilter,
+    factionFilter,
     sortBy,
     sortOrder,
   };
@@ -40,6 +42,7 @@ export default function NpcsPage() {
   const setFilters = {
     setSearchTerm,
     setTagFilter,
+    setFactionFilter,
     setSortBy,
     setSortOrder,
   };
@@ -47,6 +50,7 @@ export default function NpcsPage() {
   const clearFilters = () => {
     setSearchTerm('');
     setTagFilter('');
+    setFactionFilter([]);
     setSortBy('name');
     setSortOrder('asc');
   };

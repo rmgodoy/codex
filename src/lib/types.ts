@@ -364,7 +364,7 @@ export interface Npc {
   age: string;
   appearance: string;
   race: string;
-  factionId?: string;
+  factionIds?: string[];
   tags: string[];
 }
 
