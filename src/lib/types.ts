@@ -381,8 +381,15 @@ export type NewNpc = Omit<Npc, 'id'>;
 export const CALENDAR_PARTY_TYPES = ['faction', 'creature'] as const;
 export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
 
+export interface Calendar {
+  id: string;
+  name: string;
+}
+export type NewCalendar = Omit<Calendar, 'id'>;
+
 export interface CalendarEvent {
     id: string;
+    calendarId: string;
     title: string;
     description: string;
     startDate: string; // ISO string

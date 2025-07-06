@@ -1,13 +1,13 @@
 
 "use client";
 
-import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, CalendarEvent } from '@/lib/types';
-import { getDb, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME } from './db';
+import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, Calendar, CalendarEvent } from '@/lib/types';
+import { getDb, generateId, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDARS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME } from './db';
 
 // Import/Export
 export const exportAllData = async (): Promise<any> => {
     const db = await getDb();
-    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME];
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDARS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME];
     const transaction = db.transaction(storeNames, 'readonly');
     
     const promises = storeNames.map(name => {
@@ -34,7 +34,7 @@ export const importData = async (data: any): Promise<void> => {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
 
-    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME];
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDARS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME];
     const tx = db.transaction(storeNames, 'readwrite');
     
     const stores: { [key: string]: IDBObjectStore } = {};
@@ -143,8 +143,28 @@ export const importData = async (data: any): Promise<void> => {
             processTags(item.tags, 'npc');
         });
     }
+    if (data.calendars && Array.isArray(data.calendars)) {
+        data.calendars.forEach((item: Calendar) => {
+            stores[CALENDARS_STORE_NAME].put(item);
+        });
+    }
+    
+    let defaultCalendarId: string | null = null;
     if (data.calendarEvents && Array.isArray(data.calendarEvents)) {
         data.calendarEvents.forEach((item: CalendarEvent) => {
+            if (!item.calendarId) {
+                if (!defaultCalendarId) {
+                    const existingCalendars = data.calendars || [];
+                    if (existingCalendars.length > 0) {
+                        defaultCalendarId = existingCalendars[0].id;
+                    } else {
+                        const defaultCalendar = { id: generateId(), name: 'Default Calendar' };
+                        stores[CALENDARS_STORE_NAME].put(defaultCalendar);
+                        defaultCalendarId = defaultCalendar.id;
+                    }
+                }
+                item.calendarId = defaultCalendarId!;
+            }
             stores[CALENDAR_EVENTS_STORE_NAME].put(item);
             processTags(item.tags, 'calendar');
         });

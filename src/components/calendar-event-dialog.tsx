@@ -5,12 +5,11 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, startOfDay } from 'date-fns';
-import type { DateRange } from "react-day-picker";
+import { format, startOfDay, addYears } from 'date-fns';
 
 import { useToast } from "@/hooks/use-toast";
 import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags } from "@/lib/idb";
-import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType } from "@/lib/types";
+import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Calendar as CalendarType } from "@/lib/types";
 import { CALENDAR_PARTY_TYPES } from "@/lib/types";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
@@ -26,10 +25,10 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronsUpDown } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 
-
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
+    calendarId: z.string().min(1, "A calendar must be selected."),
     dateRange: z.object({
         from: z.date().optional(),
         to: z.date().optional()
@@ -46,9 +45,12 @@ interface CalendarEventDialogProps {
   onOpenChange: (open: boolean) => void;
   onSaveSuccess: () => void;
   event?: CalendarEvent | null;
+  selectedDate?: Date;
+  calendars: CalendarType[];
+  defaultCalendarId: string;
 }
 
-export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event }: CalendarEventDialogProps) {
+export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, selectedDate, calendars, defaultCalendarId }: CalendarEventDialogProps) {
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -65,7 +67,8 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
     defaultValues: {
       title: "",
       description: "",
-      dateRange: { from: undefined, to: undefined },
+      calendarId: defaultCalendarId,
+      dateRange: { from: selectedDate || startOfDay(new Date()), to: undefined },
       partyType: "faction",
       partyId: "",
       tags: [],
@@ -84,6 +87,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       form.reset({
         title: event.title,
         description: event.description,
+        calendarId: event.calendarId,
         dateRange: {
             from: new Date(event.startDate),
             to: new Date(event.endDate),
@@ -96,13 +100,14 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       form.reset({
         title: "",
         description: "",
-        dateRange: { from: startOfDay(new Date()), to: undefined },
+        calendarId: defaultCalendarId,
+        dateRange: { from: selectedDate || startOfDay(new Date()), to: undefined },
         partyType: "faction",
         partyId: "",
         tags: [],
       });
     }
-  }, [event, isOpen, form]);
+  }, [event, isOpen, form, selectedDate, defaultCalendarId]);
 
   const onSubmit = async (data: EventFormData) => {
     const partySource = data.partyType === 'creature' ? creatures : factions;
@@ -117,6 +122,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
 
     const eventToSave: NewCalendarEvent = {
         title: data.title,
+        calendarId: data.calendarId,
         description: data.description || '',
         startDate: data.dateRange.from.toISOString(),
         endDate: (data.dateRange.to || data.dateRange.from).toISOString(),
@@ -147,6 +153,9 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const partyList = watch('partyType') === 'creature' ? creatures : factions;
   const selectedPartyId = watch('partyId');
   const selectedPartyName = partyList.find(p => p.id === selectedPartyId)?.name;
+  
+  const fromYear = addYears(new Date(), -10).getFullYear();
+  const toYear = addYears(new Date(), 10).getFullYear();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -163,6 +172,22 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
             <FormField name="description" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>
             )} />
+             <FormField
+                control={form.control}
+                name="calendarId"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Calendar</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a calendar" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                        {calendars.map(cal => <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+             />
             <FormField name="dateRange" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Date Range</FormLabel>
                 <Popover><PopoverTrigger asChild>
@@ -187,6 +212,9 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                         selected={{from: field.value.from!, to: field.value.to}}
                         onSelect={field.onChange}
                         numberOfMonths={2}
+                        captionLayout="dropdown-buttons"
+                        fromYear={fromYear}
+                        toYear={toYear}
                     />
                 </PopoverContent>
                 </Popover><FormMessage /></FormItem>
@@ -207,7 +235,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                         <Popover><PopoverTrigger asChild>
                             <FormControl>
                                 <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                    {selectedPartyName || "Select Party"}
+                                    <span className="truncate">{selectedPartyName || "Select Party"}</span>
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
                                 </Button>
                             </FormControl>

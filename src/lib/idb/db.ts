@@ -2,7 +2,7 @@
 "use client";
 
 export const DB_NAME = 'TresspasserBestiaryDB';
-export const DB_VERSION = 15;
+export const DB_VERSION = 16;
 export const CREATURES_STORE_NAME = 'creatures';
 export const DEEDS_STORE_NAME = 'deeds';
 export const ENCOUNTERS_STORE_NAME = 'encounters';
@@ -16,6 +16,7 @@ export const ITEMS_STORE_NAME = 'items';
 export const FACTIONS_STORE_NAME = 'factions';
 export const NPCS_STORE_NAME = 'npcs';
 export const CALENDAR_EVENTS_STORE_NAME = 'calendarEvents';
+export const CALENDARS_STORE_NAME = 'calendars';
 
 export const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -69,8 +70,17 @@ export const getDb = (): Promise<IDBDatabase> => {
       if (!db.objectStoreNames.contains(NPCS_STORE_NAME)) {
         db.createObjectStore(NPCS_STORE_NAME, { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains(CALENDARS_STORE_NAME)) {
+        db.createObjectStore(CALENDARS_STORE_NAME, { keyPath: 'id' });
+      }
       if (!db.objectStoreNames.contains(CALENDAR_EVENTS_STORE_NAME)) {
-        db.createObjectStore(CALENDAR_EVENTS_STORE_NAME, { keyPath: 'id' });
+        const eventsStore = db.createObjectStore(CALENDAR_EVENTS_STORE_NAME, { keyPath: 'id' });
+        eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
+      } else if (oldVersion < 16) {
+        const eventsStore = request.transaction!.objectStore(CALENDAR_EVENTS_STORE_NAME);
+        if (!eventsStore.indexNames.contains('by_calendar')) {
+          eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
+        }
       }
     };
 

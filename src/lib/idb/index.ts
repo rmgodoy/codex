@@ -12,6 +12,7 @@ export * from './items';
 export * from './tags';
 export * from './factions';
 export * from './npcs';
+export * from './calendars';
 export * from './calendarEvents';
 export * from './import-export';
 export * from './exportHelpers';

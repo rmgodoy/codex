@@ -4,10 +4,20 @@
 import type { CalendarEvent, NewCalendarEvent } from '@/lib/types';
 import { getDb, generateId, CALENDAR_EVENTS_STORE_NAME } from './db';
 
-export const getAllCalendarEvents = async (): Promise<CalendarEvent[]> => {
+export const getAllCalendarEvents = async (calendarId?: string | null): Promise<CalendarEvent[]> => {
     const db = await getDb();
     const store = db.transaction(CALENDAR_EVENTS_STORE_NAME, 'readonly').objectStore(CALENDAR_EVENTS_STORE_NAME);
-    const request = store.getAll();
+
+    if (!calendarId || calendarId === 'all') {
+        const request = store.getAll();
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    const index = store.index('by_calendar');
+    const request = index.getAll(IDBKeyRange.only(calendarId));
     return new Promise((resolve, reject) => {
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
