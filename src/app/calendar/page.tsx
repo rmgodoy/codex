@@ -117,7 +117,7 @@ export default function CalendarPage() {
             setCalendars(defaultCalendars);
             setSelectedCalendarId(defaultCalendarId);
             setEvents([]);
-            const yearOne = new Date('0001-01-01');
+            const yearOne = new Date('0001-01-01T00:00:00');
             setSelectedDate(yearOne);
             setMonth(yearOne);
             return;
@@ -139,7 +139,7 @@ export default function CalendarPage() {
         setSelectedDate(firstEventDate);
         setMonth(firstEventDate);
       } else {
-        const yearOne = new Date('0001-01-01');
+        const yearOne = new Date('0001-01-01T00:00:00');
         setSelectedDate(yearOne);
         setMonth(yearOne);
       }
@@ -285,7 +285,7 @@ export default function CalendarPage() {
                         value={selectedDate}
                         activeStartDate={month}
                         onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setMonth(activeStartDate)}
-                        minDate={new Date('0001-01-01')}
+                        minDate={new Date('0001-01-01T00:00:00')}
                         maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
                         tileContent={({ date, view }) => {
                             if (view === 'month') {
