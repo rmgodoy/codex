@@ -276,7 +276,7 @@ export default function CalendarPage() {
                         </Card>
                     </div>
                 </Sidebar>
-                <SidebarInset className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden">
+                <SidebarInset className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden bg-background/50">
                     <Calendar
                         onChange={(value) => {
                             if (value instanceof Date) {
