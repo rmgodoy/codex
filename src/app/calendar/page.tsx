@@ -3,8 +3,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { format, isSameDay, isWithinInterval, startOfDay, eachDayOfInterval } from "date-fns";
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+
 import MainLayout from "@/components/main-layout";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +20,6 @@ import { getAllCalendars, addCalendar, updateCalendar, deleteCalendarAndEvents }
 import type { CalendarEvent, Calendar as CalendarType, NewCalendar } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -200,22 +201,6 @@ export default function CalendarPage() {
 
   return (
     <>
-    <style>{`
-        .day-with-event:not([aria-disabled]) {
-          position: relative;
-        }
-        .day-with-event:not([aria-disabled])::after {
-          content: '';
-          position: absolute;
-          bottom: 6px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background-color: hsl(var(--primary));
-        }
-      `}</style>
     <SidebarProvider>
         <MainLayout>
             <div className="flex w-full h-full overflow-hidden">
@@ -293,35 +278,24 @@ export default function CalendarPage() {
                 </Sidebar>
                 <SidebarInset className="flex-1 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden">
                     <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => setSelectedDate(date)}
-                        month={month}
-                        onMonthChange={setMonth}
-                        className="p-0 h-full w-full"
-                        classNames={{
-                            root: "flex flex-col h-full",
-                            months: "flex-1",
-                            month: "flex flex-col h-full",
-                            caption_label: "text-xl font-bold",
-                            table: "flex-1 flex flex-col",
-                            head_row: "grid grid-cols-7",
-                            head_cell: "text-center font-semibold text-muted-foreground p-2",
-                            body: "flex-1 grid grid-cols-7 grid-rows-6",
-                            row: "contents",
-                            cell: "relative border text-sm",
-                            day: "h-full w-full p-2 text-left align-top transition-colors hover:bg-accent/50",
-                            day_today: "bg-accent text-accent-foreground",
-                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90",
-                            day_outside: "text-muted-foreground/50",
+                        onChange={(value) => {
+                            if (value instanceof Date) {
+                                setSelectedDate(value);
+                            }
                         }}
-                        modifiers={{ event: eventDays }}
-                        modifiersClassNames={{
-                            event: 'day-with-event'
+                        value={selectedDate}
+                        activeStartDate={month}
+                        onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setMonth(activeStartDate)}
+                        minDate={new Date(1, 0, 1)}
+                        maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
+                        tileContent={({ date, view }) => {
+                            if (view === 'month') {
+                                const hasEvent = eventDays.some(eventDay => isSameDay(eventDay, date));
+                                return hasEvent ? <div className="event-dot"></div> : null;
+                            }
+                            return null;
                         }}
-                        fromYear={1}
-                        toYear={new Date().getFullYear() + 100}
-                        captionLayout="dropdown-buttons"
+                        className="w-full h-full"
                     />
                 </SidebarInset>
             </div>
@@ -339,4 +313,3 @@ export default function CalendarPage() {
     </>
   );
 }
-
