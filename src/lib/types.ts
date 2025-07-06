@@ -41,7 +41,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty' | 'tyrant' | 'special';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction' | 'calendar';
 
 export interface Tag {
   name: string;
@@ -376,3 +376,23 @@ export interface Npc {
 }
 
 export type NewNpc = Omit<Npc, 'id'>;
+
+// Calendar Types
+export const CALENDAR_PARTY_TYPES = ['faction', 'creature'] as const;
+export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
+
+export interface CalendarEvent {
+    id: string;
+    title: string;
+    description: string;
+    startDate: string; // ISO string
+    endDate: string; // ISO string
+    tags: string[];
+    party: {
+        type: CalendarPartyType;
+        id: string;
+        name: string;
+    };
+}
+
+export type NewCalendarEvent = Omit<CalendarEvent, 'id'>;

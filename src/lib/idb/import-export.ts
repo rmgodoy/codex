@@ -1,13 +1,13 @@
 
 "use client";
 
-import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility } from '@/lib/types';
-import { getDb, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME } from './db';
+import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, CalendarEvent } from '@/lib/types';
+import { getDb, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME } from './db';
 
 // Import/Export
 export const exportAllData = async (): Promise<any> => {
     const db = await getDb();
-    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME];
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME];
     const transaction = db.transaction(storeNames, 'readonly');
     
     const promises = storeNames.map(name => {
@@ -34,7 +34,7 @@ export const importData = async (data: any): Promise<void> => {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
 
-    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME];
+    const storeNames = [CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME];
     const tx = db.transaction(storeNames, 'readwrite');
     
     const stores: { [key: string]: IDBObjectStore } = {};
@@ -141,6 +141,12 @@ export const importData = async (data: any): Promise<void> => {
             delete (migratedItem as any).factionId;
             stores[NPCS_STORE_NAME].put(migratedItem);
             processTags(item.tags, 'npc');
+        });
+    }
+    if (data.calendarEvents && Array.isArray(data.calendarEvents)) {
+        data.calendarEvents.forEach((item: CalendarEvent) => {
+            stores[CALENDAR_EVENTS_STORE_NAME].put(item);
+            processTags(item.tags, 'calendar');
         });
     }
     
