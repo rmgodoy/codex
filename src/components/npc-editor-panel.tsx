@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Copy, ChevronsUpDown } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Copy } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "./ui/separator";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -64,6 +64,83 @@ const defaultValues: NpcFormData = {
   factionIds: [],
   tags: [],
 };
+
+const FactionSelectionDialog = ({
+  onConfirm,
+  allFactions,
+  initialSelectedIds,
+  children
+}: {
+  onConfirm: (ids: string[]) => void;
+  allFactions: Faction[];
+  initialSelectedIds: string[];
+  children: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentSelection, setCurrentSelection] = useState(new Set(initialSelectedIds));
+
+  useEffect(() => {
+    if(isOpen) {
+      setCurrentSelection(new Set(initialSelectedIds));
+    }
+  }, [isOpen, initialSelectedIds]);
+
+  const filteredFactions = useMemo(() => {
+    return allFactions.filter(faction =>
+      faction.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [allFactions, searchTerm]);
+
+  const handleConfirm = () => {
+    onConfirm(Array.from(currentSelection));
+    setIsOpen(false);
+  };
+
+  const handleCheckboxChange = (factionId: string) => {
+    setCurrentSelection(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(factionId)) {
+        newSet.delete(factionId);
+      } else {
+        newSet.add(factionId);
+      }
+      return newSet;
+    });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-md h-[60vh] flex flex-col">
+        <DialogHeader><DialogTitle>Select Factions</DialogTitle></DialogHeader>
+        <Input
+          placeholder="Search factions..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="mb-4 shrink-0"
+        />
+        <ScrollArea className="flex-1 border rounded-md p-2">
+          {filteredFactions.map(faction => (
+            <div key={faction.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-accent">
+              <Checkbox
+                id={`faction-dialog-${faction.id}`}
+                checked={currentSelection.has(faction.id)}
+                onCheckedChange={() => handleCheckboxChange(faction.id)}
+              />
+              <label htmlFor={`faction-dialog-${faction.id}`} className="font-normal flex-1 cursor-pointer">{faction.name}</label>
+            </div>
+          ))}
+        </ScrollArea>
+        <DialogFooter className="pt-4">
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button onClick={handleConfirm}>Confirm</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 
 export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveSuccess, onDeleteSuccess, onUseAsTemplate, onEditCancel, onBack, dataVersion }: NpcEditorPanelProps) {
   const { toast } = useToast();
@@ -302,43 +379,47 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField name="role" control={form.control} render={({ field }) => (<FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField
-                      control={form.control}
-                      name="factionIds"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Factions</FormLabel>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant="outline" role="combobox" className="w-full justify-between">
-                                        {field.value?.length ? `${field.value.length} selected` : "Select factions"}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        control={form.control}
+                        name="factionIds"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Factions</FormLabel>
+                            <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2 min-h-10 p-2 border rounded-md border-input">
+                                {(field.value || []).map(id => {
+                                    const factionName = factionMap.get(id);
+                                    if (!factionName) return null;
+                                    return (
+                                        <Badge key={id} variant="secondary">
+                                        {factionName}
+                                        <button
+                                            type="button"
+                                            className="ml-1 rounded-full outline-none"
+                                            onClick={() => field.onChange(field.value?.filter(fid => fid !== id))}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                        </Badge>
+                                    )
+                                    })}
+                                    {(!field.value || field.value.length === 0) && (
+                                        <span className="text-sm text-muted-foreground self-center">No factions selected</span>
+                                    )}
+                                </div>
+                                <FactionSelectionDialog
+                                    onConfirm={field.onChange}
+                                    allFactions={factions}
+                                    initialSelectedIds={field.value || []}
+                                >
+                                    <Button type="button" variant="outline" className="w-full">
+                                        Select Factions...
                                     </Button>
-                                </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <ScrollArea className="h-48">
-                                        {factions.map((faction) => (
-                                        <div key={faction.id} className="flex items-center space-x-2 p-2">
-                                            <Checkbox
-                                                id={`faction-check-${faction.id}`}
-                                                checked={field.value?.includes(faction.id)}
-                                                onCheckedChange={(checked) => {
-                                                return checked
-                                                    ? field.onChange([...(field.value || []), faction.id])
-                                                    : field.onChange((field.value || []).filter((value) => value !== faction.id))
-                                                }}
-                                            />
-                                            <label htmlFor={`faction-check-${faction.id}`} className="font-normal">{faction.name}</label>
-                                        </div>
-                                        ))}
-                                    </ScrollArea>
-                                </PopoverContent>
-                            </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                                </FactionSelectionDialog>
+                                </div>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                 </div>
                 <FormField name="appearance" control={form.control} render={({ field }) => (<FormItem><FormLabel>Appearance</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
                 <FormField name="personality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Personality</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
