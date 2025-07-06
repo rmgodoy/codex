@@ -110,8 +110,8 @@
 
 /* Generic Tile Styling for all views */
 .react-calendar__tile {
-  @apply flex items-center justify-center p-2 rounded-lg border border-transparent text-center align-middle transition-colors;
-  @apply hover:bg-accent/20;
+  @apply flex p-2 rounded-lg border border-transparent align-middle transition-colors;
+  @apply hover:bg-muted;
   @apply relative; /* For the dot */
 }
 
@@ -119,6 +119,14 @@
 .react-calendar__month-view__days__day {
     @apply items-start justify-start;
 }
+
+/* Make year/month/decade tiles centered */
+.react-calendar__year-view__months__month,
+.react-calendar__decade-view__years__year,
+.react-calendar__century-view__decades__decade {
+  @apply items-center justify-center;
+}
+
 
 /* Remove special styling for weekends */
 .react-calendar__month-view__days__day--weekend {
@@ -154,10 +162,10 @@
     @apply bg-transparent text-inherit font-normal;
 }
 .react-calendar__tile--now:hover {
-    @apply bg-accent/20;
+    @apply bg-muted;
 }
 .react-calendar__tile--now:enabled:hover, .react-calendar__tile--now:enabled:focus {
-    @apply bg-accent/20;
+    @apply bg-muted;
 }
 
 /* Ensure active styles override today styles */
