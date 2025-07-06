@@ -685,7 +685,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={onEditCancel}
+                            onClick={handleCancel}
                             className="-ml-4"
                         >
                             <ArrowLeft className="h-5 w-5" />
