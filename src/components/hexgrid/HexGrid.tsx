@@ -79,7 +79,6 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
 interface HexGridProps {
   grid: HexTile[];
   hexSize?: number;
-  radius: number;
   className?: string;
   onGridUpdate: (grid: HexTile[]) => void;
   onHexHover: (hex: Hex | null) => void;
@@ -92,7 +91,7 @@ interface HexGridProps {
   selectedHex: Hex | null;
 }
 
-const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -201,16 +200,18 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className
 
   // Effect for drawing the entire static grid to an offscreen canvas
   useEffect(() => {
-      if (!grid.length || !radius || isNaN(radius) || radius <= 0) return;
+      if (!grid.length) return;
       if (!offscreenCanvasRef.current) {
           offscreenCanvasRef.current = document.createElement('canvas');
       }
       const offscreenCanvas = offscreenCanvasRef.current;
       const offscreenCtx = offscreenCanvas.getContext('2d');
       if (!offscreenCtx) return;
+      
+      const maxRadius = grid.reduce((max, tile) => Math.max(max, Math.abs(tile.hex.q), Math.abs(tile.hex.r), Math.abs(tile.hex.s)), 0);
 
-      const worldWidth = radius * hexSize * 3 + hexSize * 2;
-      const worldHeight = radius * hexSize * Math.sqrt(3) * 2 + hexSize * 2;
+      const worldWidth = maxRadius * hexSize * 3 + hexSize * 2;
+      const worldHeight = maxRadius * hexSize * Math.sqrt(3) * 2 + hexSize * 2;
 
       offscreenCanvas.width = worldWidth;
       offscreenCanvas.height = worldHeight;
@@ -241,7 +242,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className
       });
       // After drawing to the offscreen canvas, trigger a redraw of the main canvas
       draw();
-  }, [grid, hexSize, radius, themeColors, draw]);
+  }, [grid, hexSize, themeColors, draw]);
 
 
   useEffect(() => {
@@ -309,17 +310,22 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const clickedHex = getHexFromMouseEvent(e);
-    if(clickedHex) onHexClick(clickedHex);
 
-    if (e.button === 0 && clickedHex && activeTool === 'paint') {
-      if (paintMode === 'brush' || paintMode === 'erase') {
-        setIsPainting(true);
-        paintTile(clickedHex);
-        setLastPaintedHex(clickedHex);
-      } else if (paintMode === 'bucket') {
-        bucketFill(clickedHex);
+    if (activeTool === 'paint') {
+      if (clickedHex) {
+        if (paintMode === 'brush' || paintMode === 'erase') {
+          setIsPainting(true);
+          paintTile(clickedHex);
+          setLastPaintedHex(clickedHex);
+        } else if (paintMode === 'bucket') {
+          bucketFill(clickedHex);
+        }
       }
-    } else if (e.button === 2) {
+    } else {
+      if(clickedHex) onHexClick(clickedHex);
+    }
+    
+    if (e.button === 2) {
       setIsPanning(true);
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
@@ -395,3 +401,5 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className
 };
 
 export default HexGrid;
+
+    
