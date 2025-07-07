@@ -12,7 +12,7 @@ interface HexGridProps {
   className?: string;
   onGridUpdate: (grid: HexTile[]) => void;
   onHexHover: (hex: Hex | null) => void;
-  paintMode: 'brush' | 'bucket';
+  paintMode: 'brush' | 'bucket' | 'erase';
   paintColor: string;
   paintIcon: string | null;
   paintIconColor: string;
@@ -241,12 +241,15 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   const paintTile = useCallback((hex: Hex) => {
     const newGrid = grid.map(tile => {
         if (tile.hex.q === hex.q && tile.hex.r === hex.r) {
+            if (paintMode === 'erase') {
+                return { ...tile, data: { ...tile.data, color: undefined, icon: undefined, iconColor: undefined } };
+            }
             return { ...tile, data: { ...tile.data, color: paintColor, icon: paintIcon, iconColor: paintIconColor } };
         }
         return tile;
     });
     onGridUpdate(newGrid);
-  }, [grid, paintColor, paintIcon, paintIconColor, onGridUpdate]);
+  }, [grid, paintColor, paintIcon, paintIconColor, onGridUpdate, paintMode]);
 
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -254,11 +257,11 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     const clickedHex = getHexFromMouseEvent(e);
 
     if (e.button === 0 && clickedHex) {
-      if (paintMode === 'brush') {
+      if (paintMode === 'brush' || paintMode === 'erase') {
         setIsPainting(true);
         paintTile(clickedHex);
         setLastPaintedHex(clickedHex);
-      } else {
+      } else if (paintMode === 'bucket') {
         bucketFill(clickedHex);
       }
     } else if (e.button === 2) {
@@ -289,7 +292,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     const currentHex = getHexFromMouseEvent(e);
     onHexHover(currentHex);
 
-    if (paintMode === 'brush' && isPainting) {
+    if ((paintMode === 'brush' || paintMode === 'erase') && isPainting) {
         if (currentHex) {
             if (!lastPaintedHex || (currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r)) {
                 paintTile(currentHex);
@@ -297,7 +300,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             }
         }
     }
-  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover, onGridUpdate, paintColor, paintIcon, paintIconColor]);
+  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();

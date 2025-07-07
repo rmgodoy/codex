@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser } from "lucide-react";
 import type { Hex, HexTile } from "@/lib/types";
 import { generateHexGrid } from "@/lib/hex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,7 +48,7 @@ export default function MapsPage() {
     const [grid, setGrid] = useState<HexTile[]>([]);
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
-    const [paintMode, setPaintMode] = useState<'brush' | 'bucket'>('brush');
+    const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | 'erase'>('brush');
     const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
 
@@ -83,6 +83,8 @@ export default function MapsPage() {
         setGrid(newGrid);
     };
 
+    const isEraseMode = paintMode === 'erase';
+
     return (
         <MainLayout showSidebarTrigger={false}>
             <div className="w-full h-full bg-background relative">
@@ -115,96 +117,101 @@ export default function MapsPage() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label>Paint Mode</Label>
-                                        <ToggleGroup type="single" value={paintMode} onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket') }} className="w-full">
-                                            <ToggleGroupItem value="brush" aria-label="Brush" className="w-1/2">
-                                            <Brush className="h-4 w-4 mr-2" /> Brush
+                                        <ToggleGroup type="single" value={paintMode} onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} className="w-full">
+                                            <ToggleGroupItem value="brush" aria-label="Brush" className="w-1/3">
+                                                <Brush className="h-4 w-4 mr-2" /> Brush
                                             </ToggleGroupItem>
-                                            <ToggleGroupItem value="bucket" aria-label="Bucket" className="w-1/2">
-                                            <PaintBucket className="h-4 w-4 mr-2" /> Bucket
+                                            <ToggleGroupItem value="bucket" aria-label="Bucket" className="w-1/3">
+                                                <PaintBucket className="h-4 w-4 mr-2" /> Bucket
+                                            </ToggleGroupItem>
+                                            <ToggleGroupItem value="erase" aria-label="Erase" className="w-1/3">
+                                                <Eraser className="h-4 w-4 mr-2" /> Erase
                                             </ToggleGroupItem>
                                         </ToggleGroup>
                                     </div>
                                     <Separator />
-                                     <div className="space-y-2">
-                                        <Label htmlFor="color-picker">Tile Color</Label>
-                                        <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>Terrain Colors</Label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {TERRAIN_COLORS.map(({ name, color }) => (
-                                                <Button
-                                                    key={name}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8"
-                                                    onClick={() => setPaintColor(color)}
-                                                >
-                                                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color }} />
-                                                    <span className="ml-2">{name}</span>
-                                                </Button>
-                                            ))}
+                                     <fieldset disabled={isEraseMode} className="space-y-4 disabled:opacity-50">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="color-picker">Tile Color</Label>
+                                            <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
                                         </div>
-                                    </div>
 
-                                    <Separator />
-                                    
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <Label>Tile Icon</Label>
-                                            <div className="flex items-center gap-1">
-                                                {!isIconColorAuto && (
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => setIsIconColorAuto(true)}
-                                                                >
-                                                                    <AlertCircle className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>Reset to automatic color</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                )}
-                                                <Input
-                                                    id="icon-color-picker"
-                                                    type="color"
-                                                    value={manualIconColor}
-                                                    onChange={(e) => {
-                                                        setManualIconColor(e.target.value);
-                                                        setIsIconColorAuto(false);
-                                                    }}
-                                                    className="w-10 h-10 p-1"
-                                                />
+                                        <div className="space-y-2">
+                                            <Label>Terrain Colors</Label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {TERRAIN_COLORS.map(({ name, color }) => (
+                                                    <Button
+                                                        key={name}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8"
+                                                        onClick={() => setPaintColor(color)}
+                                                    >
+                                                        <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color }} />
+                                                        <span className="ml-2">{name}</span>
+                                                    </Button>
+                                                ))}
                                             </div>
                                         </div>
+
+                                        <Separator />
                                         
-                                        <div className="grid grid-cols-5 gap-2">
-                                            {ICONS.map(({ name, component: Icon }) => (
-                                                <Button
-                                                    key={name}
-                                                    variant="outline"
-                                                    size="icon"
-                                                    onClick={() => setPaintIcon(prev => prev === name ? null : name)}
-                                                    className={cn(paintIcon === name && "ring-2 ring-ring ring-offset-2 bg-accent text-accent-foreground")}
-                                                >
-                                                    <Icon className="h-5 w-5" />
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <Label>Tile Icon</Label>
+                                                <div className="flex items-center gap-1">
+                                                    {!isIconColorAuto && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8"
+                                                                        onClick={() => setIsIconColorAuto(true)}
+                                                                    >
+                                                                        <AlertCircle className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Reset to automatic color</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                    <Input
+                                                        id="icon-color-picker"
+                                                        type="color"
+                                                        value={manualIconColor}
+                                                        onChange={(e) => {
+                                                            setManualIconColor(e.target.value);
+                                                            setIsIconColorAuto(false);
+                                                        }}
+                                                        className="w-10 h-10 p-1"
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-5 gap-2">
+                                                {ICONS.map(({ name, component: Icon }) => (
+                                                    <Button
+                                                        key={name}
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => setPaintIcon(prev => prev === name ? null : name)}
+                                                        className={cn(paintIcon === name && "ring-2 ring-ring ring-offset-2 bg-accent text-accent-foreground")}
+                                                    >
+                                                        <Icon className="h-5 w-5" />
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                            {paintIcon && (
+                                                <Button variant="ghost" size="sm" className="w-full h-8" onClick={() => setPaintIcon(null)}>
+                                                    <X className="h-4 w-4 mr-2" /> Clear Icon Selection
                                                 </Button>
-                                            ))}
+                                            )}
                                         </div>
-                                         {paintIcon && (
-                                            <Button variant="ghost" size="sm" className="w-full h-8" onClick={() => setPaintIcon(null)}>
-                                                <X className="h-4 w-4 mr-2" /> Clear Icon Selection
-                                            </Button>
-                                        )}
-                                    </div>
+                                     </fieldset>
                                 </div>
                             </TabsContent>
                             <TabsContent value="data" className="mt-4">
