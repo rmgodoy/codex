@@ -193,3 +193,15 @@
 .react-calendar__tile--active.react-calendar__tile--now {
     @apply bg-primary text-primary-foreground;
 }
+
+/* react-hex-engine styles */
+.hex-engine-grid polygon {
+  stroke: hsl(var(--border));
+  stroke-width: 0.1;
+  fill: hsl(var(--card));
+  transition: fill 0.2s;
+}
+
+.hex-engine-grid polygon:hover {
+  fill: hsl(var(--accent));
+}
