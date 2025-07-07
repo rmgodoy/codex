@@ -193,3 +193,16 @@
 .react-calendar__tile--active.react-calendar__tile--now {
     @apply bg-primary text-primary-foreground;
 }
+
+/* React Hexgrid overrides */
+.hexgrid-container svg g polygon {
+    stroke: hsl(var(--primary));
+    stroke-width: 0.2;
+    fill: hsl(var(--card));
+    fill-opacity: 1;
+}
+.hexgrid-container svg g:hover polygon {
+    fill: hsl(var(--card));
+    fill-opacity: 1;
+    cursor: default;
+}

@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -86,6 +86,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     if (pathname.startsWith('/npcs')) return 'NPCs';
     if (pathname.startsWith('/factions')) return 'Factions';
     if (pathname.startsWith('/calendar')) return 'Calendar';
+    if (pathname.startsWith('/maps')) return 'Maps';
     switch (pathname) {
       case '/':
         return 'Bestiary';
@@ -112,6 +113,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     { href: '/random/commoners', label: 'Commoners', group: 'Random' },
     { href: '/encounters', label: 'Encounters' },
     { href: '/calendar', label: 'Calendar' },
+    { href: '/maps', label: 'Maps' },
   ];
 
   const compendiumLinks = navLinks.filter(link => link.group === 'Compendium');
@@ -195,7 +197,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname === '/' || pathname.startsWith('/deeds') || pathname.startsWith('/encounters') || pathname.startsWith('/random') || pathname.startsWith('/alchemy') || pathname.startsWith('/rooms') || pathname.startsWith('/items') || pathname.startsWith('/dungeons') || pathname.startsWith('/npcs') || pathname.startsWith('/factions') || pathname.startsWith('/calendar')) && showSidebarTrigger && <SidebarTrigger />}
+          {(pathname === '/' || pathname.startsWith('/deeds') || pathname.startsWith('/encounters') || pathname.startsWith('/random') || pathname.startsWith('/alchemy') || pathname.startsWith('/rooms') || pathname.startsWith('/items') || pathname.startsWith('/dungeons') || pathname.startsWith('/npcs') || pathname.startsWith('/factions') || pathname.startsWith('/calendar') || pathname.startsWith('/maps')) && showSidebarTrigger && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">
