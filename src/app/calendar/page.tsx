@@ -348,7 +348,7 @@ export default function CalendarPage() {
                             return null;
                         }}
                         className="w-full h-full"
-                        calendarType="ISO 8601"
+                        weekStartsOn={1}
                         next2Label={null}
                         prev2Label={null}
                     />
