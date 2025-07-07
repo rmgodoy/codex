@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket } from "lucide-react";
 import type { Hex, HexTile } from "@/lib/types";
 import { generateHexGrid } from "@/lib/hex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -47,6 +48,7 @@ export default function MapsPage() {
     const [grid, setGrid] = useState<HexTile[]>([]);
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
+    const [paintMode, setPaintMode] = useState<'brush' | 'bucket'>('brush');
     const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
 
@@ -76,28 +78,10 @@ export default function MapsPage() {
     useEffect(() => {
         setGrid(generateHexGrid(20));
     }, []);
-
-    const handleHexClick = (hex: Hex) => {
-        setSelectedHex(hex);
-
-        if (activeTool === 'paint') {
-            const newGrid = grid.map(tile => {
-                if (tile.hex.q === hex.q && tile.hex.r === hex.r && tile.hex.s === hex.s) {
-                    return {
-                        ...tile,
-                        data: {
-                            ...tile.data,
-                            color: paintColor,
-                            icon: paintIcon,
-                            iconColor: finalIconColor,
-                        }
-                    };
-                }
-                return tile;
-            });
-            setGrid(newGrid);
-        }
-    }
+    
+    const handleGridUpdate = (newGrid: HexTile[]) => {
+        setGrid(newGrid);
+    };
 
     return (
         <MainLayout showSidebarTrigger={false}>
@@ -106,7 +90,12 @@ export default function MapsPage() {
                     grid={grid} 
                     hexSize={25} 
                     className="w-full h-full" 
-                    onHexClick={handleHexClick}
+                    onGridUpdate={handleGridUpdate}
+                    onHexHover={setSelectedHex}
+                    paintMode={paintMode}
+                    paintColor={paintColor}
+                    paintIcon={paintIcon}
+                    paintIconColor={finalIconColor}
                 />
 
                 <Card className="fixed top-20 left-4 z-10 w-80 shadow-lg">
@@ -124,6 +113,18 @@ export default function MapsPage() {
                             </TabsList>
                             <TabsContent value="paint" className="mt-4">
                                 <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Paint Mode</Label>
+                                        <ToggleGroup type="single" value={paintMode} onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket') }} className="w-full">
+                                            <ToggleGroupItem value="brush" aria-label="Brush" className="w-1/2">
+                                            <Brush className="h-4 w-4 mr-2" /> Brush
+                                            </ToggleGroupItem>
+                                            <ToggleGroupItem value="bucket" aria-label="Bucket" className="w-1/2">
+                                            <PaintBucket className="h-4 w-4 mr-2" /> Bucket
+                                            </ToggleGroupItem>
+                                        </ToggleGroup>
+                                    </div>
+                                    <Separator />
                                      <div className="space-y-2">
                                         <Label htmlFor="color-picker">Tile Color</Label>
                                         <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />

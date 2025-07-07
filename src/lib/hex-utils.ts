@@ -66,3 +66,21 @@ export const pixelToHex = (x: number, y: number, size: number): Hex => {
     const r = (-1 / 3 * x + Math.sqrt(3) / 3 * y) / size;
     return hexRound(q, r, -q - r);
 };
+
+// Directions for flat-topped hex grid
+const hexDirections = [
+    { q: 1, r: 0, s: -1 }, // right
+    { q: 1, r: -1, s: 0 }, // top-right
+    { q: 0, r: -1, s: 1 }, // top-left
+    { q: -1, r: 0, s: 1 }, // left
+    { q: -1, r: 1, s: 0 }, // bottom-left
+    { q: 0, r: 1, s: -1 }  // bottom-right
+];
+
+export const getHexNeighbors = (hex: Hex): Hex[] => {
+    return hexDirections.map(dir => ({
+        q: hex.q + dir.q,
+        r: hex.r + dir.r,
+        s: hex.s + dir.s
+    }));
+};
