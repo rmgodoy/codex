@@ -306,6 +306,7 @@ export default function CalendarPage() {
             event={editingEvent}
             calendars={calendars}
             defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
+            defaultDate={editingEvent ? new Date(editingEvent.startDate) : selectedDate || new Date()}
         />
     </SidebarProvider>
     </>

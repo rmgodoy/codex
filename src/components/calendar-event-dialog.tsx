@@ -17,31 +17,21 @@ import { Button } from "./ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { TagInput } from "./ui/tag-input";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
     calendarId: z.string().min(1, "A calendar must be selected."),
-    startDate: z.date({ required_error: "A start date is required."}),
-    endDate: z.date().optional(),
     partyType: z.enum(CALENDAR_PARTY_TYPES).optional(),
     partyId: z.string().optional(),
     tags: z.array(z.string()).optional(),
 }).superRefine((data, ctx) => {
-    if (data.startDate && data.endDate && data.endDate < data.startDate) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['endDate'],
-          message: 'End date cannot be before start date.',
-        });
-      }
     if (data.partyType && !data.partyId) {
         ctx.addIssue({
           path: ['partyId'],
@@ -65,9 +55,10 @@ interface CalendarEventDialogProps {
   event?: CalendarEvent | null;
   calendars: CalendarType[];
   defaultCalendarId: string;
+  defaultDate: Date;
 }
 
-export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendars, defaultCalendarId }: CalendarEventDialogProps) {
+export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendars, defaultCalendarId, defaultDate }: CalendarEventDialogProps) {
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -85,8 +76,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       title: "",
       description: "",
       calendarId: defaultCalendarId,
-      startDate: startOfDay(new Date()),
-      endDate: undefined,
       partyType: undefined,
       partyId: undefined,
       tags: [],
@@ -95,7 +84,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   
   const { watch, setValue } = form;
   const watchedPartyType = watch('partyType');
-  const watchedStartDate = watch('startDate');
 
   useEffect(() => {
     if (watchedPartyType) {
@@ -109,8 +97,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         title: event.title,
         description: event.description,
         calendarId: event.calendarId,
-        startDate: new Date(event.startDate),
-        endDate: new Date(event.endDate),
         partyType: event.party?.type,
         partyId: event.party?.id,
         tags: event.tags || [],
@@ -120,8 +106,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         title: "",
         description: "",
         calendarId: defaultCalendarId,
-        startDate: startOfDay(new Date()),
-        endDate: undefined,
         partyType: undefined,
         partyId: undefined,
         tags: [],
@@ -145,14 +129,23 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         }
     }
     
-    if (!data.startDate) return;
+    let eventStartDate: Date;
+    let eventEndDate: Date;
+
+    if (event) { // Editing existing event
+      eventStartDate = new Date(event.startDate);
+      eventEndDate = new Date(event.endDate);
+    } else { // Creating new event, make it a single-day event
+      eventStartDate = startOfDay(defaultDate);
+      eventEndDate = startOfDay(defaultDate);
+    }
 
     const eventToSave: NewCalendarEvent = {
         title: data.title,
         calendarId: data.calendarId,
         description: data.description || '',
-        startDate: data.startDate.toISOString(),
-        endDate: (data.endDate || data.startDate).toISOString(),
+        startDate: eventStartDate.toISOString(),
+        endDate: eventEndDate.toISOString(),
         tags: data.tags || [],
         party: partyToSave,
     };
@@ -182,7 +175,9 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{event ? "Edit Event" : "Add New Event"}</DialogTitle>
-          <DialogDescription>Fill in the details for the calendar event.</DialogDescription>
+          <DialogDescription>
+             {event ? `Editing event on ${format(new Date(event.startDate), 'PPP')}` : `Creating a new event for ${format(defaultDate, 'PPP')}.`}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -208,87 +203,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                     </FormItem>
                 )}
              />
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Start Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? (
-                                    format(field.value, "PPP")
-                                ) : (
-                                    <span>Pick a date</span>
-                                )}
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                minDate={new Date('0001-01-01T00:00:00')}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>End Date (Optional)</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? (
-                                    format(field.value, "PPP")
-                                ) : (
-                                    <span>Pick a date</span>
-                                )}
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={{ before: watchedStartDate || new Date('0001-01-01T00:00:00') }}
-                                minDate={new Date('0001-01-01T00:00:00')}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-             </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField name="partyType" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Party Type</FormLabel>
