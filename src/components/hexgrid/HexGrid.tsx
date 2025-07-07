@@ -4,7 +4,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { pixelToHex, hexToPixel, getHexCorner, getHexNeighbors, type Hex } from '@/lib/hex-utils';
 import type { HexTile } from '@/lib/types';
-import { Home, Trees, Mountain, Castle, TowerControl } from 'lucide-react';
+import { Home, Trees, Mountain, Castle, TowerControl, Tent, Waves, MapPin, Landmark, Skull } from 'lucide-react';
 
 interface HexGridProps {
   grid: HexTile[];
@@ -111,7 +111,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     if (typeof window !== 'undefined') {
       const computedStyle = getComputedStyle(document.documentElement);
       setThemeColors({ 
-        background: computedStyle.getPropertyValue('--background').trim(), 
+        background: `hsl(${computedStyle.getPropertyValue('--background').trim()})`,
         border: `hsl(${computedStyle.getPropertyValue('--border').trim()})`,
         accent: `hsl(${computedStyle.getPropertyValue('--accent').trim()})`,
         foreground: `hsl(${computedStyle.getPropertyValue('--foreground').trim()})` 
@@ -119,6 +119,20 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     }
   }, []);
   
+  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
+      const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
+      
+      return pixelToHex(worldX, worldY, hexSize);
+  }, [view.x, view.y, view.zoom, hexSize]);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !themeColors.border) return;
@@ -132,7 +146,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     const centerX = width / 2;
     const centerY = height / 2;
 
-    ctx.fillStyle = `hsl(${themeColors.background})`;
+    ctx.fillStyle = themeColors.background;
     ctx.fillRect(0, 0, width, height);
     
     ctx.save();
@@ -155,7 +169,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       }
       ctx.closePath();
 
-      ctx.fillStyle = data.color || `hsl(${themeColors.background})`;
+      ctx.fillStyle = data.color || themeColors.background;
       ctx.fill();
       ctx.stroke();
 
@@ -180,20 +194,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     draw();
   }, [draw]);
 
-  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
-      const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
-      
-      return pixelToHex(worldX, worldY, hexSize);
-  }, [view.x, view.y, view.zoom, hexSize]);
-  
   const bucketFill = useCallback((startHex: Hex) => {
     const startTile = gridMap.get(`${startHex.q},${startHex.r}`);
     if (!startTile) return;
@@ -297,7 +297,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             }
         }
     }
-  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover]);
+  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover, onGridUpdate, paintColor, paintIcon, paintIconColor]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
