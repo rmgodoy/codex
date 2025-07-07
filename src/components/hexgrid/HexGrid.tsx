@@ -64,7 +64,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
     ctx.lineWidth = 1 / view.zoom; // Keep line width consistent when zooming
 
     grid.forEach(tile => {
-      const { hex } = tile;
+      const { hex, data } = tile;
       const center = hexToPixel(hex, hexSize);
       
       ctx.beginPath();
@@ -78,13 +78,20 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
       }
       ctx.closePath();
 
-      // Fill hovered hex
-      if (hoveredHex && hex.q === hoveredHex.q && hex.r === hoveredHex.r) {
-          ctx.fillStyle = themeColors.accent;
-          ctx.fill();
-      }
+      // Fill with stored color or default background
+      ctx.fillStyle = data.color || themeColors.background;
+      ctx.fill();
 
+      // Draw border
       ctx.stroke();
+
+      // Draw hover highlight
+      if (hoveredHex && hex.q === hoveredHex.q && hex.r === hoveredHex.r) {
+        ctx.fillStyle = themeColors.accent;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
     });
     
     ctx.restore();

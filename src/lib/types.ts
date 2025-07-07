@@ -411,7 +411,11 @@ export interface Hex {
     s: number; // s = -q - r
 }
 
+export interface HexTileData {
+    color?: string;
+}
+
 export interface HexTile {
     hex: Hex;
-    data: Record<string, any>; // For storing metadata
+    data: HexTileData; // For storing metadata
 }
