@@ -12,10 +12,12 @@ interface HexGridProps {
   className?: string;
   onGridUpdate: (grid: HexTile[]) => void;
   onHexHover: (hex: Hex | null) => void;
+  onHexClick: (hex: Hex | null) => void;
   paintMode: 'brush' | 'bucket' | 'erase';
   paintColor: string;
   paintIcon: string | null;
   paintIconColor: string;
+  selectedHex: Hex | null;
 }
 
 const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number, foregroundColor: string) => {
@@ -89,7 +91,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
     ctx.restore();
 };
 
-const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, paintMode, paintColor, paintIcon, paintIconColor }) => {
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [themeColors, setThemeColors] = useState({
     background: '#1A0024',
@@ -152,15 +154,15 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     ctx.save();
     ctx.translate(centerX + view.x, centerY + view.y);
     ctx.scale(view.zoom, view.zoom);
-
-    ctx.strokeStyle = themeColors.border;
-    ctx.lineWidth = 1 / view.zoom;
-
+    
     const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>);
 
     grid.forEach(tile => {
       const { hex, data } = tile;
       const center = hexToPixel(hex, hexSize);
+      
+      ctx.strokeStyle = themeColors.border;
+      ctx.lineWidth = 1 / view.zoom;
       
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
@@ -183,11 +185,17 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.fill();
         ctx.globalAlpha = 1.0;
       }
+
+      if (selectedHex && hex.q === selectedHex.q && hex.r === selectedHex.r) {
+        ctx.strokeStyle = themeColors.accent;
+        ctx.lineWidth = 3 / view.zoom;
+        ctx.stroke();
+      }
     });
     
     ctx.restore();
 
-  }, [hexSize, themeColors, view, grid, lastPanPoint, getHexFromMouseEvent]);
+  }, [hexSize, themeColors, view, grid, lastPanPoint, getHexFromMouseEvent, selectedHex]);
 
 
   useEffect(() => {
@@ -255,6 +263,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const clickedHex = getHexFromMouseEvent(e);
+    if(clickedHex) onHexClick(clickedHex);
 
     if (e.button === 0 && clickedHex) {
       if (paintMode === 'brush' || paintMode === 'erase') {
@@ -268,7 +277,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       setIsPanning(true);
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
-  }, [getHexFromMouseEvent, paintMode, paintTile, bucketFill]);
+  }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill]);
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { setIsPainting(false); setLastPaintedHex(null); }

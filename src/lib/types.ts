@@ -415,6 +415,8 @@ export interface HexTileData {
     color?: string;
     icon?: string;
     iconColor?: string;
+    dungeonIds?: string[];
+    factionIds?: string[];
 }
 
 export interface HexTile {

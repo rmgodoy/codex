@@ -1,26 +1,24 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser } from "lucide-react";
-import type { Hex, HexTile } from "@/lib/types";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
+import { getAllDungeons, getAllFactions } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { MultiItemSelectionDialog } from "@/components/multi-item-selection-dialog";
+import { Badge } from "@/components/ui/badge";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -57,6 +55,14 @@ export default function MapsPage() {
     const [manualIconColor, setManualIconColor] = useState('#E0D6F0');
     const [isIconColorAuto, setIsIconColorAuto] = useState(true);
     const [finalIconColor, setFinalIconColor] = useState('#E0D6F0');
+    
+    const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
+    const [allFactions, setAllFactions] = useState<Faction[]>([]);
+
+    useEffect(() => {
+        getAllDungeons().then(setAllDungeons);
+        getAllFactions().then(setAllFactions);
+    }, []);
 
     const getLuminance = (hex: string) => {
         hex = hex.replace('#', '');
@@ -92,8 +98,23 @@ export default function MapsPage() {
         setGrid(newGrid);
     };
 
-    const isEraseMode = paintMode === 'erase';
+    const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
+        setGrid(prevGrid => prevGrid.map(tile => {
+            if (tile.hex.q === hex.q && tile.hex.r === hex.r) {
+                return {
+                    ...tile,
+                    data: { ...tile.data, ...updates }
+                };
+            }
+            return tile;
+        }));
+    };
 
+    const isEraseMode = paintMode === 'erase';
+    const selectedTile = useMemo(() => grid.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [grid, selectedHex]);
+    const dungeonMap = useMemo(() => new Map(allDungeons.map(d => [d.id, d])), [allDungeons]);
+    const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f])), [allFactions]);
+    
     return (
         <MainLayout showSidebarTrigger={false}>
             <div className="w-full h-full bg-background relative">
@@ -102,11 +123,13 @@ export default function MapsPage() {
                     hexSize={25} 
                     className="w-full h-full" 
                     onGridUpdate={handleGridUpdate}
-                    onHexHover={setSelectedHex}
+                    onHexHover={(hex) => { if (activeTool !== 'data') setSelectedHex(hex) }}
+                    onHexClick={setSelectedHex}
                     paintMode={paintMode}
                     paintColor={paintColor}
                     paintIcon={paintIcon}
                     paintIconColor={finalIconColor}
+                    selectedHex={selectedHex}
                 />
 
                 <Card className="fixed top-20 left-4 z-10 w-80 shadow-lg">
@@ -244,15 +267,52 @@ export default function MapsPage() {
                                 </div>
                             </TabsContent>
                             <TabsContent value="data" className="mt-4">
-                                {selectedHex ? (
-                                    <div className="text-sm space-y-1">
-                                        <p className="font-semibold text-base">Selected Tile</p>
-                                        <p><span className="font-semibold">Q:</span> {selectedHex.q}</p>
-                                        <p><span className="font-semibold">R:</span> {selectedHex.r}</p>
-                                        <p><span className="font-semibold">S:</span> {selectedHex.s}</p>
+                                {selectedHex && selectedTile ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="font-semibold text-base">Selected Tile</p>
+                                            <p className="text-sm"><span className="font-semibold">Q:</span> {selectedHex.q}, <span className="font-semibold">R:</span> {selectedHex.r}, <span className="font-semibold">S:</span> {selectedHex.s}</p>
+                                        </div>
+
+                                        <Separator />
+
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <Label className="flex items-center gap-2"><MapPin className="h-4 w-4"/>Dungeons</Label>
+                                                <MultiItemSelectionDialog
+                                                    title="Link Dungeons"
+                                                    items={allDungeons}
+                                                    initialSelectedIds={selectedTile.data.dungeonIds || []}
+                                                    onConfirm={(ids) => handleUpdateTileData(selectedHex, { dungeonIds: ids })}
+                                                    trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
+                                                />
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {(selectedTile.data.dungeonIds || []).map(id => <Badge key={id} variant="secondary">{dungeonMap.get(id)?.name}</Badge>)}
+                                            </div>
+                                        </div>
+                                        
+                                        <Separator />
+
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <Label className="flex items-center gap-2"><Users className="h-4 w-4"/>Factions</Label>
+                                                <MultiItemSelectionDialog
+                                                    title="Link Factions"
+                                                    items={allFactions}
+                                                    initialSelectedIds={selectedTile.data.factionIds || []}
+                                                    onConfirm={(ids) => handleUpdateTileData(selectedHex, { factionIds: ids })}
+                                                    trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
+                                                />
+                                            </div>
+                                             <div className="flex flex-wrap gap-1">
+                                                {(selectedTile.data.factionIds || []).map(id => <Badge key={id} variant="secondary">{factionMap.get(id)?.name}</Badge>)}
+                                            </div>
+                                        </div>
+
                                     </div>
                                 ) : (
-                                     <p className="text-sm text-muted-foreground">Click on a tile to see its coordinates.</p>
+                                     <p className="text-sm text-muted-foreground">Click on a tile to see or edit its data.</p>
                                 )}
                             </TabsContent>
                         </Tabs>
