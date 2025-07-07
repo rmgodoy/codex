@@ -14,61 +14,42 @@ interface HexGridProps {
 }
 
 const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number) => {
-    ctx.strokeStyle = 'hsl(var(--card-foreground))';
-    ctx.lineWidth = size * 0.1;
-    ctx.fillStyle = 'hsl(var(--card-foreground))';
-    const iconSize = size * 0.8;
+    const iconSize = size * 0.9;
+    const scale = iconSize / 24; // Lucide icons are in a 24x24 viewbox.
     const { x, y } = center;
 
-    ctx.beginPath();
+    ctx.save();
+    ctx.translate(x - iconSize / 2, y - iconSize / 2);
+    ctx.scale(scale, scale);
+    ctx.strokeStyle = 'hsl(var(--card-foreground))';
+    ctx.lineWidth = 1.5 / scale;
+    ctx.fillStyle = 'none';
+
+    let paths: string[] = [];
     switch (icon) {
         case 'Home':
-            const h = iconSize * 0.8;
-            const w = iconSize;
-            ctx.moveTo(x, y - h / 2);
-            ctx.lineTo(x + w / 2, y);
-            ctx.lineTo(x + w / 2, y + h / 2);
-            ctx.lineTo(x - w / 2, y + h / 2);
-            ctx.lineTo(x - w / 2, y);
-            ctx.closePath();
+            paths = ["m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"];
             break;
         case 'Trees':
-            const treeWidth = iconSize / 2;
-            const treeHeight = iconSize;
-            // Tree 1
-            ctx.moveTo(x - treeWidth * 0.6, y + treeHeight/2);
-            ctx.lineTo(x, y - treeHeight/2);
-            ctx.lineTo(x + treeWidth * 0.6, y + treeHeight/2);
-            ctx.closePath();
-            // Tree 2
-            ctx.moveTo(x - treeWidth * 1.2, y + treeHeight/2);
-            ctx.lineTo(x - treeWidth * 0.6, y - treeHeight/4);
-            ctx.lineTo(x, y + treeHeight/2);
-            ctx.closePath();
+            paths = ["M10 10v.2A3 3 0 0 1 7 13v1a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-1a3 3 0 0 1-3-2.8V10a3 3 0 0 1-4 0z", "M7 13h10", "M12 13v8"];
             break;
         case 'Mountain':
-            const mntWidth = iconSize;
-            const mntHeight = iconSize * 0.8;
-            ctx.moveTo(x - mntWidth / 2, y + mntHeight / 2);
-            ctx.lineTo(x, y - mntHeight / 2);
-            ctx.lineTo(x + mntWidth / 4, y);
-            ctx.lineTo(x + mntWidth / 2, y + mntHeight / 2);
-            ctx.closePath();
+            paths = ["m8 3 4 8 5-5 5 15H2L8 3z"];
             break;
         case 'Castle':
-            const cWidth = iconSize;
-            const cHeight = iconSize * 0.8;
-            ctx.rect(x - cWidth/2, y - cHeight/4, cWidth, cHeight);
-            ctx.rect(x - cWidth/2, y - cHeight/2, cWidth/4, cHeight/3);
-            ctx.rect(x + cWidth/2 - cWidth/4, y - cHeight/2, cWidth/4, cHeight/3);
+            paths = ["M22 20v-9H2v9", "M2 11V4h5l2-2 2 2h6l2-2 2 2h5v7", "M16 11.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5z", "M12 11.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5z", "M8 11.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5z"];
             break;
         case 'TowerControl':
-             const tWidth = iconSize * 0.4;
-             const tHeight = iconSize;
-             ctx.rect(x - tWidth/2, y - tHeight/2, tWidth, tHeight);
-             break;
+            paths = ["M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14", "M6 14h12", "M12 20v-6", "M15 6l-3-3-3 3"];
+            break;
     }
-    ctx.stroke();
+    
+    paths.forEach(pathData => {
+        const path = new Path2D(pathData);
+        ctx.stroke(path);
+    });
+
+    ctx.restore();
 };
 
 const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexClick }) => {
