@@ -145,8 +145,10 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     if (!ctx) return;
 
     const { width, height } = canvas.getBoundingClientRect();
-    canvas.width = width;
-    canvas.height = height;
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+    }
 
     ctx.fillStyle = themeColors.background;
     ctx.fillRect(0, 0, width, height);
@@ -158,12 +160,10 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     const LOD_THRESHOLD = 0.4;
     const canvasToDraw = view.zoom > LOD_THRESHOLD ? offscreenCanvasRef.current : offscreenCanvasSimpleRef.current;
     
-    if (canvasToDraw) {
+    if (canvasToDraw && canvasToDraw.width > 0 && canvasToDraw.height > 0) {
         const worldWidth = canvasToDraw.width;
         const worldHeight = canvasToDraw.height;
-        if (worldWidth > 0 && worldHeight > 0) {
-            ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
-        }
+        ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
     
     // Draw dynamic elements on top
@@ -205,55 +205,89 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   useEffect(() => {
       if (!grid.length || !canvasRef.current) return;
       
-      const maxRadius = grid.reduce((max, tile) => Math.max(max, Math.abs(tile.hex.q), Math.abs(tile.hex.r), Math.abs(tile.hex.s)), 0);
-      if (isNaN(maxRadius) || maxRadius <= 0) return;
+      let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
+      grid.forEach(({ hex }) => {
+        minQ = Math.min(minQ, hex.q);
+        maxQ = Math.max(maxQ, hex.q);
+        minR = Math.min(minR, hex.r);
+        maxR = Math.max(maxR, hex.r);
+      });
 
-      const worldWidth = maxRadius * hexSize * 3 + hexSize * 2;
-      const worldHeight = maxRadius * hexSize * Math.sqrt(3) * 2 + hexSize * 2;
+      if (!isFinite(minQ)) return;
+      
+      const worldPixelWidth = (maxQ - minQ) * hexSize * 1.5 + hexSize * 2;
+      const worldPixelHeight = (maxR - minR) * hexSize * Math.sqrt(3) + hexSize * 2;
+      
+      if (worldPixelWidth <= 0 || worldPixelHeight <= 0) return;
 
       // --- Detailed Canvas ---
       if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
       const offscreenCanvas = offscreenCanvasRef.current;
-      offscreenCanvas.width = worldWidth;
-      offscreenCanvas.height = worldHeight;
+      offscreenCanvas.width = worldPixelWidth;
+      offscreenCanvas.height = worldPixelHeight;
       const offscreenCtx = offscreenCanvas.getContext('2d');
 
       // --- Simple Canvas ---
       if (!offscreenCanvasSimpleRef.current) offscreenCanvasSimpleRef.current = document.createElement('canvas');
       const offscreenSimpleCanvas = offscreenCanvasSimpleRef.current;
-      offscreenSimpleCanvas.width = worldWidth;
-      offscreenSimpleCanvas.height = worldHeight;
+      offscreenSimpleCanvas.width = worldPixelWidth;
+      offscreenSimpleCanvas.height = worldPixelHeight;
       const offscreenSimpleCtx = offscreenSimpleCanvas.getContext('2d');
       
       if (!offscreenCtx || !offscreenSimpleCtx) return;
 
-      offscreenCtx.translate(worldWidth / 2, worldHeight / 2);
-      offscreenSimpleCtx.translate(worldWidth / 2, worldHeight / 2);
+      offscreenCtx.clearRect(0, 0, worldPixelWidth, worldPixelHeight);
+      offscreenSimpleCtx.clearRect(0, 0, worldPixelWidth, worldPixelHeight);
+      
+      offscreenCtx.translate(worldPixelWidth / 2, worldPixelHeight / 2);
+      offscreenSimpleCtx.translate(worldPixelWidth / 2, worldPixelHeight / 2);
+
+      // Group tiles for batch drawing
+      const detailedColorMap = new Map<string, Path2D>();
+      const simpleColorMap = new Map<string, Path2D>();
+      const iconsToDraw: { center: {x:number, y:number}, icon: string, iconColor: string }[] = [];
+      const allHexPaths = new Path2D();
 
       grid.forEach(tile => {
           const { hex, data } = tile;
           const center = hexToPixel(hex, hexSize);
-
           const hexPath = new Path2D();
           for (let i = 0; i < 6; i++) {
               const corner = getHexCorner(center, hexSize, i);
               if (i === 0) hexPath.moveTo(corner.x, corner.y); else hexPath.lineTo(corner.x, corner.y);
           }
           hexPath.closePath();
-          
-          // Draw on Detailed Canvas
-          offscreenCtx.strokeStyle = themeColors.border;
-          offscreenCtx.lineWidth = 1;
-          offscreenCtx.fillStyle = data.color || themeColors.background;
-          offscreenCtx.fill(hexPath);
-          offscreenCtx.stroke(hexPath);
+          allHexPaths.addPath(hexPath);
+
+          const detailedColor = data.color || themeColors.background;
+          if (!detailedColorMap.has(detailedColor)) detailedColorMap.set(detailedColor, new Path2D());
+          detailedColorMap.get(detailedColor)!.addPath(hexPath);
+
           if (data.icon) {
-              drawIcon(offscreenCtx, center, data.icon, hexSize, data.iconColor || themeColors.foreground);
+              iconsToDraw.push({ center, icon: data.icon, iconColor: data.iconColor || themeColors.foreground });
           }
 
-          // Draw on Simple Canvas
-          offscreenSimpleCtx.fillStyle = data.color || themeColors.background;
-          offscreenSimpleCtx.fill(hexPath);
+          const simpleColor = data.color || themeColors.background;
+          if (!simpleColorMap.has(simpleColor)) simpleColorMap.set(simpleColor, new Path2D());
+          simpleColorMap.get(simpleColor)!.addPath(hexPath);
+      });
+
+      // --- Draw Detailed Canvas ---
+      detailedColorMap.forEach((path, color) => {
+          offscreenCtx.fillStyle = color;
+          offscreenCtx.fill(path);
+      });
+      offscreenCtx.strokeStyle = themeColors.border;
+      offscreenCtx.lineWidth = 1;
+      offscreenCtx.stroke(allHexPaths);
+      iconsToDraw.forEach(({ center, icon, iconColor }) => {
+          drawIcon(offscreenCtx, center, icon, hexSize, iconColor);
+      });
+
+      // --- Draw Simple Canvas ---
+      simpleColorMap.forEach((path, color) => {
+          offscreenSimpleCtx.fillStyle = color;
+          offscreenSimpleCtx.fill(path);
       });
 
       draw();
@@ -324,9 +358,14 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const clickedHex = getHexFromMouseEvent(e);
-
+    if (e.button === 2 || e.button === 1) { // Right or Middle click for panning
+      setIsPanning(true);
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
     if (activeTool === 'paint') {
+      const clickedHex = getHexFromMouseEvent(e);
       if (clickedHex) {
         if (paintMode === 'brush' || paintMode === 'erase') {
           setIsPainting(true);
@@ -337,18 +376,14 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         }
       }
     } else {
+      const clickedHex = getHexFromMouseEvent(e);
       if(clickedHex) onHexClick(clickedHex);
-    }
-    
-    if (e.button === 2) {
-      setIsPanning(true);
-      setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
   }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill, activeTool]);
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { setIsPainting(false); setLastPaintedHex(null); }
-    if (e.button === 2) { setIsPanning(false); }
+    if (e.button === 2 || e.button === 1) { setIsPanning(false); }
   };
   
   const handleMouseLeave = () => {
@@ -356,15 +391,15 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   }
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    setLastPanPoint({ x: e.clientX, y: e.clientY }); // For hover redraw
-    
     if (isPanning) {
       const dx = e.clientX - lastPanPoint.x;
       const dy = e.clientY - lastPanPoint.y;
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
       setView(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
       return;
     }
     
+    setLastPanPoint({ x: e.clientX, y: e.clientY });
     const currentHex = getHexFromMouseEvent(e);
     onHexHover(currentHex);
 
