@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, startOfDay } from 'date-fns';
-import type { DateRange } from 'react-day-picker';
 
 import { useToast } from "@/hooks/use-toast";
 import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags } from "@/lib/idb";
@@ -97,7 +96,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const { watch, setValue } = form;
   const watchedPartyType = watch('partyType');
   const watchedStartDate = watch('startDate');
-  const watchedEndDate = watch('endDate');
 
   useEffect(() => {
     if (watchedPartyType) {
@@ -138,14 +136,12 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         const partySource = data.partyType === 'creature' ? creatures : factions;
         const selectedParty = partySource.find(p => p.id === data.partyId);
     
-        if (!selectedParty) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Selected party not found.' });
-            return;
-        }
-        partyToSave = {
-            type: data.partyType,
-            id: selectedParty.id,
-            name: selectedParty.name,
+        if (selectedParty) {
+            partyToSave = {
+                type: data.partyType,
+                id: selectedParty.id,
+                name: selectedParty.name,
+            }
         }
     }
     
@@ -212,55 +208,86 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                     </FormItem>
                 )}
              />
-             <div className="grid grid-cols-1 gap-4">
-                 <FormItem className="flex flex-col">
-                    <FormLabel>Date Range</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
                                 variant={"outline"}
                                 className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !watchedStartDate && "text-muted-foreground"
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
                                 )}
-                            >
+                                >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {watchedStartDate ? (
-                                    watchedEndDate && startOfDay(watchedEndDate).getTime() !== startOfDay(watchedStartDate).getTime() ? (
-                                        <>
-                                            {format(watchedStartDate, "PPP")} - {format(watchedEndDate, "PPP")}
-                                        </>
-                                    ) : (
-                                        format(watchedStartDate, "PPP")
-                                    )
+                                {field.value ? (
+                                    format(field.value, "PPP")
                                 ) : (
-                                    <span>Pick a date or range</span>
+                                    <span>Pick a date</span>
                                 )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
-                                mode="range"
-                                selected={{ from: watchedStartDate, to: watchedEndDate }}
-                                onSelect={(range: DateRange | undefined) => {
-                                    if (range?.from) {
-                                        setValue('startDate', range.from, { shouldValidate: true });
-                                        setValue('endDate', range.to || range.from, { shouldValidate: true });
-                                    } else {
-                                        setValue('startDate', startOfDay(new Date()), { shouldValidate: true });
-                                        setValue('endDate', undefined, { shouldValidate: true });
-                                    }
-                                }}
-                                initialFocus
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
                                 minDate={new Date('0001-01-01T00:00:00')}
+                                initialFocus
                             />
-                        </PopoverContent>
-                    </Popover>
-                    <div className="flex justify-between text-sm">
-                        <FormMessage>{form.formState.errors.startDate?.message}</FormMessage>
-                        <FormMessage>{form.formState.errors.endDate?.message}</FormMessage>
-                    </div>
-                </FormItem>
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>End Date (Optional)</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? (
+                                    format(field.value, "PPP")
+                                ) : (
+                                    <span>Pick a date</span>
+                                )}
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={{ before: watchedStartDate || new Date('0001-01-01T00:00:00') }}
+                                minDate={new Date('0001-01-01T00:00:00')}
+                                initialFocus
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
              </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField name="partyType" control={form.control} render={({ field }) => (
