@@ -22,31 +22,64 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
     ctx.translate(x - iconSize / 2, y - iconSize / 2);
     ctx.scale(scale, scale);
     ctx.strokeStyle = foregroundColor;
-    ctx.lineWidth = 1.5 / scale;
+    ctx.lineWidth = 1.5 / scale; // Keep stroke width consistent
 
-    let paths: string[] = [];
+    type IconData = string[] | { paths: string[]; circles: { cx: number; cy: number; r: number }[] };
+    let iconData: IconData = [];
+
     switch (icon) {
         case 'Home':
-            paths = ["m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"];
+            iconData = ["m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"];
             break;
         case 'Trees':
-            paths = ["M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z", "M7 16v6", "M13 19v3", "M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"];
+            iconData = ["M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z", "M7 16v6", "M13 19v3", "M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"];
             break;
         case 'Mountain':
-            paths = ["m8 3 4 8 5-5 5 15H2L8 3z"];
+            iconData = ["m8 3 4 8 5-5 5 15H2L8 3z"];
             break;
         case 'Castle':
-             paths = ["M22 20v-9H2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2Z", "M18 11V4H6v7", "M15 22v-4a3 3 0 0 0-3-3a3 3 0 0 0-3 3v4", "M22 11V9", "M2 11V9", "M6 4V2", "M18 4V2", "M10 4V2", "M14 4V2"];
+             iconData = ["M22 20v-9H2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2Z", "M18 11V4H6v7", "M15 22v-4a3 3 0 0 0-3-3a3 3 0 0 0-3 3v4", "M22 11V9", "M2 11V9", "M6 4V2", "M18 4V2", "M10 4V2", "M14 4V2"];
             break;
         case 'TowerControl':
-            paths = ["M18.2 12.27 20 6H4l1.8 6.27a1 1 0 0 0 .95.73h10.5a1 1 0 0 0 .96-.73Z","M8 13v9","M16 22v-9","m9 6 1 7","m15 6-1 7","M12 6V2","M13 2h-2"];
+            iconData = ["M18.2 12.27 20 6H4l1.8 6.27a1 1 0 0 0 .95.73h10.5a1 1 0 0 0 .96-.73Z","M8 13v9","M16 22v-9","m9 6 1 7","m15 6-1 7","M12 6V2","M13 2h-2"];
+            break;
+        case 'Tent':
+            iconData = ["M3.5 21 14 3","M20.5 21 10 3","M15.5 21 12 15l-3.5 6","M2 21h20"];
+            break;
+        case 'Waves':
+            iconData = ["M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1", "M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1", "M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"];
+            break;
+        case 'MapPin':
+            iconData = ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"];
+            break;
+        case 'Landmark':
+            iconData = ["M10 18v-7", "M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z", "M14 18v-7", "M18 18v-7", "M3 22h18", "M6 18v-7"];
+            break;
+        case 'Skull':
+            iconData = {
+                paths: ["m12.5 17-.5-1-.5 1h1z", "M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"],
+                circles: [{cx: 15, cy: 12, r: 1}, {cx: 9, cy: 12, r: 1}]
+            };
             break;
     }
     
-    paths.forEach(pathData => {
-        const path = new Path2D(pathData);
-        ctx.stroke(path);
-    });
+    if (Array.isArray(iconData)) {
+        iconData.forEach(pathData => {
+            const path = new Path2D(pathData);
+            ctx.stroke(path);
+        });
+    } else { // Handles complex icons with paths and circles
+        iconData.paths.forEach(pathData => {
+            const path = new Path2D(pathData);
+            ctx.stroke(path);
+        });
+        iconData.circles.forEach(circle => {
+            ctx.beginPath();
+            ctx.arc(circle.cx, circle.cy, circle.r, 0, 2 * Math.PI);
+            ctx.fillStyle = foregroundColor;
+            ctx.fill();
+        });
+    }
 
     ctx.restore();
 };

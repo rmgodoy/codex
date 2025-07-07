@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull } from "lucide-react";
 import type { Hex, HexTile } from "@/lib/types";
 import { generateHexGrid } from "@/lib/hex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +27,11 @@ const ICONS = [
     { name: 'Mountain', component: Mountain },
     { name: 'Castle', component: Castle },
     { name: 'TowerControl', component: TowerControl },
+    { name: 'Tent', component: Tent },
+    { name: 'Waves', component: Waves },
+    { name: 'MapPin', component: MapPin },
+    { name: 'Landmark', component: Landmark },
+    { name: 'Skull', component: Skull },
 ]
 
 const TERRAIN_COLORS = [
