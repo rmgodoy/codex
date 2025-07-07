@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, startOfDay, addYears } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 
 import { useToast } from "@/hooks/use-toast";
 import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags } from "@/lib/idb";
@@ -24,6 +24,7 @@ import { TagInput } from "./ui/tag-input";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronsUpDown } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
+import { DateRange } from "react-day-picker";
 
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
@@ -33,9 +34,22 @@ const eventSchema = z.object({
         from: z.date().optional(),
         to: z.date().optional()
     }).refine(data => data.from, { message: "Start date is required.", path: ["from"] }),
-    partyType: z.enum(CALENDAR_PARTY_TYPES),
-    partyId: z.string().min(1, "A responsible party must be selected."),
+    partyType: z.enum(CALENDAR_PARTY_TYPES).optional(),
+    partyId: z.string().optional(),
     tags: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+    if (data.partyType && !data.partyId) {
+        ctx.addIssue({
+          path: ['partyId'],
+          message: 'A responsible party must be selected if a party type is chosen.',
+        });
+      }
+      if (!data.partyType && data.partyId) {
+          ctx.addIssue({
+            path: ['partyType'],
+            message: 'Party type must be selected if a party is chosen.',
+          });
+        }
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -69,8 +83,8 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       description: "",
       calendarId: defaultCalendarId,
       dateRange: { from: selectedDate || startOfDay(new Date()), to: undefined },
-      partyType: "faction",
-      partyId: "",
+      partyType: undefined,
+      partyId: undefined,
       tags: [],
     }
   });
@@ -79,7 +93,9 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const watchedPartyType = watch('partyType');
 
   useEffect(() => {
-    setValue('partyId', '');
+    if (watchedPartyType) {
+        setValue('partyId', '');
+    }
   }, [watchedPartyType, setValue]);
 
   useEffect(() => {
@@ -92,8 +108,8 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
             from: new Date(event.startDate),
             to: new Date(event.endDate),
         },
-        partyType: event.party.type,
-        partyId: event.party.id,
+        partyType: event.party?.type,
+        partyId: event.party?.id,
         tags: event.tags || [],
       });
     } else if (!event && isOpen) {
@@ -102,20 +118,29 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         description: "",
         calendarId: defaultCalendarId,
         dateRange: { from: selectedDate || startOfDay(new Date()), to: undefined },
-        partyType: "faction",
-        partyId: "",
+        partyType: undefined,
+        partyId: undefined,
         tags: [],
       });
     }
   }, [event, isOpen, form, selectedDate, defaultCalendarId]);
 
   const onSubmit = async (data: EventFormData) => {
-    const partySource = data.partyType === 'creature' ? creatures : factions;
-    const selectedParty = partySource.find(p => p.id === data.partyId);
+    let partyToSave: CalendarEvent['party'] | undefined = undefined;
 
-    if (!selectedParty) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Selected party not found.' });
-        return;
+    if (data.partyType && data.partyId) {
+        const partySource = data.partyType === 'creature' ? creatures : factions;
+        const selectedParty = partySource.find(p => p.id === data.partyId);
+    
+        if (!selectedParty) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Selected party not found.' });
+            return;
+        }
+        partyToSave = {
+            type: data.partyType,
+            id: selectedParty.id,
+            name: selectedParty.name,
+        }
     }
     
     if (!data.dateRange.from) return;
@@ -127,11 +152,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         startDate: data.dateRange.from.toISOString(),
         endDate: (data.dateRange.to || data.dateRange.from).toISOString(),
         tags: data.tags || [],
-        party: {
-            type: data.partyType,
-            id: selectedParty.id,
-            name: selectedParty.name,
-        }
+        party: partyToSave,
     };
     
     try {
@@ -154,9 +175,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const selectedPartyId = watch('partyId');
   const selectedPartyName = partyList.find(p => p.id === selectedPartyId)?.name;
   
-  const fromYear = addYears(new Date(), -10).getFullYear();
-  const toYear = addYears(new Date(), 10).getFullYear();
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -209,12 +227,9 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                         initialFocus
                         mode="range"
                         defaultMonth={field.value?.from}
-                        selected={{from: field.value.from!, to: field.value.to}}
+                        selected={field.value as DateRange}
                         onSelect={field.onChange}
                         numberOfMonths={2}
-                        captionLayout="dropdown-buttons"
-                        fromYear={fromYear}
-                        toYear={toYear}
                     />
                 </PopoverContent>
                 </Popover><FormMessage /></FormItem>
@@ -222,8 +237,8 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
             <div className="grid grid-cols-2 gap-4">
                 <FormField name="partyType" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Party Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
                             <SelectContent>
                                 {CALENDAR_PARTY_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
                             </SelectContent>
@@ -232,7 +247,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                 )} />
                  <FormField name="partyId" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Responsible Party</FormLabel>
-                        <Popover><PopoverTrigger asChild>
+                        <Popover><PopoverTrigger asChild disabled={!watchedPartyType}>
                             <FormControl>
                                 <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
                                     <span className="truncate">{selectedPartyName || "Select Party"}</span>

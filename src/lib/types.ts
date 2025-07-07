@@ -395,7 +395,7 @@ export interface CalendarEvent {
     startDate: string; // ISO string
     endDate: string; // ISO string
     tags: string[];
-    party: {
+    party?: {
         type: CalendarPartyType;
         id: string;
         name: string;

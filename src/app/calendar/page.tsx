@@ -257,7 +257,7 @@ export default function CalendarPage() {
                                                     From: {format(new Date(event.startDate), 'P')} To: {format(new Date(event.endDate), 'P')}
                                                 </CardDescription>
                                                 {event.description && <p className="text-sm mt-2">{event.description}</p>}
-                                                <p className="text-xs text-muted-foreground mt-2">Party: <span className="font-semibold text-accent">{event.party.name} ({event.party.type})</span></p>
+                                                {event.party && <p className="text-xs text-muted-foreground mt-2">Party: <span className="font-semibold text-accent">{event.party.name} ({event.party.type})</span></p>}
                                                 {event.tags && event.tags.length > 0 && (
                                                     <div className="flex flex-wrap gap-1 mt-2">
                                                         {event.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}
