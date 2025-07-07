@@ -55,10 +55,10 @@ interface CalendarEventDialogProps {
   event?: CalendarEvent | null;
   calendars: CalendarType[];
   defaultCalendarId: string;
-  defaultDate: Date;
+  selectedDate: Date;
 }
 
-export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendars, defaultCalendarId, defaultDate }: CalendarEventDialogProps) {
+export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendars, defaultCalendarId, selectedDate }: CalendarEventDialogProps) {
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -129,23 +129,12 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         }
     }
     
-    let eventStartDate: Date;
-    let eventEndDate: Date;
-
-    if (event) { // Editing existing event
-      eventStartDate = new Date(event.startDate);
-      eventEndDate = new Date(event.endDate);
-    } else { // Creating new event, make it a single-day event
-      eventStartDate = startOfDay(defaultDate);
-      eventEndDate = startOfDay(defaultDate);
-    }
-
     const eventToSave: NewCalendarEvent = {
         title: data.title,
         calendarId: data.calendarId,
         description: data.description || '',
-        startDate: eventStartDate.toISOString(),
-        endDate: eventEndDate.toISOString(),
+        startDate: event ? event.startDate : startOfDay(selectedDate).toISOString(),
+        endDate: event ? event.endDate : startOfDay(selectedDate).toISOString(),
         tags: data.tags || [],
         party: partyToSave,
     };
@@ -176,7 +165,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         <DialogHeader>
           <DialogTitle>{event ? "Edit Event" : "Add New Event"}</DialogTitle>
           <DialogDescription>
-             {event ? `Editing event on ${format(new Date(event.startDate), 'PPP')}` : `Creating a new event for ${format(defaultDate, 'PPP')}.`}
+             {event ? `Editing event on ${format(new Date(event.startDate), 'PPP')}` : `Creating a new event for ${format(selectedDate, 'PPP')}.`}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

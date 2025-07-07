@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { format, isSameDay, isWithinInterval, startOfDay, eachDayOfInterval } from "date-fns";
+import { DateRange } from "react-day-picker";
 import Calendar from 'react-calendar';
 
 import MainLayout from "@/components/main-layout";
@@ -13,7 +14,7 @@ import { CalendarEventDialog } from "@/components/calendar-event-dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, Cog, Plus } from "lucide-react";
+import { Trash2, Edit, Cog, Plus, Check, X } from "lucide-react";
 import { getAllCalendarEvents, deleteCalendarEvent } from "@/lib/idb/calendarEvents";
 import { getAllCalendars, addCalendar, updateCalendar, deleteCalendarAndEvents } from "@/lib/idb/calendars";
 import type { CalendarEvent, Calendar as CalendarType, NewCalendar } from "@/lib/types";
@@ -26,6 +27,8 @@ import { Separator } from "@/components/ui/separator";
 function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars: CalendarType[], onCalendarsUpdate: (newCalendarId?: string) => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newCalendarName, setNewCalendarName] = useState("");
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingName, setEditingName] = useState("");
     const { toast } = useToast();
 
     const handleAddCalendar = async () => {
@@ -40,6 +43,29 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to create calendar.' });
         }
     };
+    
+    const handleStartEdit = (calendar: CalendarType) => {
+        setEditingId(calendar.id);
+        setEditingName(calendar.name);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setEditingName("");
+    };
+
+    const handleRenameCalendar = async () => {
+        if (!editingId || !editingName.trim()) return;
+        try {
+            await updateCalendar({ id: editingId, name: editingName.trim() });
+            toast({ title: 'Calendar Renamed' });
+            onCalendarsUpdate();
+            handleCancelEdit();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to rename calendar.' });
+        }
+    };
+
 
     const handleDeleteCalendar = async (calendarId: string) => {
         try {
@@ -72,23 +98,50 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                         {calendars.map(cal => (
-                            <div key={cal.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                                <span>{cal.name}</span>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4 text-destructive"/></Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>This will permanently delete the "{cal.name}" calendar and all of its events.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteCalendar(cal.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                            <div key={cal.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 gap-2">
+                                {editingId === cal.id ? (
+                                    <>
+                                        <Input
+                                            value={editingName}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleRenameCalendar() }}
+                                            className="h-8"
+                                            autoFocus
+                                        />
+                                        <div className="flex items-center gap-1">
+                                            <Button size="icon" className="h-7 w-7" onClick={handleRenameCalendar} aria-label="Save">
+                                                <Check className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit} aria-label="Cancel">
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="flex-1 truncate" title={cal.name}>{cal.name}</span>
+                                        <div className="flex items-center shrink-0">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartEdit(cal)} aria-label="Edit">
+                                                <Edit className="h-4 w-4"/>
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Delete"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This will permanently delete the "{cal.name}" calendar and all of its events.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteCalendar(cal.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -306,7 +359,7 @@ export default function CalendarPage() {
             event={editingEvent}
             calendars={calendars}
             defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
-            defaultDate={editingEvent ? new Date(editingEvent.startDate) : selectedDate || new Date()}
+            selectedDate={selectedDate || new Date()}
         />
     </SidebarProvider>
     </>
