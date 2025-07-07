@@ -26,6 +26,9 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   const [hoveredHex, setHoveredHex] = useState<Hex | null>(null);
 
+  // State for drag-to-paint functionality
+  const [isPainting, setIsPainting] = useState(false);
+  const [lastPaintedHex, setLastPaintedHex] = useState<Hex | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -123,10 +126,14 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    if (e.button === 0 && onHexClick) { // Left mouse button
-        const clickedHex = getHexFromMouseEvent(e);
-        if (clickedHex) {
-            onHexClick(clickedHex);
+    if (e.button === 0) { // Left mouse button
+        setIsPainting(true);
+        if (onHexClick) {
+            const clickedHex = getHexFromMouseEvent(e);
+            if (clickedHex) {
+                onHexClick(clickedHex);
+                setLastPaintedHex(clickedHex);
+            }
         }
     }
     if (e.button === 2) { // Right mouse button
@@ -136,6 +143,10 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (e.button === 0) {
+        setIsPainting(false);
+        setLastPaintedHex(null);
+    }
     if (e.button === 2) {
       setIsPanning(false);
     }
@@ -143,6 +154,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
   
   const handleMouseLeave = () => {
     setIsPanning(false);
+    setIsPainting(false);
+    setLastPaintedHex(null);
     if (hoveredHex) {
         setHoveredHex(null);
     }
@@ -159,13 +172,22 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
 
     const currentHex = getHexFromMouseEvent(e);
 
-    if (currentHex) {
-        if (!hoveredHex || hoveredHex.q !== currentHex.q || hoveredHex.r !== currentHex.r) {
-            setHoveredHex(currentHex);
+    if (isPainting && onHexClick && currentHex) {
+        if (!lastPaintedHex || (currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r)) {
+            onHexClick(currentHex);
+            setLastPaintedHex(currentHex);
         }
-    } else {
-        if (hoveredHex !== null) {
-            setHoveredHex(null);
+    }
+    
+    if (!isPainting) {
+        if (currentHex) {
+            if (!hoveredHex || hoveredHex.q !== currentHex.q || hoveredHex.r !== currentHex.r) {
+                setHoveredHex(currentHex);
+            }
+        } else {
+            if (hoveredHex !== null) {
+                setHoveredHex(null);
+            }
         }
     }
   };
