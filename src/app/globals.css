@@ -51,12 +51,17 @@
 }
 
 .react-calendar__navigation button {
-  @apply bg-transparent text-card-foreground hover:bg-muted p-2 rounded-md transition-colors;
+  @apply bg-transparent text-card-foreground p-2 rounded-md transition-colors;
 }
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  @apply bg-muted text-card-foreground;
+}
+
 .react-calendar__navigation button:disabled {
   @apply opacity-50 cursor-not-allowed;
 }
-/* Ensure both single and double arrow buttons are positioned correctly */
 .react-calendar__navigation__prev-button, .react-calendar__navigation__prev2-button {
   @apply absolute left-0;
 }
@@ -66,7 +71,12 @@
 
 
 .react-calendar__navigation__label {
-  @apply font-bold text-xl text-primary-foreground cursor-pointer hover:text-primary-foreground/80;
+  @apply font-bold text-xl text-primary-foreground cursor-pointer rounded-md px-4 py-2 transition-colors;
+}
+
+.react-calendar__navigation__label:enabled:hover,
+.react-calendar__navigation__label:enabled:focus {
+  @apply bg-muted;
 }
 
 /* Base View styles */
@@ -111,8 +121,12 @@
 /* Generic Tile Styling for all views */
 .react-calendar__tile {
   @apply flex p-2 rounded-lg border border-transparent align-middle transition-colors;
-  @apply hover:bg-muted;
   @apply relative; /* For the dot */
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  @apply bg-muted;
 }
 
 /* Day-specific tile styling */
@@ -134,19 +148,25 @@
 }
 
 .react-calendar__tile--active {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply bg-primary text-primary-foreground;
 }
+
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
   @apply bg-primary/90;
 }
 
 .react-calendar__tile:disabled {
-  @apply text-muted-foreground/50 hover:bg-transparent;
+  @apply text-muted-foreground/50 bg-transparent hover:bg-transparent;
 }
 
 .react-calendar__month-view__days__day--neighboringMonth {
-  @apply text-muted-foreground/50 hover:bg-transparent;
+  @apply text-muted-foreground/50;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth:hover,
+.react-calendar__month-view__days__day--neighboringMonth:focus {
+    @apply bg-transparent;
 }
 
 .event-dot {
@@ -160,9 +180,6 @@
 /* Remove today highlight */
 .react-calendar__tile--now {
     @apply bg-transparent text-inherit font-normal;
-}
-.react-calendar__tile--now:hover {
-    @apply bg-muted;
 }
 .react-calendar__tile--now:enabled:hover, .react-calendar__tile--now:enabled:focus {
     @apply bg-muted;
