@@ -22,13 +22,13 @@ export const generateHexGrid = (radius: number): Hex[] => {
 };
 
 export const hexToPixel = (hex: Hex, size: number): { x: number; y: number } => {
-    const x = size * (3 / 2 * hex.q);
-    const y = size * (Math.sqrt(3) / 2 * hex.q + Math.sqrt(3) * hex.r);
+    const x = size * (Math.sqrt(3) * hex.q + Math.sqrt(3) / 2 * hex.r);
+    const y = size * (3 / 2 * hex.r);
     return { x, y };
 };
 
 export const getHexCorner = (center: { x: number; y: number }, size: number, i: number): { x: number; y: number } => {
-    const angle_deg = 60 * i + 30; // +30 to make pointy top
+    const angle_deg = 60 * i;
     const angle_rad = Math.PI / 180 * angle_deg;
     return {
         x: center.x + size * Math.cos(angle_rad),
