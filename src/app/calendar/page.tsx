@@ -348,6 +348,9 @@ export default function CalendarPage() {
                             return null;
                         }}
                         className="w-full h-full"
+                        calendarType="ISO 8601"
+                        next2Label={null}
+                        prev2Label={null}
                     />
                 </SidebarInset>
             </div>
@@ -357,9 +360,8 @@ export default function CalendarPage() {
             onOpenChange={setIsDialogOpen}
             onSaveSuccess={handleSaveSuccess}
             event={editingEvent}
-            calendars={calendars}
             defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
-            selectedDate={selectedDate || new Date()}
+            initialDate={selectedDate || new Date()}
         />
     </SidebarProvider>
     </>

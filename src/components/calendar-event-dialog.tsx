@@ -21,16 +21,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { TagInput } from "./ui/tag-input";
 import { cn } from "@/lib/utils";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, Calendar as CalendarIcon } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
+import { Calendar as DayPickerCalendar } from "@/components/ui/calendar";
 
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
-    calendarId: z.string().min(1, "A calendar must be selected."),
     partyType: z.enum(CALENDAR_PARTY_TYPES).optional(),
     partyId: z.string().optional(),
     tags: z.array(z.string()).optional(),
+    startDate: z.date({ required_error: "A start date is required." }),
+    endDate: z.date().optional(),
 }).superRefine((data, ctx) => {
     if (data.partyType && !data.partyId) {
         ctx.addIssue({
@@ -44,6 +46,12 @@ const eventSchema = z.object({
             message: 'Party type must be selected if a party is chosen.',
           });
         }
+    if (data.endDate && data.startDate > data.endDate) {
+        ctx.addIssue({
+          path: ['endDate'],
+          message: 'End date cannot be before start date.',
+        });
+    }
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -53,12 +61,11 @@ interface CalendarEventDialogProps {
   onOpenChange: (open: boolean) => void;
   onSaveSuccess: () => void;
   event?: CalendarEvent | null;
-  calendars: CalendarType[];
   defaultCalendarId: string;
-  selectedDate: Date;
+  initialDate: Date;
 }
 
-export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendars, defaultCalendarId, selectedDate }: CalendarEventDialogProps) {
+export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, defaultCalendarId, initialDate }: CalendarEventDialogProps) {
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -75,15 +82,17 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
     defaultValues: {
       title: "",
       description: "",
-      calendarId: defaultCalendarId,
       partyType: undefined,
       partyId: undefined,
       tags: [],
+      startDate: initialDate,
+      endDate: undefined
     }
   });
   
   const { watch, setValue } = form;
   const watchedPartyType = watch('partyType');
+  const watchedStartDate = watch('startDate');
 
   useEffect(() => {
     if (watchedPartyType) {
@@ -96,22 +105,24 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       form.reset({
         title: event.title,
         description: event.description,
-        calendarId: event.calendarId,
         partyType: event.party?.type,
         partyId: event.party?.id,
         tags: event.tags || [],
+        startDate: new Date(event.startDate),
+        endDate: new Date(event.endDate),
       });
     } else if (!event && isOpen) {
       form.reset({
         title: "",
         description: "",
-        calendarId: defaultCalendarId,
         partyType: undefined,
         partyId: undefined,
         tags: [],
+        startDate: initialDate,
+        endDate: undefined,
       });
     }
-  }, [event, isOpen, form, defaultCalendarId]);
+  }, [event, isOpen, form, initialDate]);
 
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent['party'] | undefined = undefined;
@@ -131,10 +142,10 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
     
     const eventToSave: NewCalendarEvent = {
         title: data.title,
-        calendarId: data.calendarId,
+        calendarId: defaultCalendarId,
         description: data.description || '',
-        startDate: event ? event.startDate : startOfDay(selectedDate).toISOString(),
-        endDate: event ? event.endDate : startOfDay(selectedDate).toISOString(),
+        startDate: data.startDate.toISOString(),
+        endDate: (data.endDate || data.startDate).toISOString(),
         tags: data.tags || [],
         party: partyToSave,
     };
@@ -165,7 +176,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         <DialogHeader>
           <DialogTitle>{event ? "Edit Event" : "Add New Event"}</DialogTitle>
           <DialogDescription>
-             {event ? `Editing event on ${format(new Date(event.startDate), 'PPP')}` : `Creating a new event for ${format(selectedDate, 'PPP')}.`}
+             {event ? `Editing event on ${format(new Date(event.startDate), 'PPP')}` : "Create a new event."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -176,22 +187,42 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
             <FormField name="description" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem>
             )} />
-             <FormField
-                control={form.control}
-                name="calendarId"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Calendar</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a calendar" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                        {calendars.map(cal => <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField name="startDate" control={form.control} render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover><PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <DayPickerCalendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date("0001-01-01T00:00:00")} initialFocus/>
+                        </PopoverContent>
+                        </Popover><FormMessage />
                     </FormItem>
-                )}
-             />
+                )}/>
+                <FormField name="endDate" control={form.control} render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>End Date (Optional)</FormLabel>
+                        <Popover><PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <DayPickerCalendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < (watchedStartDate || new Date("0001-01-01T00:00:00"))} initialFocus/>
+                        </PopoverContent>
+                        </Popover><FormMessage />
+                    </FormItem>
+                )}/>
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField name="partyType" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Party Type</FormLabel>
