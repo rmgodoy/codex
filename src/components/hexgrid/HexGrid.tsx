@@ -30,16 +30,16 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
             paths = ["m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"];
             break;
         case 'Trees':
-            paths = ["M10 5.24a3 3 0 0 1 4 0v.51a3 3 0 0 1 2.44 2.9c.25.13.5.28.76.46", "M10 10v.2A3 3 0 0 1 7 13v1a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-1a3 3 0 0 1-3-2.8V10a3 3 0 0 1-4 0z", "M7 13h10", "M12 13v8"];
+            paths = ["M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z", "M7 16v6", "M13 19v3", "M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5"];
             break;
         case 'Mountain':
             paths = ["m8 3 4 8 5-5 5 15H2L8 3z"];
             break;
         case 'Castle':
-             paths = ["M22 20v-9H2v9", "M2 11V4h5l2-2 2 2h6l2-2 2 2h5v7", "M12 4v7", "M18 4v7", "M6 4v7"];
+             paths = ["M22 20v-9H2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2Z", "M18 11V4H6v7", "M15 22v-4a3 3 0 0 0-3-3a3 3 0 0 0-3 3v4", "M22 11V9", "M2 11V9", "M6 4V2", "M18 4V2", "M10 4V2", "M14 4V2"];
             break;
         case 'TowerControl':
-            paths = ["M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14", "M6 14h12", "M12 20v-6", "m15 6-3-3-3 3"];
+            paths = ["M18.2 12.27 20 6H4l1.8 6.27a1 1 0 0 0 .95.73h10.5a1 1 0 0 0 .96-.73Z","M8 13v9","M16 22v-9","m9 6 1 7","m15 6-1 7","M12 6V2","M13 2h-2"];
             break;
     }
     
