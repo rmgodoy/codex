@@ -4,6 +4,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { pixelToHex, hexToPixel, getHexCorner, type Hex } from '@/lib/hex-utils';
 import type { HexTile } from '@/lib/types';
+import { Home, Trees, Mountain, Castle, TowerControl } from 'lucide-react';
 
 interface HexGridProps {
   grid: HexTile[];
@@ -11,6 +12,64 @@ interface HexGridProps {
   className?: string;
   onHexClick?: (hex: Hex) => void;
 }
+
+const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number) => {
+    ctx.strokeStyle = 'hsl(var(--card-foreground))';
+    ctx.lineWidth = size * 0.1;
+    ctx.fillStyle = 'hsl(var(--card-foreground))';
+    const iconSize = size * 0.8;
+    const { x, y } = center;
+
+    ctx.beginPath();
+    switch (icon) {
+        case 'Home':
+            const h = iconSize * 0.8;
+            const w = iconSize;
+            ctx.moveTo(x, y - h / 2);
+            ctx.lineTo(x + w / 2, y);
+            ctx.lineTo(x + w / 2, y + h / 2);
+            ctx.lineTo(x - w / 2, y + h / 2);
+            ctx.lineTo(x - w / 2, y);
+            ctx.closePath();
+            break;
+        case 'Trees':
+            const treeWidth = iconSize / 2;
+            const treeHeight = iconSize;
+            // Tree 1
+            ctx.moveTo(x - treeWidth * 0.6, y + treeHeight/2);
+            ctx.lineTo(x, y - treeHeight/2);
+            ctx.lineTo(x + treeWidth * 0.6, y + treeHeight/2);
+            ctx.closePath();
+            // Tree 2
+            ctx.moveTo(x - treeWidth * 1.2, y + treeHeight/2);
+            ctx.lineTo(x - treeWidth * 0.6, y - treeHeight/4);
+            ctx.lineTo(x, y + treeHeight/2);
+            ctx.closePath();
+            break;
+        case 'Mountain':
+            const mntWidth = iconSize;
+            const mntHeight = iconSize * 0.8;
+            ctx.moveTo(x - mntWidth / 2, y + mntHeight / 2);
+            ctx.lineTo(x, y - mntHeight / 2);
+            ctx.lineTo(x + mntWidth / 4, y);
+            ctx.lineTo(x + mntWidth / 2, y + mntHeight / 2);
+            ctx.closePath();
+            break;
+        case 'Castle':
+            const cWidth = iconSize;
+            const cHeight = iconSize * 0.8;
+            ctx.rect(x - cWidth/2, y - cHeight/4, cWidth, cHeight);
+            ctx.rect(x - cWidth/2, y - cHeight/2, cWidth/4, cHeight/3);
+            ctx.rect(x + cWidth/2 - cWidth/4, y - cHeight/2, cWidth/4, cHeight/3);
+            break;
+        case 'TowerControl':
+             const tWidth = iconSize * 0.4;
+             const tHeight = iconSize;
+             ctx.rect(x - tWidth/2, y - tHeight/2, tWidth, tHeight);
+             break;
+    }
+    ctx.stroke();
+};
 
 const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexClick }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -87,6 +146,10 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
 
       // Draw border
       ctx.stroke();
+
+      if (data.icon) {
+        drawIcon(ctx, center, data.icon, hexSize);
+      }
 
       // Draw hover highlight
       if (hoveredHex && hex.q === hoveredHex.q && hex.r === hoveredHex.r) {

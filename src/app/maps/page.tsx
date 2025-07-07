@@ -5,18 +5,30 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X } from "lucide-react";
 import type { Hex, HexTile } from "@/lib/types";
 import { generateHexGrid } from "@/lib/hex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+
+const ICONS = [
+    { name: 'Home', component: Home },
+    { name: 'Trees', component: Trees },
+    { name: 'Mountain', component: Mountain },
+    { name: 'Castle', component: Castle },
+    { name: 'TowerControl', component: TowerControl },
+]
 
 export default function MapsPage() {
     const [grid, setGrid] = useState<HexTile[]>([]);
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
     const [paintColor, setPaintColor] = useState('#8A2BE2'); // Default to accent color
+    const [paintIcon, setPaintIcon] = useState<string | null>(null);
 
     useEffect(() => {
         setGrid(generateHexGrid(20));
@@ -32,7 +44,8 @@ export default function MapsPage() {
                         ...tile,
                         data: {
                             ...tile.data,
-                            color: paintColor
+                            color: paintColor,
+                            icon: paintIcon,
                         }
                     };
                 }
@@ -66,9 +79,33 @@ export default function MapsPage() {
                                 <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
                             </TabsList>
                             <TabsContent value="paint" className="mt-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="color-picker">Tile Color</Label>
-                                    <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="color-picker">Tile Color</Label>
+                                        <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
+                                    </div>
+                                    <Separator />
+                                    <div className="space-y-2">
+                                        <Label>Tile Icon</Label>
+                                        <div className="grid grid-cols-5 gap-2">
+                                            {ICONS.map(({ name, component: Icon }) => (
+                                                <Button
+                                                    key={name}
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => setPaintIcon(prev => prev === name ? null : name)}
+                                                    className={cn(paintIcon === name && "ring-2 ring-ring ring-offset-2 bg-accent text-accent-foreground")}
+                                                >
+                                                    <Icon className="h-5 w-5" />
+                                                </Button>
+                                            ))}
+                                        </div>
+                                         {paintIcon && (
+                                            <Button variant="ghost" size="sm" className="w-full h-8" onClick={() => setPaintIcon(null)}>
+                                                <X className="h-4 w-4 mr-2" /> Clear Icon Selection
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             </TabsContent>
                             <TabsContent value="data" className="mt-4">

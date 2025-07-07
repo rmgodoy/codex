@@ -413,6 +413,7 @@ export interface Hex {
 
 export interface HexTileData {
     color?: string;
+    icon?: string;
 }
 
 export interface HexTile {
