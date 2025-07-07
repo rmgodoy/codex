@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { generateHexGrid, hexToPixel, getHexCorner, type Hex } from '@/lib/hex-utils';
+import { generateHexGrid, hexToPixel, getHexCorner, pixelToHex, type Hex } from '@/lib/hex-utils';
 
 interface HexGridProps {
   gridRadius?: number;
@@ -14,13 +14,15 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [themeColors, setThemeColors] = useState({
     background: '#1A0024',
-    border: '#4B0082'
+    border: '#4B0082',
+    accent: '#8A2BE2'
   });
 
-  // State for pan and zoom
+  // State for pan, zoom, and hover
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const [hoveredHex, setHoveredHex] = useState<Hex | null>(null);
   const hexes = useRef(generateHexGrid(gridRadius));
 
 
@@ -29,7 +31,8 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
       const computedStyle = getComputedStyle(document.documentElement);
       const bg = `hsl(${computedStyle.getPropertyValue('--background').trim()})`;
       const border = `hsl(${computedStyle.getPropertyValue('--border').trim()})`;
-      setThemeColors({ background: bg, border: border });
+      const accent = `hsl(${computedStyle.getPropertyValue('--accent').trim()})`;
+      setThemeColors({ background: bg, border: border, accent: accent });
     }
   }, []);
   
@@ -60,7 +63,7 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
     ctx.lineWidth = 1 / view.zoom; // Keep line width consistent when zooming
 
     hexes.current.forEach(hex => {
-      const center = hexToPixel(hex, hexSize); // these are relative to grid origin (0,0)
+      const center = hexToPixel(hex, hexSize);
       
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
@@ -72,12 +75,19 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
         }
       }
       ctx.closePath();
+
+      // Fill hovered hex
+      if (hoveredHex && hex.q === hoveredHex.q && hex.r === hoveredHex.r) {
+          ctx.fillStyle = themeColors.accent;
+          ctx.fill();
+      }
+
       ctx.stroke();
     });
     
     ctx.restore();
 
-  }, [hexSize, themeColors, view]);
+  }, [hexSize, themeColors, view, hoveredHex]);
 
 
   useEffect(() => {
@@ -99,7 +109,10 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
   };
   
   const handleMouseLeave = () => {
-      setIsPanning(false);
+    setIsPanning(false);
+    if (hoveredHex) {
+        setHoveredHex(null);
+    }
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -108,6 +121,33 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
       const dy = e.clientY - lastPanPoint.y;
       setView(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
       setLastPanPoint({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Adjust for pan and zoom to get world coordinates
+    const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
+    const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
+    
+    const currentHex = pixelToHex(worldX, worldY, hexSize);
+
+    // Check if the calculated hex is within our grid boundaries
+    const hexExists = hexes.current.some(h => h.q === currentHex.q && h.r === currentHex.r && h.s === currentHex.s);
+
+    if (hexExists) {
+        if (!hoveredHex || hoveredHex.q !== currentHex.q || hoveredHex.r !== currentHex.r) {
+            setHoveredHex(currentHex);
+        }
+    } else {
+        if (hoveredHex !== null) {
+            setHoveredHex(null);
+        }
     }
   };
 
