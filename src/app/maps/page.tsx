@@ -7,7 +7,7 @@ import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser } from "lucide-react";
 import type { Hex, HexTile } from "@/lib/types";
-import { generateHexGrid } from "@/lib/hex-utils";
+import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -46,8 +46,10 @@ const TERRAIN_COLORS = [
 
 export default function MapsPage() {
     const [grid, setGrid] = useState<HexTile[]>([]);
+    const [radius, setRadius] = useState(20);
+    const [mapName, setMapName] = useState("My World Map");
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
-    const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
+    const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'data'>('settings');
     const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | 'erase'>('brush');
     const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
@@ -78,6 +80,13 @@ export default function MapsPage() {
     useEffect(() => {
         setGrid(generateHexGrid(20));
     }, []);
+
+    const handleRadiusChange = (newRadiusValue: number) => {
+        setRadius(newRadiusValue); // Can be NaN, which is fine for the input's controlled state.
+        if (!isNaN(newRadiusValue) && newRadiusValue > 0 && newRadiusValue <= 50) {
+            setGrid(prevGrid => resizeHexGrid(prevGrid, newRadiusValue));
+        }
+    };
     
     const handleGridUpdate = (newGrid: HexTile[]) => {
         setGrid(newGrid);
@@ -108,11 +117,31 @@ export default function MapsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'paint' | 'data')} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
+                        <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'settings' |'paint' | 'data')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="settings"><Wrench className="h-4 w-4 mr-2" />Settings</TabsTrigger>
                                 <TabsTrigger value="paint"><Paintbrush className="h-4 w-4 mr-2" />Paint</TabsTrigger>
                                 <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
                             </TabsList>
+                            <TabsContent value="settings" className="mt-4">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="map-name">Map Name</Label>
+                                        <Input id="map-name" value={mapName} onChange={(e) => setMapName(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="map-radius">Map Radius</Label>
+                                        <Input
+                                            id="map-radius"
+                                            type="number"
+                                            value={radius || ''}
+                                            onChange={(e) => handleRadiusChange(parseInt(e.target.value, 10))}
+                                            min="1"
+                                            max="50"
+                                        />
+                                    </div>
+                                </div>
+                            </TabsContent>
                             <TabsContent value="paint" className="mt-4">
                                 <div className="space-y-4">
                                     <div className="space-y-2">

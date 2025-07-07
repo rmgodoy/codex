@@ -20,6 +20,31 @@ export const generateHexGrid = (radius: number): HexTile[] => {
     }));
 };
 
+export const resizeHexGrid = (currentGrid: HexTile[], newRadius: number): HexTile[] => {
+    const newHexes: Hex[] = [];
+    for (let q = -newRadius; q <= newRadius; q++) {
+        const r1 = Math.max(-newRadius, -q - newRadius);
+        const r2 = Math.min(newRadius, -q + newRadius);
+        for (let r = r1; r <= r2; r++) {
+            newHexes.push({ q, r, s: -q - r });
+        }
+    }
+
+    const currentGridMap = new Map(currentGrid.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile]));
+    
+    return newHexes.map(hex => {
+        const key = `${hex.q},${hex.r}`;
+        const existingTile = currentGridMap.get(key);
+        if (existingTile) {
+            return existingTile;
+        }
+        return {
+            hex: hex,
+            data: {}
+        };
+    });
+};
+
 // Convert hex coordinates to pixel coordinates for a flat-top layout
 export const hexToPixel = (hex: Hex, size: number): { x: number; y: number } => {
     const x = size * (3 / 2 * hex.q);
