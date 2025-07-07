@@ -21,16 +21,16 @@ export const generateHexGrid = (radius: number): Hex[] => {
     return hexes;
 };
 
-// Flat-top orientation
+// Convert hex coordinates to pixel coordinates (pointy-top layout for horizontal rows)
 export const hexToPixel = (hex: Hex, size: number): { x: number; y: number } => {
-    const x = size * (3/2 * hex.q);
-    const y = size * (Math.sqrt(3)/2 * hex.q + Math.sqrt(3) * hex.r);
+    const x = size * (Math.sqrt(3) * hex.q + Math.sqrt(3) / 2 * hex.r);
+    const y = size * (3 / 2 * hex.r);
     return { x, y };
 };
 
-// Flat-top orientation
+// Get the corners of a hexagon for drawing (flat-top hexagons)
 export const getHexCorner = (center: { x: number; y: number }, size: number, i: number): { x: number; y: number } => {
-    const angle_deg = 60 * i - 30;
+    const angle_deg = 60 * i; // Start angle 0 for flat-top
     const angle_rad = Math.PI / 180 * angle_deg;
     return {
         x: center.x + size * Math.cos(angle_rad),
@@ -61,9 +61,9 @@ const hexRound = (q: number, r: number, s: number): Hex => {
 };
 
 
-// Convert pixel coordinates to hex coordinates (for flat-top orientation)
+// Convert pixel coordinates to hex coordinates (for pointy-top layout)
 export const pixelToHex = (x: number, y: number, size: number): Hex => {
-    const q = (2/3 * x) / size;
-    const r = (-1/3 * x + Math.sqrt(3)/3 * y) / size;
+    const q = (Math.sqrt(3) / 3 * x - 1 / 3 * y) / size;
+    const r = (2 / 3 * y) / size;
     return hexRound(q, r, -q - r);
 };
