@@ -1,25 +1,22 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
-// react-hexgrid does not have official TypeScript definitions.
-// @ts-ignore
-import { HexGrid, Layout, Hexagon, GridGenerator } from 'react-hexgrid';
 import MainLayout from "@/components/main-layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function MapsPage() {
-  const hexagons = useMemo(() => GridGenerator.hexagon(20), []);
 
   return (
     <MainLayout showSidebarTrigger={false}>
-      <div className="w-full h-full hexgrid-container">
-        <HexGrid width="100%" height="100%">
-          <Layout size={{ x: 7, y: 7 }} flat={true} spacing={1.1} origin={{ x: 0, y: 0 }}>
-            {hexagons.map((hex: any, i: number) => (
-              <Hexagon key={i} q={hex.q} r={hex.r} s={hex.s} />
-            ))}
-          </Layout>
-        </HexGrid>
+      <div className="flex items-center justify-center h-full p-8">
+        <Card className="max-w-xl text-center">
+            <CardHeader>
+                <CardTitle>Maps Page Under Construction</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">The hex grid library was causing application errors and has been temporarily disabled. We can explore a more stable solution for this page later.</p>
+            </CardContent>
+        </Card>
       </div>
     </MainLayout>
   );

@@ -113,7 +113,6 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     { href: '/random/commoners', label: 'Commoners', group: 'Random' },
     { href: '/encounters', label: 'Encounters' },
     { href: '/calendar', label: 'Calendar' },
-    { href: '/maps', label: 'Maps' },
   ];
 
   const compendiumLinks = navLinks.filter(link => link.group === 'Compendium');
