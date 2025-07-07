@@ -5,10 +5,10 @@ import { useMemo } from 'react';
 import MainLayout from "@/components/main-layout";
 // react-hex-engine does not have official TypeScript definitions.
 // @ts-ignore
-import { HexGrid, HexGridProvider, Hexagon, Grid } from 'react-hex-engine';
+import { HexGrid, HexGridProvider, Hexagon, GridGenerator } from 'react-hex-engine';
 
 export default function MapsPage() {
-    const hexagons = useMemo(() => Grid.hexagon(20), []);
+    const hexagons = useMemo(() => GridGenerator.hexagon(20), []);
 
     return (
         <MainLayout showSidebarTrigger={false}>
