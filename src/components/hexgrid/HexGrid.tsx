@@ -94,6 +94,7 @@ interface HexGridProps {
 const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const offscreenCanvasSimpleRef = useRef<HTMLCanvasElement | null>(null);
   
   const [themeColors, setThemeColors] = useState({
     background: '#1A0024',
@@ -154,12 +155,14 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     ctx.translate(width / 2 + view.x, height / 2 + view.y);
     ctx.scale(view.zoom, view.zoom);
     
-    // Draw the cached offscreen canvas
-    if (offscreenCanvasRef.current) {
-        const worldWidth = offscreenCanvasRef.current.width;
-        const worldHeight = offscreenCanvasRef.current.height;
+    const LOD_THRESHOLD = 0.4;
+    const canvasToDraw = view.zoom > LOD_THRESHOLD ? offscreenCanvasRef.current : offscreenCanvasSimpleRef.current;
+    
+    if (canvasToDraw) {
+        const worldWidth = canvasToDraw.width;
+        const worldHeight = canvasToDraw.height;
         if (worldWidth > 0 && worldHeight > 0) {
-            ctx.drawImage(offscreenCanvasRef.current, -worldWidth / 2, -worldHeight / 2);
+            ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
         }
     }
     
@@ -198,49 +201,61 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool]);
 
 
-  // Effect for drawing the entire static grid to an offscreen canvas
+  // Effect for drawing the entire static grid to offscreen canvases
   useEffect(() => {
-      if (!grid.length) return;
-      if (!offscreenCanvasRef.current) {
-          offscreenCanvasRef.current = document.createElement('canvas');
-      }
-      const offscreenCanvas = offscreenCanvasRef.current;
-      const offscreenCtx = offscreenCanvas.getContext('2d');
-      if (!offscreenCtx) return;
+      if (!grid.length || !canvasRef.current) return;
       
       const maxRadius = grid.reduce((max, tile) => Math.max(max, Math.abs(tile.hex.q), Math.abs(tile.hex.r), Math.abs(tile.hex.s)), 0);
+      if (isNaN(maxRadius) || maxRadius <= 0) return;
 
       const worldWidth = maxRadius * hexSize * 3 + hexSize * 2;
       const worldHeight = maxRadius * hexSize * Math.sqrt(3) * 2 + hexSize * 2;
 
+      // --- Detailed Canvas ---
+      if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
+      const offscreenCanvas = offscreenCanvasRef.current;
       offscreenCanvas.width = worldWidth;
       offscreenCanvas.height = worldHeight;
+      const offscreenCtx = offscreenCanvas.getContext('2d');
+
+      // --- Simple Canvas ---
+      if (!offscreenCanvasSimpleRef.current) offscreenCanvasSimpleRef.current = document.createElement('canvas');
+      const offscreenSimpleCanvas = offscreenCanvasSimpleRef.current;
+      offscreenSimpleCanvas.width = worldWidth;
+      offscreenSimpleCanvas.height = worldHeight;
+      const offscreenSimpleCtx = offscreenSimpleCanvas.getContext('2d');
       
+      if (!offscreenCtx || !offscreenSimpleCtx) return;
+
       offscreenCtx.translate(worldWidth / 2, worldHeight / 2);
+      offscreenSimpleCtx.translate(worldWidth / 2, worldHeight / 2);
 
       grid.forEach(tile => {
           const { hex, data } = tile;
           const center = hexToPixel(hex, hexSize);
 
-          offscreenCtx.strokeStyle = themeColors.border;
-          offscreenCtx.lineWidth = 1;
-
-          offscreenCtx.beginPath();
+          const hexPath = new Path2D();
           for (let i = 0; i < 6; i++) {
               const corner = getHexCorner(center, hexSize, i);
-              if (i === 0) offscreenCtx.moveTo(corner.x, corner.y); else offscreenCtx.lineTo(corner.x, corner.y);
+              if (i === 0) hexPath.moveTo(corner.x, corner.y); else hexPath.lineTo(corner.x, corner.y);
           }
-          offscreenCtx.closePath();
-
+          hexPath.closePath();
+          
+          // Draw on Detailed Canvas
+          offscreenCtx.strokeStyle = themeColors.border;
+          offscreenCtx.lineWidth = 1;
           offscreenCtx.fillStyle = data.color || themeColors.background;
-          offscreenCtx.fill();
-          offscreenCtx.stroke();
-
+          offscreenCtx.fill(hexPath);
+          offscreenCtx.stroke(hexPath);
           if (data.icon) {
               drawIcon(offscreenCtx, center, data.icon, hexSize, data.iconColor || themeColors.foreground);
           }
+
+          // Draw on Simple Canvas
+          offscreenSimpleCtx.fillStyle = data.color || themeColors.background;
+          offscreenSimpleCtx.fill(hexPath);
       });
-      // After drawing to the offscreen canvas, trigger a redraw of the main canvas
+
       draw();
   }, [grid, hexSize, themeColors, draw]);
 
