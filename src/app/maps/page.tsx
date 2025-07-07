@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle } from "lucide-react";
 import type { Hex, HexTile } from "@/lib/types";
 import { generateHexGrid } from "@/lib/hex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,12 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -36,9 +42,31 @@ export default function MapsPage() {
     const [grid, setGrid] = useState<HexTile[]>([]);
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
-    const [paintColor, setPaintColor] = useState('#8A2BE2'); // Default to accent color
-    const [paintIconColor, setPaintIconColor] = useState('#E0D6F0'); // Default to foreground
+    const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
+
+    const [manualIconColor, setManualIconColor] = useState('#E0D6F0');
+    const [isIconColorAuto, setIsIconColorAuto] = useState(true);
+    const [finalIconColor, setFinalIconColor] = useState('#E0D6F0');
+
+    const getLuminance = (hex: string) => {
+        hex = hex.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+        return lum;
+    };
+
+    useEffect(() => {
+        if (isIconColorAuto) {
+            const lum = getLuminance(paintColor);
+            setFinalIconColor(lum > 0.5 ? '#000000' : '#FFFFFF');
+        } else {
+            setFinalIconColor(manualIconColor);
+        }
+    }, [isIconColorAuto, paintColor, manualIconColor]);
+
 
     useEffect(() => {
         setGrid(generateHexGrid(20));
@@ -56,7 +84,7 @@ export default function MapsPage() {
                             ...tile.data,
                             color: paintColor,
                             icon: paintIcon,
-                            iconColor: paintIconColor,
+                            iconColor: finalIconColor,
                         }
                     };
                 }
@@ -91,15 +119,9 @@ export default function MapsPage() {
                             </TabsList>
                             <TabsContent value="paint" className="mt-4">
                                 <div className="space-y-4">
-                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="color-picker">Tile Color</Label>
-                                            <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="icon-color-picker">Icon Color</Label>
-                                            <Input id="icon-color-picker" type="color" value={paintIconColor} onChange={(e) => setPaintIconColor(e.target.value)} className="w-full h-10 p-1" />
-                                        </div>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="color-picker">Tile Color</Label>
+                                        <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
                                     </div>
 
                                     <div className="space-y-2">
@@ -123,7 +145,41 @@ export default function MapsPage() {
                                     <Separator />
                                     
                                     <div className="space-y-2">
-                                        <Label>Tile Icon</Label>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <Label>Tile Icon</Label>
+                                            <div className="flex items-center gap-1">
+                                                {!isIconColorAuto && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => setIsIconColorAuto(true)}
+                                                                >
+                                                                    <AlertCircle className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Reset to automatic color</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                                <Input
+                                                    id="icon-color-picker"
+                                                    type="color"
+                                                    value={manualIconColor}
+                                                    onChange={(e) => {
+                                                        setManualIconColor(e.target.value);
+                                                        setIsIconColorAuto(false);
+                                                    }}
+                                                    className="w-10 h-10 p-1"
+                                                />
+                                            </div>
+                                        </div>
+                                        
                                         <div className="grid grid-cols-5 gap-2">
                                             {ICONS.map(({ name, component: Icon }) => (
                                                 <Button
