@@ -36,7 +36,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
             paths = ["m8 3 4 8 5-5 5 15H2L8 3z"];
             break;
         case 'Castle':
-             paths = ["M15 22v-4a3 3 0 0 0-3-3v-2a3 3 0 0 0-3-3H9", "M2 22v-4a3 3 0 0 1 3-3v-2a3 3 0 0 1 3-3h2", "M19 10a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3Z", "M12 10V7", "M12 22v-2"];
+             paths = ["M22 20v-9H2v9", "M2 11V4h5l2-2 2 2h6l2-2 2 2h5v7", "M12 4v7", "M18 4v7", "M6 4v7"];
             break;
         case 'TowerControl':
             paths = ["M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14", "M6 14h12", "M12 20v-6", "M15 6l-3-3-3 3"];
