@@ -13,7 +13,7 @@ interface HexGridProps {
   onHexClick?: (hex: Hex) => void;
 }
 
-const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number) => {
+const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number, foregroundColor: string) => {
     const iconSize = size * 0.9;
     const scale = iconSize / 24; // Lucide icons are in a 24x24 viewbox.
     const { x, y } = center;
@@ -21,9 +21,8 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
     ctx.save();
     ctx.translate(x - iconSize / 2, y - iconSize / 2);
     ctx.scale(scale, scale);
-    ctx.strokeStyle = 'hsl(var(--card-foreground))';
+    ctx.strokeStyle = foregroundColor;
     ctx.lineWidth = 1.5 / scale;
-    ctx.fillStyle = 'none';
 
     let paths: string[] = [];
     switch (icon) {
@@ -37,7 +36,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
             paths = ["m8 3 4 8 5-5 5 15H2L8 3z"];
             break;
         case 'Castle':
-            paths = ["M22 20v-9H2v9", "M2 11V4h5l2-2 2 2h6l2-2 2 2h5v7", "M16 11.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5z", "M12 11.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5z", "M8 11.5a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5z"];
+             paths = ["M15 22v-4a3 3 0 0 0-3-3v-2a3 3 0 0 0-3-3H9", "M2 22v-4a3 3 0 0 1 3-3v-2a3 3 0 0 1 3-3h2", "M19 10a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3Z", "M12 10V7", "M12 22v-2"];
             break;
         case 'TowerControl':
             paths = ["M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14", "M6 14h12", "M12 20v-6", "M15 6l-3-3-3 3"];
@@ -57,7 +56,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
   const [themeColors, setThemeColors] = useState({
     background: '#1A0024',
     border: '#4B0082',
-    accent: '#8A2BE2'
+    accent: '#8A2BE2',
+    foreground: '#E0D6F0',
   });
 
   // State for pan, zoom, and hover
@@ -76,7 +76,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
       const bg = `hsl(${computedStyle.getPropertyValue('--background').trim()})`;
       const border = `hsl(${computedStyle.getPropertyValue('--border').trim()})`;
       const accent = `hsl(${computedStyle.getPropertyValue('--accent').trim()})`;
-      setThemeColors({ background: bg, border: border, accent: accent });
+      const foreground = `hsl(${computedStyle.getPropertyValue('--foreground').trim()})`;
+      setThemeColors({ background: bg, border, accent, foreground });
     }
   }, []);
   
@@ -129,7 +130,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
       ctx.stroke();
 
       if (data.icon) {
-        drawIcon(ctx, center, data.icon, hexSize);
+        drawIcon(ctx, center, data.icon, hexSize, themeColors.foreground);
       }
 
       // Draw hover highlight
