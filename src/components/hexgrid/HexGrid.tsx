@@ -4,22 +4,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { pixelToHex, hexToPixel, getHexCorner, getHexNeighbors, type Hex } from '@/lib/hex-utils';
 import type { HexTile } from '@/lib/types';
-import { Home, Trees, Mountain, Castle, TowerControl, Tent, Waves, MapPin, Landmark, Skull } from 'lucide-react';
-
-interface HexGridProps {
-  grid: HexTile[];
-  hexSize?: number;
-  className?: string;
-  onGridUpdate: (grid: HexTile[]) => void;
-  onHexHover: (hex: Hex | null) => void;
-  onHexClick: (hex: Hex | null) => void;
-  activeTool: 'settings' | 'paint' | 'data';
-  paintMode: 'brush' | 'bucket' | 'erase';
-  paintColor: string;
-  paintIcon: string | null;
-  paintIconColor: string;
-  selectedHex: Hex | null;
-}
 
 const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number, foregroundColor: string) => {
     const iconSize = size * 0.9;
@@ -92,8 +76,26 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
     ctx.restore();
 };
 
-const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
+interface HexGridProps {
+  grid: HexTile[];
+  hexSize?: number;
+  radius: number;
+  className?: string;
+  onGridUpdate: (grid: HexTile[]) => void;
+  onHexHover: (hex: Hex | null) => void;
+  onHexClick: (hex: Hex | null) => void;
+  activeTool: 'settings' | 'paint' | 'data';
+  paintMode: 'brush' | 'bucket' | 'erase';
+  paintColor: string;
+  paintIcon: string | null;
+  paintIconColor: string;
+  selectedHex: Hex | null;
+}
+
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  
   const [themeColors, setThemeColors] = useState({
     background: '#1A0024',
     border: '#4B0082',
@@ -121,7 +123,52 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       });
     }
   }, []);
-  
+
+  // Effect for drawing the entire static grid to an offscreen canvas
+  useEffect(() => {
+      if (!grid.length) return;
+      if (!offscreenCanvasRef.current) {
+          offscreenCanvasRef.current = document.createElement('canvas');
+      }
+      const offscreenCanvas = offscreenCanvasRef.current;
+      const offscreenCtx = offscreenCanvas.getContext('2d');
+      if (!offscreenCtx) return;
+
+      const worldWidth = radius * hexSize * 3 + hexSize * 2;
+      const worldHeight = radius * hexSize * Math.sqrt(3) * 2 + hexSize * 2;
+
+      offscreenCanvas.width = worldWidth;
+      offscreenCanvas.height = worldHeight;
+      
+      offscreenCtx.translate(worldWidth / 2, worldHeight / 2);
+
+      grid.forEach(tile => {
+          const { hex, data } = tile;
+          const center = hexToPixel(hex, hexSize);
+
+          offscreenCtx.strokeStyle = themeColors.border;
+          offscreenCtx.lineWidth = 1;
+
+          offscreenCtx.beginPath();
+          for (let i = 0; i < 6; i++) {
+              const corner = getHexCorner(center, hexSize, i);
+              if (i === 0) offscreenCtx.moveTo(corner.x, corner.y); else offscreenCtx.lineTo(corner.x, corner.y);
+          }
+          offscreenCtx.closePath();
+
+          offscreenCtx.fillStyle = data.color || themeColors.background;
+          offscreenCtx.fill();
+          offscreenCtx.stroke();
+
+          if (data.icon) {
+              drawIcon(offscreenCtx, center, data.icon, hexSize, data.iconColor || themeColors.foreground);
+          }
+      });
+      // After drawing to the offscreen canvas, trigger a redraw of the main canvas
+      draw();
+  }, [grid, hexSize, radius, themeColors]);
+
+
   const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
       const canvas = canvasRef.current;
       if (!canvas) return null;
@@ -138,7 +185,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !themeColors.border) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -146,76 +193,53 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     canvas.width = width;
     canvas.height = height;
 
-    // Calculate viewport bounds in world coordinates for culling
-    const viewPortBounds = {
-      top: (-height / 2 - view.y) / view.zoom,
-      bottom: (height / 2 - view.y) / view.zoom,
-      left: (-width / 2 - view.x) / view.zoom,
-      right: (width / 2 - view.x) / view.zoom,
-    };
-    const buffer = hexSize * 2; // Render a bit outside the viewport to prevent pop-in
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-
     ctx.fillStyle = themeColors.background;
     ctx.fillRect(0, 0, width, height);
     
     ctx.save();
-    ctx.translate(centerX + view.x, centerY + view.y);
+    ctx.translate(width / 2 + view.x, height / 2 + view.y);
     ctx.scale(view.zoom, view.zoom);
     
+    // Draw the cached offscreen canvas
+    if (offscreenCanvasRef.current) {
+        const worldWidth = offscreenCanvasRef.current.width;
+        const worldHeight = offscreenCanvasRef.current.height;
+        ctx.drawImage(offscreenCanvasRef.current, -worldWidth / 2, -worldHeight / 2);
+    }
+    
+    // Draw dynamic elements on top
     const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>);
 
-    grid.forEach(tile => {
-      const { hex, data } = tile;
-      const center = hexToPixel(hex, hexSize);
-      
-      // Culling check: if hex is outside the viewport, don't draw it.
-      if (
-        center.x < viewPortBounds.left - buffer ||
-        center.x > viewPortBounds.right + buffer ||
-        center.y > viewPortBounds.bottom + buffer ||
-        center.y < viewPortBounds.top - buffer
-      ) {
-          return;
-      }
-      
-      ctx.strokeStyle = themeColors.border;
-      ctx.lineWidth = 1 / view.zoom;
-      
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const corner = getHexCorner(center, hexSize, i);
-        if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
-      }
-      ctx.closePath();
-
-      ctx.fillStyle = data.color || themeColors.background;
-      ctx.fill();
-      ctx.stroke();
-
-      if (data.icon) {
-        drawIcon(ctx, center, data.icon, hexSize, data.iconColor || themeColors.foreground);
-      }
-
-      if (activeTool === 'paint' && currentHoveredHex && hex.q === currentHoveredHex.q && hex.r === currentHoveredHex.r) {
+    if (activeTool === 'paint' && currentHoveredHex) {
+        const center = hexToPixel(currentHoveredHex, hexSize);
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const corner = getHexCorner(center, hexSize, i);
+            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
+        }
+        ctx.closePath();
         ctx.fillStyle = themeColors.accent;
         ctx.globalAlpha = 0.3;
         ctx.fill();
         ctx.globalAlpha = 1.0;
-      }
+    }
 
-      if (selectedHex && hex.q === selectedHex.q && hex.r === selectedHex.r) {
+    if (selectedHex) {
+        const center = hexToPixel(selectedHex, hexSize);
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const corner = getHexCorner(center, hexSize, i);
+            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
+        }
+        ctx.closePath();
         ctx.strokeStyle = themeColors.accent;
         ctx.lineWidth = 3 / view.zoom;
         ctx.stroke();
-      }
-    });
+    }
     
     ctx.restore();
 
-  }, [getHexFromMouseEvent, hexSize, themeColors, view, grid, lastPanPoint, selectedHex, activeTool]);
+  }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool]);
 
 
   useEffect(() => {
