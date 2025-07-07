@@ -146,6 +146,15 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     canvas.width = width;
     canvas.height = height;
 
+    // Calculate viewport bounds in world coordinates for culling
+    const viewPortBounds = {
+      top: (-height / 2 - view.y) / view.zoom,
+      bottom: (height / 2 - view.y) / view.zoom,
+      left: (-width / 2 - view.x) / view.zoom,
+      right: (width / 2 - view.x) / view.zoom,
+    };
+    const buffer = hexSize * 2; // Render a bit outside the viewport to prevent pop-in
+
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -161,6 +170,16 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     grid.forEach(tile => {
       const { hex, data } = tile;
       const center = hexToPixel(hex, hexSize);
+      
+      // Culling check: if hex is outside the viewport, don't draw it.
+      if (
+        center.x < viewPortBounds.left - buffer ||
+        center.x > viewPortBounds.right + buffer ||
+        center.y > viewPortBounds.bottom + buffer ||
+        center.y < viewPortBounds.top - buffer
+      ) {
+          return;
+      }
       
       ctx.strokeStyle = themeColors.border;
       ctx.lineWidth = 1 / view.zoom;
@@ -302,7 +321,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     const currentHex = getHexFromMouseEvent(e);
     onHexHover(currentHex);
 
-    if ((paintMode === 'brush' || paintMode === 'erase') && isPainting) {
+    if (activeTool === 'paint' && (paintMode === 'brush' || paintMode === 'erase') && isPainting) {
         if (currentHex) {
             if (!lastPaintedHex || (currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r)) {
                 paintTile(currentHex);
@@ -310,7 +329,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             }
         }
     }
-  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover]);
+  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover, activeTool]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
