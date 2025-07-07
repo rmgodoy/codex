@@ -1,16 +1,11 @@
 
 'use client';
 
+import { type Hex, type HexTile } from '@/lib/types';
+
 // Hexagonal grid utility functions (flat-top orientation)
 
-export interface Hex {
-    q: number; // Corresponds to column
-    r: number; // Corresponds to row
-    s: number; // s = -q - r
-}
-
-// Grid generation is orientation-agnostic
-export const generateHexGrid = (radius: number): Hex[] => {
+export const generateHexGrid = (radius: number): HexTile[] => {
     const hexes: Hex[] = [];
     for (let q = -radius; q <= radius; q++) {
         const r1 = Math.max(-radius, -q - radius);
@@ -19,7 +14,10 @@ export const generateHexGrid = (radius: number): Hex[] => {
             hexes.push({ q, r, s: -q - r });
         }
     }
-    return hexes;
+    return hexes.map(hex => ({
+        hex: hex,
+        data: {}
+    }));
 };
 
 // Convert hex coordinates to pixel coordinates for a flat-top layout

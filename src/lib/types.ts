@@ -403,3 +403,15 @@ export interface CalendarEvent {
 }
 
 export type NewCalendarEvent = Omit<CalendarEvent, 'id'>;
+
+// Hex Grid Types
+export interface Hex {
+    q: number; // Corresponds to column
+    r: number; // Corresponds to row
+    s: number; // s = -q - r
+}
+
+export interface HexTile {
+    hex: Hex;
+    data: Record<string, any>; // For storing metadata
+}

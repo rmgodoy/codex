@@ -2,15 +2,17 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { generateHexGrid, hexToPixel, getHexCorner, pixelToHex, type Hex } from '@/lib/hex-utils';
+import { pixelToHex, hexToPixel, getHexCorner, type Hex } from '@/lib/hex-utils';
+import type { HexTile } from '@/lib/types';
 
 interface HexGridProps {
-  gridRadius?: number;
+  grid: HexTile[];
   hexSize?: number;
   className?: string;
+  onHexClick?: (hex: Hex) => void;
 }
 
-const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, className }) => {
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexClick }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [themeColors, setThemeColors] = useState({
     background: '#1A0024',
@@ -23,7 +25,6 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   const [hoveredHex, setHoveredHex] = useState<Hex | null>(null);
-  const hexes = useRef(generateHexGrid(gridRadius));
 
 
   useEffect(() => {
@@ -62,7 +63,8 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
     ctx.strokeStyle = themeColors.border;
     ctx.lineWidth = 1 / view.zoom; // Keep line width consistent when zooming
 
-    hexes.current.forEach(hex => {
+    grid.forEach(tile => {
+      const { hex } = tile;
       const center = hexToPixel(hex, hexSize);
       
       ctx.beginPath();
@@ -87,16 +89,40 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
     
     ctx.restore();
 
-  }, [hexSize, themeColors, view, hoveredHex]);
+  }, [hexSize, themeColors, view, hoveredHex, grid]);
 
 
   useEffect(() => {
     draw();
   }, [draw]);
 
+  const getHexFromMouseEvent = (e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
+      const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
+      
+      const currentHex = pixelToHex(worldX, worldY, hexSize);
+
+      const hexExists = grid.some(tile => tile.hex.q === currentHex.q && tile.hex.r === currentHex.r && tile.hex.s === currentHex.s);
+      
+      return hexExists ? currentHex : null;
+  }
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (e.button === 0 && onHexClick) { // Left mouse button
+        const clickedHex = getHexFromMouseEvent(e);
+        if (clickedHex) {
+            onHexClick(clickedHex);
+        }
+    }
     if (e.button === 2) { // Right mouse button
-      e.preventDefault();
       setIsPanning(true);
       setLastPanPoint({ x: e.clientX, y: e.clientY });
     }
@@ -124,23 +150,9 @@ const HexGrid: React.FC<HexGridProps> = ({ gridRadius = 20, hexSize = 25, classN
       return;
     }
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const currentHex = getHexFromMouseEvent(e);
 
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Adjust for pan and zoom to get world coordinates
-    const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
-    const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
-    
-    const currentHex = pixelToHex(worldX, worldY, hexSize);
-
-    // Check if the calculated hex is within our grid boundaries
-    const hexExists = hexes.current.some(h => h.q === currentHex.q && h.r === currentHex.r && h.s === currentHex.s);
-
-    if (hexExists) {
+    if (currentHex) {
         if (!hoveredHex || hoveredHex.q !== currentHex.q || hoveredHex.r !== currentHex.r) {
             setHoveredHex(currentHex);
         }
