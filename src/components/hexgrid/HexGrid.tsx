@@ -73,11 +73,12 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const computedStyle = getComputedStyle(document.documentElement);
-      const bg = `hsl(${computedStyle.getPropertyValue('--background').trim()})`;
-      const border = `hsl(${computedStyle.getPropertyValue('--border').trim()})`;
-      const accent = `hsl(${computedStyle.getPropertyValue('--accent').trim()})`;
-      const foreground = `hsl(${computedStyle.getPropertyValue('--foreground').trim()})`;
-      setThemeColors({ background: bg, border, accent, foreground });
+      setThemeColors({ 
+        background: computedStyle.getPropertyValue('--background').trim(), 
+        border: `hsl(${computedStyle.getPropertyValue('--border').trim()})`,
+        accent: `hsl(${computedStyle.getPropertyValue('--accent').trim()})`,
+        foreground: `hsl(${computedStyle.getPropertyValue('--foreground').trim()})` 
+      });
     }
   }, []);
   
@@ -95,7 +96,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
     const centerY = height / 2;
 
     // Clear canvas
-    ctx.fillStyle = themeColors.background;
+    ctx.fillStyle = `hsl(${themeColors.background})`;
     ctx.fillRect(0, 0, width, height);
     
     // Apply pan and zoom
@@ -123,14 +124,15 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onHexC
       ctx.closePath();
 
       // Fill with stored color or default background
-      ctx.fillStyle = data.color || themeColors.background;
+      ctx.fillStyle = data.color || `hsl(${themeColors.background})`;
       ctx.fill();
 
       // Draw border
       ctx.stroke();
 
       if (data.icon) {
-        drawIcon(ctx, center, data.icon, hexSize, themeColors.foreground);
+        const iconColor = data.iconColor || themeColors.foreground;
+        drawIcon(ctx, center, data.icon, hexSize, iconColor);
       }
 
       // Draw hover highlight

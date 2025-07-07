@@ -23,11 +23,21 @@ const ICONS = [
     { name: 'TowerControl', component: TowerControl },
 ]
 
+const TERRAIN_COLORS = [
+    { name: 'Water', color: '#4A90E2' },
+    { name: 'Grass', color: '#7ED321' },
+    { name: 'Forest', color: '#417505' },
+    { name: 'Stone', color: '#9B9B9B' },
+    { name: 'Desert', color: '#F5A623' },
+    { name: 'Snow', color: '#FFFFFF' },
+];
+
 export default function MapsPage() {
     const [grid, setGrid] = useState<HexTile[]>([]);
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
     const [paintColor, setPaintColor] = useState('#8A2BE2'); // Default to accent color
+    const [paintIconColor, setPaintIconColor] = useState('#E0D6F0'); // Default to foreground
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
 
     useEffect(() => {
@@ -46,6 +56,7 @@ export default function MapsPage() {
                             ...tile.data,
                             color: paintColor,
                             icon: paintIcon,
+                            iconColor: paintIconColor,
                         }
                     };
                 }
@@ -80,11 +91,37 @@ export default function MapsPage() {
                             </TabsList>
                             <TabsContent value="paint" className="mt-4">
                                 <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="color-picker">Tile Color</Label>
-                                        <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
+                                     <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="color-picker">Tile Color</Label>
+                                            <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="icon-color-picker">Icon Color</Label>
+                                            <Input id="icon-color-picker" type="color" value={paintIconColor} onChange={(e) => setPaintIconColor(e.target.value)} className="w-full h-10 p-1" />
+                                        </div>
                                     </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Terrain Colors</Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {TERRAIN_COLORS.map(({ name, color }) => (
+                                                <Button
+                                                    key={name}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8"
+                                                    onClick={() => setPaintColor(color)}
+                                                >
+                                                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color }} />
+                                                    <span className="ml-2">{name}</span>
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <Separator />
+                                    
                                     <div className="space-y-2">
                                         <Label>Tile Icon</Label>
                                         <div className="grid grid-cols-5 gap-2">

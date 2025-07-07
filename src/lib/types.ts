@@ -414,6 +414,7 @@ export interface Hex {
 export interface HexTileData {
     color?: string;
     icon?: string;
+    iconColor?: string;
 }
 
 export interface HexTile {
