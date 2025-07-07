@@ -97,7 +97,8 @@
 
 /* Month View (Days) */
 .react-calendar__month-view__weekdays {
-  @apply grid grid-cols-7;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .react-calendar__month-view__weekdays__weekday {
@@ -109,7 +110,10 @@
 }
 
 .react-calendar__month-view__days {
-  @apply grid grid-cols-7 gap-2 flex-1;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem; /* Equivalent to gap-2 */
+  flex: 1 1 0%;
 }
 
 /* Year/Decade/Century Views (Months/Years/Decades) */
