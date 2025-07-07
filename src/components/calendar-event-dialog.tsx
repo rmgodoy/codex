@@ -59,12 +59,11 @@ interface CalendarEventDialogProps {
   onOpenChange: (open: boolean) => void;
   onSaveSuccess: () => void;
   event?: CalendarEvent | null;
-  selectedDate?: Date;
   calendars: CalendarType[];
   defaultCalendarId: string;
 }
 
-export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, selectedDate, calendars, defaultCalendarId }: CalendarEventDialogProps) {
+export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendars, defaultCalendarId }: CalendarEventDialogProps) {
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -82,7 +81,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
       title: "",
       description: "",
       calendarId: defaultCalendarId,
-      dateRange: { from: selectedDate || startOfDay(new Date()), to: undefined },
+      dateRange: { from: startOfDay(new Date()), to: undefined },
       partyType: undefined,
       partyId: undefined,
       tags: [],
@@ -117,13 +116,13 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         title: "",
         description: "",
         calendarId: defaultCalendarId,
-        dateRange: { from: selectedDate || startOfDay(new Date()), to: undefined },
+        dateRange: { from: startOfDay(new Date()), to: undefined },
         partyType: undefined,
         partyId: undefined,
         tags: [],
       });
     }
-  }, [event, isOpen, form, selectedDate, defaultCalendarId]);
+  }, [event, isOpen, form, defaultCalendarId]);
 
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent['party'] | undefined = undefined;

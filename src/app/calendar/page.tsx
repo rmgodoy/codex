@@ -304,7 +304,6 @@ export default function CalendarPage() {
             onOpenChange={setIsDialogOpen}
             onSaveSuccess={handleSaveSuccess}
             event={editingEvent}
-            selectedDate={selectedDate}
             calendars={calendars}
             defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
         />
