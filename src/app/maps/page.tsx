@@ -89,7 +89,7 @@ export default function MapsPage() {
 
     const handleRadiusChange = (newRadiusValue: number) => {
         setRadius(newRadiusValue); // Can be NaN, which is fine for the input's controlled state.
-        if (!isNaN(newRadiusValue) && newRadiusValue > 0 && newRadiusValue <= 50) {
+        if (!isNaN(newRadiusValue) && newRadiusValue > 0 && newRadiusValue <= 100) {
             setGrid(prevGrid => resizeHexGrid(prevGrid, newRadiusValue));
         }
     };
@@ -161,7 +161,7 @@ export default function MapsPage() {
                                             value={radius || ''}
                                             onChange={(e) => handleRadiusChange(parseInt(e.target.value, 10))}
                                             min="1"
-                                            max="50"
+                                            max="100"
                                         />
                                     </div>
                                 </div>
