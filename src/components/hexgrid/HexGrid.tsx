@@ -124,9 +124,84 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className
     }
   }, []);
 
+  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
+      const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
+      
+      return pixelToHex(worldX, worldY, hexSize);
+  }, [view.x, view.y, view.zoom, hexSize]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const { width, height } = canvas.getBoundingClientRect();
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.fillStyle = themeColors.background;
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.save();
+    ctx.translate(width / 2 + view.x, height / 2 + view.y);
+    ctx.scale(view.zoom, view.zoom);
+    
+    // Draw the cached offscreen canvas
+    if (offscreenCanvasRef.current) {
+        const worldWidth = offscreenCanvasRef.current.width;
+        const worldHeight = offscreenCanvasRef.current.height;
+        if (worldWidth > 0 && worldHeight > 0) {
+            ctx.drawImage(offscreenCanvasRef.current, -worldWidth / 2, -worldHeight / 2);
+        }
+    }
+    
+    // Draw dynamic elements on top
+    const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>);
+
+    if (activeTool === 'paint' && currentHoveredHex) {
+        const center = hexToPixel(currentHoveredHex, hexSize);
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const corner = getHexCorner(center, hexSize, i);
+            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = themeColors.accent;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+
+    if (selectedHex) {
+        const center = hexToPixel(selectedHex, hexSize);
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const corner = getHexCorner(center, hexSize, i);
+            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = themeColors.accent;
+        ctx.lineWidth = 3 / view.zoom;
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+
+  }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool]);
+
+
   // Effect for drawing the entire static grid to an offscreen canvas
   useEffect(() => {
-      if (!grid.length) return;
+      if (!grid.length || !radius || isNaN(radius) || radius <= 0) return;
       if (!offscreenCanvasRef.current) {
           offscreenCanvasRef.current = document.createElement('canvas');
       }
@@ -166,80 +241,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, radius, className
       });
       // After drawing to the offscreen canvas, trigger a redraw of the main canvas
       draw();
-  }, [grid, hexSize, radius, themeColors]);
-
-
-  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
-
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
-      const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
-      
-      return pixelToHex(worldX, worldY, hexSize);
-  }, [view.x, view.y, view.zoom, hexSize]);
-
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const { width, height } = canvas.getBoundingClientRect();
-    canvas.width = width;
-    canvas.height = height;
-
-    ctx.fillStyle = themeColors.background;
-    ctx.fillRect(0, 0, width, height);
-    
-    ctx.save();
-    ctx.translate(width / 2 + view.x, height / 2 + view.y);
-    ctx.scale(view.zoom, view.zoom);
-    
-    // Draw the cached offscreen canvas
-    if (offscreenCanvasRef.current) {
-        const worldWidth = offscreenCanvasRef.current.width;
-        const worldHeight = offscreenCanvasRef.current.height;
-        ctx.drawImage(offscreenCanvasRef.current, -worldWidth / 2, -worldHeight / 2);
-    }
-    
-    // Draw dynamic elements on top
-    const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>);
-
-    if (activeTool === 'paint' && currentHoveredHex) {
-        const center = hexToPixel(currentHoveredHex, hexSize);
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const corner = getHexCorner(center, hexSize, i);
-            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
-        }
-        ctx.closePath();
-        ctx.fillStyle = themeColors.accent;
-        ctx.globalAlpha = 0.3;
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-    }
-
-    if (selectedHex) {
-        const center = hexToPixel(selectedHex, hexSize);
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const corner = getHexCorner(center, hexSize, i);
-            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = themeColors.accent;
-        ctx.lineWidth = 3 / view.zoom;
-        ctx.stroke();
-    }
-    
-    ctx.restore();
-
-  }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool]);
+  }, [grid, hexSize, radius, themeColors, draw]);
 
 
   useEffect(() => {
