@@ -5,12 +5,11 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format, startOfDay } from 'date-fns';
+import { format } from 'date-fns';
 
 import { useToast } from "@/hooks/use-toast";
 import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags } from "@/lib/idb";
-import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Calendar as CalendarType } from "@/lib/types";
-import { CALENDAR_PARTY_TYPES } from "@/lib/types";
+import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType } from "@/lib/types";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -18,34 +17,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { TagInput } from "./ui/tag-input";
 import { cn } from "@/lib/utils";
-import { ChevronsUpDown, Calendar as CalendarIcon } from "lucide-react";
-import { ScrollArea } from "./ui/scroll-area";
-import { Calendar as DayPickerCalendar } from "@/components/ui/calendar";
+import { Calendar as CalendarIcon, Users, User, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarPartySelectionDialog } from "./calendar-party-selection-dialog";
 
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
-    partyType: z.enum(CALENDAR_PARTY_TYPES).optional(),
-    partyId: z.string().optional(),
     tags: z.array(z.string()).optional(),
     startDate: z.date({ required_error: "A start date is required." }),
     endDate: z.date().optional(),
 }).superRefine((data, ctx) => {
-    if (data.partyType && !data.partyId) {
-        ctx.addIssue({
-          path: ['partyId'],
-          message: 'A responsible party must be selected if a party type is chosen.',
-        });
-      }
-      if (!data.partyType && data.partyId) {
-          ctx.addIssue({
-            path: ['partyType'],
-            message: 'Party type must be selected if a party is chosen.',
-          });
-        }
     if (data.endDate && data.startDate > data.endDate) {
         ctx.addIssue({
           path: ['endDate'],
@@ -69,6 +53,8 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
+  const [selectedParty, setSelectedParty] = useState<{ id: string; name: string; type: CalendarPartyType } | null>(null);
+
 
   useEffect(() => {
     Promise.all([getAllCreatures(), getAllFactions()]).then(([creatures, factions]) => {
@@ -82,61 +68,49 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
     defaultValues: {
       title: "",
       description: "",
-      partyType: undefined,
-      partyId: undefined,
       tags: [],
-      startDate: initialDate,
+      startDate: new Date(),
       endDate: undefined
     }
   });
   
-  const { watch, setValue } = form;
-  const watchedPartyType = watch('partyType');
+  const { watch } = form;
   const watchedStartDate = watch('startDate');
-
-  useEffect(() => {
-    if (watchedPartyType) {
-        setValue('partyId', '');
-    }
-  }, [watchedPartyType, setValue]);
 
   useEffect(() => {
     if (event && isOpen) {
       form.reset({
         title: event.title,
         description: event.description,
-        partyType: event.party?.type,
-        partyId: event.party?.id,
         tags: event.tags || [],
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
       });
+      if (event.party) {
+        setSelectedParty(event.party);
+      } else {
+        setSelectedParty(null);
+      }
     } else if (!event && isOpen) {
       form.reset({
         title: "",
         description: "",
-        partyType: undefined,
-        partyId: undefined,
         tags: [],
-        startDate: initialDate,
+        startDate: new Date(),
         endDate: undefined,
       });
+      setSelectedParty(null);
     }
   }, [event, isOpen, form, initialDate]);
 
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent['party'] | undefined = undefined;
 
-    if (data.partyType && data.partyId) {
-        const partySource = data.partyType === 'creature' ? creatures : factions;
-        const selectedParty = partySource.find(p => p.id === data.partyId);
-    
-        if (selectedParty) {
-            partyToSave = {
-                type: data.partyType,
-                id: selectedParty.id,
-                name: selectedParty.name,
-            }
+    if (selectedParty) {
+        partyToSave = {
+            type: selectedParty.type,
+            id: selectedParty.id,
+            name: selectedParty.name,
         }
     }
     
@@ -165,10 +139,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save event.' });
     }
   };
-  
-  const partyList = watch('partyType') === 'creature' ? creatures : factions;
-  const selectedPartyId = watch('partyId');
-  const selectedPartyName = partyList.find(p => p.id === selectedPartyId)?.name;
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -200,7 +170,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                             </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                            <DayPickerCalendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date("0001-01-01T00:00:00")} initialFocus/>
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date("0001-01-01T00:00:00")} initialFocus/>
                         </PopoverContent>
                         </Popover><FormMessage />
                     </FormItem>
@@ -217,45 +187,37 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                             </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                            <DayPickerCalendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < (watchedStartDate || new Date("0001-01-01T00:00:00"))} initialFocus/>
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < (watchedStartDate || new Date("0001-01-01T00:00:00"))} initialFocus/>
                         </PopoverContent>
                         </Popover><FormMessage />
                     </FormItem>
                 )}/>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <FormField name="partyType" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Party Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {CALENDAR_PARTY_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </FormItem>
-                )} />
-                 <FormField name="partyId" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Responsible Party</FormLabel>
-                        <Popover><PopoverTrigger asChild disabled={!watchedPartyType}>
-                            <FormControl>
-                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                    <span className="truncate">{selectedPartyName || "Select Party"}</span>
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                            <ScrollArea className="h-48">
-                                {partyList.map(p => (
-                                    <Button key={p.id} variant="ghost" className="w-full justify-start" onClick={() => {field.onChange(p.id); document.body.click()}}>
-                                        {p.name}
-                                    </Button>
-                                ))}
-                            </ScrollArea>
-                        </PopoverContent>
-                        </Popover><FormMessage/>
-                    </FormItem>
-                 )} />
+            <div>
+              <FormLabel>Responsible Party (Optional)</FormLabel>
+              {selectedParty ? (
+                <div className="flex items-center justify-between p-2 mt-2 border rounded-md">
+                  <p className="font-semibold">{selectedParty.name} <span className="text-sm text-muted-foreground capitalize">({selectedParty.type})</span></p>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setSelectedParty(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2 mt-2">
+                  <CalendarPartySelectionDialog
+                    items={factions}
+                    onSelectItem={(item) => setSelectedParty({ ...item, type: 'faction' })}
+                    trigger={<Button type="button" variant="outline" className="w-full"><Users className="h-4 w-4 mr-2" />Select Faction</Button>}
+                    title="Select a Faction"
+                  />
+                  <CalendarPartySelectionDialog
+                    items={creatures}
+                    onSelectItem={(item) => setSelectedParty({ ...item, type: 'creature' })}
+                    trigger={<Button type="button" variant="outline" className="w-full"><User className="h-4 w-4 mr-2" />Select Creature</Button>}
+                    title="Select a Creature"
+                  />
+                </div>
+              )}
             </div>
              <FormField name="tags" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Tags</FormLabel><FormControl>
