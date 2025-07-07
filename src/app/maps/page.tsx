@@ -125,6 +125,7 @@ export default function MapsPage() {
                     onGridUpdate={handleGridUpdate}
                     onHexHover={(hex) => { if (activeTool !== 'data') setSelectedHex(hex) }}
                     onHexClick={setSelectedHex}
+                    activeTool={activeTool}
                     paintMode={paintMode}
                     paintColor={paintColor}
                     paintIcon={paintIcon}
