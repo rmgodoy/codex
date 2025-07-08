@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2 } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check } from "lucide-react";
 import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
 import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap } from "@/lib/idb";
@@ -47,59 +47,149 @@ const TERRAIN_COLORS = [
     { name: 'Snow', color: '#FFFFFF' },
 ];
 
-const NewMapDialog = ({ onMapCreate }: { onMapCreate: (id: string) => void }) => {
-    const [name, setName] = useState('');
-    const [radius, setRadius] = useState(20);
-    const [isOpen, setIsOpen] = useState(false);
+function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsUpdate: (newMapId?: string) => void }) {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [newMapName, setNewMapName] = useState("");
+    const [newMapRadius, setNewMapRadius] = useState(20);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingName, setEditingName] = useState("");
     const { toast } = useToast();
 
-    const handleCreate = async () => {
-        if (!name.trim() || !radius || radius <= 0) {
+    const handleAddMap = async () => {
+        if (!newMapName.trim() || !newMapRadius || newMapRadius <= 0) {
             toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid name and radius.' });
             return;
         }
         try {
-            const newGrid = generateHexGrid(radius);
-            const newMap: NewMap = { name, radius, tiles: newGrid };
+            const newGrid = generateHexGrid(newMapRadius);
+            const newMap: NewMap = { name: newMapName.trim(), radius: newMapRadius, tiles: newGrid };
             const newId = await addMap(newMap);
-            toast({ title: "Map Created!", description: `'${name}' has been added.`});
-            onMapCreate(newId);
-            setIsOpen(false);
-            setName('');
-            setRadius(20);
+            toast({ title: 'Map Created', description: `'${newMapName}' has been added.` });
+            setNewMapName("");
+            setNewMapRadius(20);
+            onMapsUpdate(newId);
+            setIsDialogOpen(false);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create new map.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create map.' });
+        }
+    };
+
+    const handleStartEdit = (map: WorldMap) => {
+        setEditingId(map.id);
+        setEditingName(map.name);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setEditingName("");
+    };
+
+    const handleRenameMap = async () => {
+        if (!editingId || !editingName.trim()) return;
+        const mapToUpdate = maps.find(m => m.id === editingId);
+        if (!mapToUpdate) return;
+        try {
+            await updateMap({ ...mapToUpdate, name: editingName.trim() });
+            toast({ title: 'Map Renamed' });
+            onMapsUpdate();
+            handleCancelEdit();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to rename map.' });
+        }
+    };
+
+    const handleDeleteMap = async (mapId: string) => {
+        try {
+            await deleteMap(mapId);
+            toast({ title: 'Map Deleted' });
+            onMapsUpdate();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete map.' });
         }
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline"><Plus className="h-4 w-4 mr-2" />New Map</Button>
+                <Button variant="ghost" size="icon"><Cog className="h-5 w-5" /></Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create New Map</DialogTitle>
-                    <DialogDescription>Enter the details for your new world map.</DialogDescription>
+                    <DialogTitle>Manage Maps</DialogTitle>
+                    <DialogDescription>Add, rename, or delete your maps.</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-map-name" className="text-right">Name</Label>
-                        <Input id="new-map-name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
+                <div className="space-y-4 py-4">
+                    <div className="flex items-end gap-2 p-3 border rounded-md">
+                        <div className="grid gap-2 flex-1">
+                          <Label>New Map</Label>
+                          <Input 
+                              placeholder="New map name..." 
+                              value={newMapName}
+                              onChange={(e) => setNewMapName(e.target.value)}
+                          />
+                          <Input 
+                              placeholder="Radius" 
+                              type="number"
+                              value={newMapRadius}
+                              onChange={(e) => setNewMapRadius(parseInt(e.target.value, 10) || 0)}
+                          />
+                        </div>
+                        <Button onClick={handleAddMap} disabled={!newMapName.trim() || !newMapRadius || newMapRadius <=0}><Plus className="h-4 w-4" /> Add</Button>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-map-radius" className="text-right">Radius</Label>
-                        <Input id="new-map-radius" type="number" value={radius} onChange={e => setRadius(parseInt(e.target.value, 10) || 0)} min="1" max="100" className="col-span-3" />
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {maps.map(map => (
+                            <div key={map.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 gap-2">
+                                {editingId === map.id ? (
+                                    <>
+                                        <Input
+                                            value={editingName}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleRenameMap() }}
+                                            className="h-8"
+                                            autoFocus
+                                        />
+                                        <div className="flex items-center gap-1">
+                                            <Button size="icon" className="h-7 w-7" onClick={handleRenameMap} aria-label="Save">
+                                                <Check className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit} aria-label="Cancel">
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="flex-1 truncate" title={map.name}>{map.name}</span>
+                                        <div className="flex items-center shrink-0">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartEdit(map)} aria-label="Edit">
+                                                <Edit className="h-4 w-4"/>
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Delete"><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This will permanently delete the "{map.name}" map and all of its tiles.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteMap(map.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button onClick={handleCreate}>Create</Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
-};
-
+}
 
 export default function MapsPage() {
     const [maps, setMaps] = useState<WorldMap[]>([]);
@@ -143,12 +233,27 @@ export default function MapsPage() {
         };
     }, []);
 
-    const loadAllMaps = useCallback(async () => {
+    const loadAllMaps = useCallback(async (newlyCreatedMapId?: string) => {
         const allMaps = await getAllMaps();
-        setMaps(allMaps.sort((a,b) => a.name.localeCompare(b.name)));
-        if (!selectedMapId && allMaps.length > 0) {
-            setSelectedMapId(allMaps[0].id);
-        } else if (allMaps.length === 0) {
+        const sortedMaps = allMaps.sort((a,b) => a.name.localeCompare(b.name));
+        setMaps(sortedMaps);
+
+        if (newlyCreatedMapId) {
+            setSelectedMapId(newlyCreatedMapId);
+            return;
+        }
+
+        const currentSelectedId = selectedMapId;
+
+        // If a map is selected, check if it still exists.
+        if (currentSelectedId && !sortedMaps.some(m => m.id === currentSelectedId)) {
+            // It was deleted. Select the first map, or null if no maps exist.
+            setSelectedMapId(sortedMaps.length > 0 ? sortedMaps[0].id : null);
+        } else if (!currentSelectedId && sortedMaps.length > 0) {
+            // No map was selected, but maps exist. Select the first one.
+            setSelectedMapId(sortedMaps[0].id);
+        } else if (sortedMaps.length === 0) {
+            // No maps exist at all.
             setSelectedMapId(null);
             setActiveMap(null);
         }
@@ -160,12 +265,15 @@ export default function MapsPage() {
         getAllFactions().then(setAllFactions);
     }, []);
     
+    const handleMapsUpdate = (newMapId?: string) => {
+        loadAllMaps(newMapId);
+    };
+
     useEffect(() => {
         if (debouncedActiveMap) {
             updateMap(debouncedActiveMap).catch(() => {
                 toast({ variant: 'destructive', title: 'Auto-save failed' });
             });
-            // Also update the map name in the selection list
             setMaps(prevMaps => prevMaps.map(m => m.id === debouncedActiveMap.id ? { ...m, name: debouncedActiveMap.name } : m));
         }
     }, [debouncedActiveMap, toast]);
@@ -175,7 +283,7 @@ export default function MapsPage() {
             getMapById(selectedMapId).then(mapData => {
                 if (mapData) setActiveMap(mapData);
             });
-            setSelectedHex(null); // Deselect hex when changing map
+            setSelectedHex(null); 
         } else {
             setActiveMap(null);
         }
@@ -198,26 +306,6 @@ export default function MapsPage() {
             setFinalIconColor(manualIconColor);
         }
     }, [isIconColorAuto, paintColor, manualIconColor]);
-
-
-    const handleMapCreate = (newId: string) => {
-        loadAllMaps().then(() => {
-            setSelectedMapId(newId);
-        });
-    };
-    
-    const handleDeleteMap = async () => {
-        if (!selectedMapId) return;
-        try {
-            await deleteMap(selectedMapId);
-            toast({ title: "Map Deleted" });
-            setSelectedMapId(null);
-            setActiveMap(null);
-            loadAllMaps();
-        } catch {
-             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete map.' });
-        }
-    }
     
     const handleGridUpdate = (newGrid: HexTile[]) => {
         if (activeMap) {
@@ -268,7 +356,7 @@ export default function MapsPage() {
                         hexSize={25} 
                         className="w-full h-full" 
                         onGridUpdate={handleGridUpdate}
-                        onHexHover={() => {}} // Hover logic now internal to HexGrid for performance
+                        onHexHover={() => {}} 
                         onHexClick={setSelectedHex}
                         activeTool={activeTool}
                         paintMode={paintMode}
@@ -292,39 +380,26 @@ export default function MapsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4 mb-4">
-                           <div className="space-y-2">
-                                <Label>Map Selection</Label>
-                                <div className="flex gap-2">
-                                    <Select value={selectedMapId || ''} onValueChange={setSelectedMapId}>
-                                        <SelectTrigger className="flex-1"><SelectValue placeholder="Select a map..."/></SelectTrigger>
-                                        <SelectContent>
-                                            {maps.map(map => <SelectItem key={map.id} value={map.id}>{map.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <NewMapDialog onMapCreate={handleMapCreate}/>
-                                    {selectedMapId && (
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4"/></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Delete Map?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete '{activeMap?.name}'? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteMap}>Delete</AlertDialogAction></AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
                         <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'settings' | 'paint' | 'data')} className="w-full">
                             <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="settings"><Wrench className="h-4 w-4 mr-2" />Settings</TabsTrigger>
                                 <TabsTrigger value="paint"><Paintbrush className="h-4 w-4 mr-2" />Paint</TabsTrigger>
                                 <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
                             </TabsList>
-                            <TabsContent value="settings" className="mt-4">
+                            <TabsContent value="settings" className="mt-4 space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Map Selection</Label>
+                                    <div className="flex gap-2">
+                                        <Select value={selectedMapId || ''} onValueChange={setSelectedMapId}>
+                                            <SelectTrigger className="flex-1"><SelectValue placeholder="Select a map..."/></SelectTrigger>
+                                            <SelectContent>
+                                                {maps.map(map => <SelectItem key={map.id} value={map.id}>{map.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <MapManagementDialog maps={maps} onMapsUpdate={handleMapsUpdate} />
+                                    </div>
+                                </div>
+                                <Separator/>
                                 {activeMap ? (
                                     <div className="space-y-4">
                                         <div className="space-y-2">
@@ -348,7 +423,7 @@ export default function MapsPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground">Select a map to view its settings.</p>
+                                    <p className="text-sm text-muted-foreground text-center pt-4">Select a map to view its settings, or create a new one.</p>
                                 )}
                             </TabsContent>
                             <TabsContent value="paint" className="mt-4">
@@ -508,3 +583,4 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
+
