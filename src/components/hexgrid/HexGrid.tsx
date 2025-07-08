@@ -109,6 +109,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   
   const [isPainting, setIsPainting] = useState(false);
   const [lastPaintedHex, setLastPaintedHex] = useState<Hex | null>(null);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
   const gridMap = useMemo(() => new Map(grid.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile])), [grid]);
 
@@ -122,6 +123,28 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         foreground: `hsl(${computedStyle.getPropertyValue('--foreground').trim()})` 
       });
     }
+  }, []);
+  
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Control') {
+            setIsCtrlPressed(true);
+        }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+        if (e.key === 'Control') {
+            setIsCtrlPressed(false);
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+    };
   }, []);
 
   const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
@@ -367,19 +390,21 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     if (activeTool === 'paint') {
       const clickedHex = getHexFromMouseEvent(e);
       if (clickedHex) {
-        if (paintMode === 'brush' || paintMode === 'erase') {
+        const isTempBucketMode = paintMode === 'brush' && isCtrlPressed;
+
+        if (isTempBucketMode || paintMode === 'bucket') {
+          bucketFill(clickedHex);
+        } else if (paintMode === 'brush' || paintMode === 'erase') {
           setIsPainting(true);
           paintTile(clickedHex);
           setLastPaintedHex(clickedHex);
-        } else if (paintMode === 'bucket') {
-          bucketFill(clickedHex);
         }
       }
     } else {
       const clickedHex = getHexFromMouseEvent(e);
       if(clickedHex) onHexClick(clickedHex);
     }
-  }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill, activeTool]);
+  }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill, activeTool, isCtrlPressed]);
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { setIsPainting(false); setLastPaintedHex(null); }
@@ -451,5 +476,3 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 };
 
 export default HexGrid;
-
-    
