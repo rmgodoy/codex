@@ -173,7 +173,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     if (canvasToDraw && canvasToDraw.width > 0 && canvasToDraw.height > 0) {
         const worldWidth = canvasToDraw.width;
         const worldHeight = canvasToDraw.height;
-        ctx.drawImage(canvasToDraw, -worldWidth / 2, worldHeight / 2);
+        ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
     
     const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>, currentView);
