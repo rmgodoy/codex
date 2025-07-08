@@ -203,7 +203,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.strokeStyle = themeColors.accent;
         ctx.lineWidth = 3 / currentView.zoom;
         ctx.stroke();
-        drawIcon(ctx, center, 'MapPin', hexSize, themeColors.accent);
     }
     
     ctx.restore();
