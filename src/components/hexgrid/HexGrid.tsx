@@ -4,6 +4,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { pixelToHex, hexToPixel, getHexCorner, getHexNeighbors, type Hex } from '@/lib/hex-utils';
 import type { HexTile } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number }, icon: string, size: number, foregroundColor: string) => {
     const iconSize = size * 0.9;
@@ -42,7 +43,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, center: { x: number; y: number 
             iconData = ["M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1", "M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1", "M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"];
             break;
         case 'MapPin':
-            iconData = ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"];
+            iconData = ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1 1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"];
             break;
         case 'Landmark':
             iconData = ["M10 18v-7", "M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z", "M14 18v-7", "M18 18v-7", "M3 22h18", "M6 18v-7"];
@@ -90,9 +91,11 @@ interface HexGridProps {
   paintIconColor: string;
   selectedHex: Hex | null;
   isCtrlPressed: boolean;
+  isEyedropperActive: boolean;
+  onEyedropperClick: (hex: Hex) => void;
 }
 
-const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex, isCtrlPressed }) => {
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex, isCtrlPressed, isEyedropperActive, onEyedropperClick }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCanvasSimpleRef = useRef<HTMLCanvasElement | null>(null);
@@ -167,10 +170,9 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
     
-    // Draw dynamic elements on top
     const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>);
 
-    if (activeTool === 'paint' && currentHoveredHex) {
+    if ((activeTool === 'paint' || isEyedropperActive) && currentHoveredHex) {
         const center = hexToPixel(currentHoveredHex, hexSize);
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
@@ -199,10 +201,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     
     ctx.restore();
 
-  }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool]);
+  }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool, isEyedropperActive]);
 
-
-  // Effect for drawing the entire static grid to offscreen canvases
   useEffect(() => {
       if (!grid.length || !canvasRef.current) return;
       
@@ -221,14 +221,12 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       
       if (worldPixelWidth <= 0 || worldPixelHeight <= 0) return;
 
-      // --- Detailed Canvas ---
       if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
       const offscreenCanvas = offscreenCanvasRef.current;
       offscreenCanvas.width = worldPixelWidth;
       offscreenCanvas.height = worldPixelHeight;
       const offscreenCtx = offscreenCanvas.getContext('2d');
 
-      // --- Simple Canvas ---
       if (!offscreenCanvasSimpleRef.current) offscreenCanvasSimpleRef.current = document.createElement('canvas');
       const offscreenSimpleCanvas = offscreenCanvasSimpleRef.current;
       offscreenSimpleCanvas.width = worldPixelWidth;
@@ -243,7 +241,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       offscreenCtx.translate(worldPixelWidth / 2, worldPixelHeight / 2);
       offscreenSimpleCtx.translate(worldPixelWidth / 2, worldPixelHeight / 2);
 
-      // Group tiles for batch drawing
       const detailedColorMap = new Map<string, Path2D>();
       const simpleColorMap = new Map<string, Path2D>();
       const iconsToDraw: { center: {x:number, y:number}, icon: string, iconColor: string }[] = [];
@@ -273,7 +270,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
           simpleColorMap.get(simpleColor)!.addPath(hexPath);
       });
 
-      // --- Draw Detailed Canvas ---
       detailedColorMap.forEach((path, color) => {
           offscreenCtx.fillStyle = color;
           offscreenCtx.fill(path);
@@ -285,7 +281,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
           drawIcon(offscreenCtx, center, icon, hexSize, iconColor);
       });
 
-      // --- Draw Simple Canvas ---
       simpleColorMap.forEach((path, color) => {
           offscreenSimpleCtx.fillStyle = color;
           offscreenSimpleCtx.fill(path);
@@ -359,6 +354,14 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    const clickedHex = getHexFromMouseEvent(e);
+    if (!clickedHex) return;
+    
+    if (isEyedropperActive) {
+        onEyedropperClick(clickedHex);
+        return;
+    }
+
     if (e.button === 2 || e.button === 1) { // Right or Middle click for panning
       setIsPanning(true);
       setLastPanPoint({ x: e.clientX, y: e.clientY });
@@ -366,23 +369,19 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     }
     
     if (activeTool === 'paint') {
-      const clickedHex = getHexFromMouseEvent(e);
-      if (clickedHex) {
-        const isTempBucketMode = paintMode === 'brush' && isCtrlPressed;
+      const isTempBucketMode = paintMode === 'brush' && isCtrlPressed;
 
-        if (isTempBucketMode || paintMode === 'bucket') {
-          bucketFill(clickedHex);
-        } else if (paintMode === 'brush' || paintMode === 'erase') {
-          setIsPainting(true);
-          paintTile(clickedHex);
-          setLastPaintedHex(clickedHex);
-        }
+      if (isTempBucketMode || paintMode === 'bucket') {
+        bucketFill(clickedHex);
+      } else if (paintMode === 'brush' || paintMode === 'erase') {
+        setIsPainting(true);
+        paintTile(clickedHex);
+        setLastPaintedHex(clickedHex);
       }
     } else {
-      const clickedHex = getHexFromMouseEvent(e);
-      if(clickedHex) onHexClick(clickedHex);
+      onHexClick(clickedHex);
     }
-  }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill, activeTool, isCtrlPressed]);
+  }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill, activeTool, isCtrlPressed, isEyedropperActive, onEyedropperClick]);
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { setIsPainting(false); setLastPaintedHex(null); }

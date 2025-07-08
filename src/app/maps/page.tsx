@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Eyedropper } from "lucide-react";
 import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
 import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap } from "@/lib/idb";
@@ -210,20 +210,17 @@ export default function MapsPage() {
     const [allFactions, setAllFactions] = useState<Faction[]>([]);
     
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+    const [isEyedropperActive, setIsEyedropperActive] = useState(false);
 
     const { toast } = useToast();
     const debouncedActiveMap = useDebounce(activeMap, 1000);
     
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Control') {
-                setIsCtrlPressed(true);
-            }
+            if (e.key === 'Control') setIsCtrlPressed(true);
         };
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key === 'Control') {
-                setIsCtrlPressed(false);
-            }
+            if (e.key === 'Control') setIsCtrlPressed(false);
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -307,6 +304,21 @@ export default function MapsPage() {
         }
     }, [isIconColorAuto, paintColor, manualIconColor]);
     
+    const handleEyedropperClick = (hex: Hex) => {
+        if (!activeMap) return;
+        const tile = activeMap.tiles.find(t => t.hex.q === hex.q && t.hex.r === hex.r);
+        if (tile) {
+            setPaintColor(tile.data.color || '#8A2BE2');
+            setPaintIcon(tile.data.icon || null);
+            if (tile.data.iconColor) {
+                setManualIconColor(tile.data.iconColor);
+                setIsIconColorAuto(false);
+            }
+        }
+        setIsEyedropperActive(false);
+        toast({ title: 'Tile properties copied to brush.' });
+    };
+
     const handleGridUpdate = (newGrid: HexTile[]) => {
         if (activeMap) {
             setActiveMap({ ...activeMap, tiles: newGrid });
@@ -354,7 +366,7 @@ export default function MapsPage() {
                     <HexGrid 
                         grid={activeMap.tiles} 
                         hexSize={25} 
-                        className="w-full h-full" 
+                        className={cn("w-full h-full", isEyedropperActive && 'cursor-crosshair')} 
                         onGridUpdate={handleGridUpdate}
                         onHexHover={() => {}} 
                         onHexClick={setSelectedHex}
@@ -365,6 +377,8 @@ export default function MapsPage() {
                         paintIconColor={finalIconColor}
                         selectedHex={selectedHex}
                         isCtrlPressed={isCtrlPressed}
+                        isEyedropperActive={isEyedropperActive}
+                        onEyedropperClick={handleEyedropperClick}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -443,14 +457,28 @@ export default function MapsPage() {
                                         </ToggleGroup>
                                     </div>
                                     <Separator />
-                                     <fieldset disabled={isEraseMode} className="space-y-4 disabled:opacity-50">
+                                     <fieldset disabled={isEraseMode || isEyedropperActive} className="space-y-4 disabled:opacity-50">
                                         <div className="space-y-2">
                                             <Label htmlFor="color-picker">Tile Color</Label>
                                             <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label>Terrain Colors</Label>
+                                            <div className="flex justify-between items-center">
+                                                <Label>Terrain Colors</Label>
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button variant={isEyedropperActive ? "secondary" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setIsEyedropperActive(prev => !prev)}>
+                                                                <Eyedropper className="h-4 w-4"/>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Pick Tile Properties</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {TERRAIN_COLORS.map(({ name, color }) => (
                                                     <Button
