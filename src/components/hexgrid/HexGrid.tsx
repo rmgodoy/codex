@@ -108,6 +108,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   });
 
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
+  const viewRef = useRef(view);
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
   
@@ -115,6 +116,10 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   const [lastPaintedHex, setLastPaintedHex] = useState<Hex | null>(null);
 
   const gridMap = useMemo(() => new Map(grid.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile])), [grid]);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -128,7 +133,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     }
   }, []);
 
-  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {
+  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>, currentView: {x:number, y:number, zoom:number}): Hex | null => {
       const canvas = canvasRef.current;
       if (!canvas) return null;
 
@@ -136,17 +141,18 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
-      const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
+      const worldX = (mouseX - (rect.width / 2 + currentView.x)) / currentView.zoom;
+      const worldY = (mouseY - (rect.height / 2 + currentView.y)) / currentView.zoom;
       
       return pixelToHex(worldX, worldY, hexSize);
-  }, [view.x, view.y, view.zoom, hexSize]);
+  }, [hexSize]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const currentView = viewRef.current;
 
     const { width, height } = canvas.getBoundingClientRect();
     if (canvas.width !== width || canvas.height !== height) {
@@ -158,11 +164,11 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     ctx.fillRect(0, 0, width, height);
     
     ctx.save();
-    ctx.translate(width / 2 + view.x, height / 2 + view.y);
-    ctx.scale(view.zoom, view.zoom);
+    ctx.translate(width / 2 + currentView.x, height / 2 + currentView.y);
+    ctx.scale(currentView.zoom, currentView.zoom);
     
     const LOD_THRESHOLD = 0.4;
-    const canvasToDraw = view.zoom > LOD_THRESHOLD ? offscreenCanvasRef.current : offscreenCanvasSimpleRef.current;
+    const canvasToDraw = currentView.zoom > LOD_THRESHOLD ? offscreenCanvasRef.current : offscreenCanvasSimpleRef.current;
     
     if (canvasToDraw && canvasToDraw.width > 0 && canvasToDraw.height > 0) {
         const worldWidth = canvasToDraw.width;
@@ -170,7 +176,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
     
-    const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>);
+    const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>, currentView);
 
     if ((activeTool === 'paint' || isEyedropperActive) && currentHoveredHex) {
         const center = hexToPixel(currentHoveredHex, hexSize);
@@ -195,13 +201,13 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         }
         ctx.closePath();
         ctx.strokeStyle = themeColors.accent;
-        ctx.lineWidth = 3 / view.zoom;
+        ctx.lineWidth = 3 / currentView.zoom;
         ctx.stroke();
     }
     
     ctx.restore();
 
-  }, [getHexFromMouseEvent, hexSize, themeColors, view, lastPanPoint, selectedHex, activeTool, isEyedropperActive]);
+  }, [getHexFromMouseEvent, hexSize, themeColors, lastPanPoint, selectedHex, activeTool, isEyedropperActive]);
 
   useEffect(() => {
       if (!grid.length || !canvasRef.current) return;
@@ -216,8 +222,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
       if (!isFinite(minQ)) return;
       
-      const worldPixelWidth = (maxQ - minQ) * hexSize * 1.5 + hexSize * 2;
-      const worldPixelHeight = (maxR - minR) * hexSize * Math.sqrt(3) + hexSize * 2;
+      const worldPixelWidth = (maxQ - minQ + 1) * hexSize * 1.5 + hexSize * 0.5;
+      const worldPixelHeight = (maxR - minR + 1) * hexSize * Math.sqrt(3) + hexSize * Math.sqrt(3)/2;
       
       if (worldPixelWidth <= 0 || worldPixelHeight <= 0) return;
 
@@ -292,7 +298,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   useEffect(() => {
     draw();
-  }, [draw]);
+  }, [view, draw]);
 
   const bucketFill = useCallback((startHex: Hex) => {
     const startTile = gridMap.get(`${startHex.q},${startHex.r}`);
@@ -354,7 +360,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const clickedHex = getHexFromMouseEvent(e);
+    const clickedHex = getHexFromMouseEvent(e, viewRef.current);
     if (!clickedHex) return;
     
     if (isEyedropperActive) {
@@ -385,24 +391,37 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { setIsPainting(false); setLastPaintedHex(null); }
-    if (e.button === 2 || e.button === 1) { setIsPanning(false); }
+    if (e.button === 2 || e.button === 1) {
+      if (isPanning) {
+        setIsPanning(false);
+        setView({...viewRef.current});
+      }
+    }
   };
   
   const handleMouseLeave = () => {
-    setIsPanning(false); setIsPainting(false); setLastPaintedHex(null); onHexHover(null);
+    if (isPanning) {
+        setIsPanning(false);
+        setView({...viewRef.current});
+    }
+    setIsPainting(false); 
+    setLastPaintedHex(null); 
+    onHexHover(null);
   }
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning) {
-      const dx = e.clientX - lastPanPoint.x;
-      const dy = e.clientY - lastPanPoint.y;
-      setLastPanPoint({ x: e.clientX, y: e.clientY });
-      setView(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-      return;
+        const dx = e.clientX - lastPanPoint.x;
+        const dy = e.clientY - lastPanPoint.y;
+        setLastPanPoint({ x: e.clientX, y: e.clientY });
+        viewRef.current.x += dx;
+        viewRef.current.y += dy;
+        requestAnimationFrame(draw);
+        return;
     }
     
     setLastPanPoint({ x: e.clientX, y: e.clientY });
-    const currentHex = getHexFromMouseEvent(e);
+    const currentHex = getHexFromMouseEvent(e, viewRef.current);
     onHexHover(currentHex);
 
     if (activeTool === 'paint' && (paintMode === 'brush' || paintMode === 'erase') && isPainting) {
@@ -413,12 +432,13 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             }
         }
     }
-  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover, activeTool]);
+  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover, activeTool, draw]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    const currentView = viewRef.current;
     const zoomFactor = 1.1;
-    const newZoom = e.deltaY < 0 ? view.zoom * zoomFactor : view.zoom / zoomFactor;
+    const newZoom = e.deltaY < 0 ? currentView.zoom * zoomFactor : currentView.zoom / zoomFactor;
     
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -427,17 +447,16 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const worldX = (mouseX - (rect.width / 2 + view.x)) / view.zoom;
-    const worldY = (mouseY - (rect.height / 2 + view.y)) / view.zoom;
+    const worldX = (mouseX - (rect.width / 2 + currentView.x)) / currentView.zoom;
+    const worldY = (mouseY - (rect.height / 2 + currentView.y)) / currentView.zoom;
     
     const newX = mouseX - worldX * newZoom - rect.width / 2;
     const newY = mouseY - worldY * newZoom - rect.height / 2;
+    
+    const finalZoom = Math.max(0.1, Math.min(5, newZoom));
 
-    setView({
-      x: newX,
-      y: newY,
-      zoom: Math.max(0.1, Math.min(5, newZoom)),
-    });
+    viewRef.current = { x: newX, y: newY, zoom: finalZoom };
+    setView({ x: newX, y: newY, zoom: finalZoom });
   };
 
   return <canvas 
@@ -453,3 +472,4 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 };
 
 export default HexGrid;
+
