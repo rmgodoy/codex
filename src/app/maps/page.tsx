@@ -107,7 +107,7 @@ export default function MapsPage() {
     const [activeMap, setActiveMap] = useState<WorldMap | null>(null);
 
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
-    const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
+    const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'data'>('settings');
     const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | 'erase'>('brush');
     const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
@@ -127,6 +127,9 @@ export default function MapsPage() {
         setMaps(allMaps.sort((a,b) => a.name.localeCompare(b.name)));
         if (!selectedMapId && allMaps.length > 0) {
             setSelectedMapId(allMaps[0].id);
+        } else if (allMaps.length === 0) {
+            setSelectedMapId(null);
+            setActiveMap(null);
         }
     }, [selectedMapId]);
     
@@ -134,13 +137,15 @@ export default function MapsPage() {
         loadAllMaps();
         getAllDungeons().then(setAllDungeons);
         getAllFactions().then(setAllFactions);
-    }, [loadAllMaps]);
+    }, []);
     
     useEffect(() => {
         if (debouncedActiveMap) {
             updateMap(debouncedActiveMap).catch(() => {
                 toast({ variant: 'destructive', title: 'Auto-save failed' });
             });
+            // Also update the map name in the selection list
+            setMaps(prevMaps => prevMaps.map(m => m.id === debouncedActiveMap.id ? { ...m, name: debouncedActiveMap.name } : m));
         }
     }, [debouncedActiveMap, toast]);
     
@@ -213,6 +218,20 @@ export default function MapsPage() {
             setActiveMap({ ...activeMap, tiles: newTiles });
         }
     };
+
+    const handleMapSettingsChange = (field: 'name' | 'radius', value: string | number) => {
+        if (!activeMap) return;
+
+        if (field === 'radius') {
+            const newRadius = Number(value);
+            if (!isNaN(newRadius) && newRadius > 0 && newRadius <= 100) {
+                const newGrid = resizeHexGrid(activeMap.tiles, newRadius);
+                setActiveMap({ ...activeMap, radius: newRadius, tiles: newGrid });
+            }
+        } else {
+            setActiveMap({ ...activeMap, [field]: value as string });
+        }
+    };
     
     const isEraseMode = paintMode === 'erase';
     const selectedTile = useMemo(() => activeMap?.tiles.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [activeMap, selectedHex]);
@@ -247,7 +266,6 @@ export default function MapsPage() {
                 <Card className="fixed top-20 left-4 z-10 w-80 shadow-lg">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg">
-                            <Wrench className="h-5 w-5" />
                             Map Tools
                         </CardTitle>
                     </CardHeader>
@@ -278,11 +296,39 @@ export default function MapsPage() {
                             </div>
                         </div>
 
-                        <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'paint' | 'data')} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
+                        <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'settings' | 'paint' | 'data')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="settings"><Wrench className="h-4 w-4 mr-2" />Settings</TabsTrigger>
                                 <TabsTrigger value="paint"><Paintbrush className="h-4 w-4 mr-2" />Paint</TabsTrigger>
                                 <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
                             </TabsList>
+                            <TabsContent value="settings" className="mt-4">
+                                {activeMap ? (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="map-name">Map Name</Label>
+                                            <Input
+                                                id="map-name"
+                                                value={activeMap.name}
+                                                onChange={(e) => handleMapSettingsChange('name', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="map-radius">Map Radius</Label>
+                                            <Input
+                                                id="map-radius"
+                                                type="number"
+                                                value={activeMap.radius}
+                                                onChange={(e) => handleMapSettingsChange('radius', parseInt(e.target.value, 10))}
+                                                min="1"
+                                                max="100"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Select a map to view its settings.</p>
+                                )}
+                            </TabsContent>
                             <TabsContent value="paint" className="mt-4">
                                 <div className="space-y-4">
                                     <div className="space-y-2">
@@ -440,3 +486,4 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
+
