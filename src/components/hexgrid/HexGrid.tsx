@@ -89,9 +89,10 @@ interface HexGridProps {
   paintIcon: string | null;
   paintIconColor: string;
   selectedHex: Hex | null;
+  isCtrlPressed: boolean;
 }
 
-const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex }) => {
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex, isCtrlPressed }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCanvasSimpleRef = useRef<HTMLCanvasElement | null>(null);
@@ -109,7 +110,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   
   const [isPainting, setIsPainting] = useState(false);
   const [lastPaintedHex, setLastPaintedHex] = useState<Hex | null>(null);
-  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
   const gridMap = useMemo(() => new Map(grid.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile])), [grid]);
 
@@ -123,28 +123,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         foreground: `hsl(${computedStyle.getPropertyValue('--foreground').trim()})` 
       });
     }
-  }, []);
-  
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Control') {
-            setIsCtrlPressed(true);
-        }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-        if (e.key === 'Control') {
-            setIsCtrlPressed(false);
-        }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp);
-    };
   }, []);
 
   const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Hex | null => {

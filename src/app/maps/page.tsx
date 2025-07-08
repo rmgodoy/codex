@@ -118,9 +118,30 @@ export default function MapsPage() {
     
     const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
     const [allFactions, setAllFactions] = useState<Faction[]>([]);
+    
+    const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
     const { toast } = useToast();
     const debouncedActiveMap = useDebounce(activeMap, 1000);
+    
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Control') {
+                setIsCtrlPressed(true);
+            }
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Control') {
+                setIsCtrlPressed(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
 
     const loadAllMaps = useCallback(async () => {
         const allMaps = await getAllMaps();
@@ -255,6 +276,7 @@ export default function MapsPage() {
                         paintIcon={paintIcon}
                         paintIconColor={finalIconColor}
                         selectedHex={selectedHex}
+                        isCtrlPressed={isCtrlPressed}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -333,7 +355,7 @@ export default function MapsPage() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label>Paint Mode</Label>
-                                        <ToggleGroup type="single" value={paintMode} onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} className="w-full">
+                                        <ToggleGroup type="single" value={isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode} onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} className="w-full">
                                             <ToggleGroupItem value="brush" aria-label="Brush" className="w-1/3">
                                                 <Brush className="h-4 w-4 mr-2" /> Brush
                                             </ToggleGroupItem>
@@ -486,4 +508,3 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
-
