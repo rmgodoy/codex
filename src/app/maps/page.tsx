@@ -23,7 +23,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -269,7 +269,7 @@ export default function MapsPage() {
                                                 <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4"/></Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
-                                                <DialogHeader><DialogTitle>Delete Map?</DialogTitle><DialogDescription>Are you sure you want to delete '{activeMap?.name}'? This action cannot be undone.</DialogDescription></DialogHeader>
+                                                <AlertDialogHeader><AlertDialogTitle>Delete Map?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete '{activeMap?.name}'? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                                                 <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteMap}>Delete</AlertDialogAction></AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
