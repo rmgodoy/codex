@@ -8,8 +8,8 @@ import { z } from "zod";
 import { format } from 'date-fns';
 
 import { useToast } from "@/hooks/use-toast";
-import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags, getAllMaps } from "@/lib/idb";
-import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Map as WorldMap, Hex } from "@/lib/types";
+import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags, getAllMaps, getAllNpcs } from "@/lib/idb";
+import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Map as WorldMap, Hex, Npc } from "@/lib/types";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -62,16 +62,18 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const { toast } = useToast();
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [factions, setFactions] = useState<Faction[]>([]);
+  const [npcs, setNpcs] = useState<Npc[]>([]);
   const [allMaps, setAllMaps] = useState<WorldMap[]>([]);
   const [selectedParty, setSelectedParty] = useState<{ id: string; name: string; type: CalendarPartyType } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ mapId: string; mapName: string; hex: Hex } | null>(null);
 
 
   useEffect(() => {
-    Promise.all([getAllCreatures(), getAllFactions(), getAllMaps()]).then(([creatures, factions, maps]) => {
+    Promise.all([getAllCreatures(), getAllFactions(), getAllMaps(), getAllNpcs()]).then(([creatures, factions, maps, npcs]) => {
       setCreatures(creatures);
       setFactions(factions);
       setAllMaps(maps);
+      setNpcs(npcs);
     });
   }, []);
 
@@ -226,18 +228,24 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                   </Button>
                 </div>
               ) : (
-                <div className="flex gap-2 mt-2">
+                <div className="grid grid-cols-3 gap-2 mt-2">
                   <CalendarPartySelectionDialog
                     items={factions}
                     onSelectItem={(item) => setSelectedParty({ ...item, type: 'faction' })}
-                    trigger={<Button type="button" variant="outline" className="w-full"><Users className="h-4 w-4 mr-2" />Select Faction</Button>}
+                    trigger={<Button type="button" variant="outline" className="w-full"><Users className="h-4 w-4 mr-2" />Faction</Button>}
                     title="Select a Faction"
                   />
                   <CalendarPartySelectionDialog
                     items={creatures}
                     onSelectItem={(item) => setSelectedParty({ ...item, type: 'creature' })}
-                    trigger={<Button type="button" variant="outline" className="w-full"><User className="h-4 w-4 mr-2" />Select Creature</Button>}
+                    trigger={<Button type="button" variant="outline" className="w-full"><User className="h-4 w-4 mr-2" />Creature</Button>}
                     title="Select a Creature"
+                  />
+                  <CalendarPartySelectionDialog
+                    items={npcs}
+                    onSelectItem={(item) => setSelectedParty({ ...item, type: 'npc' })}
+                    trigger={<Button type="button" variant="outline" className="w-full"><User className="h-4 w-4 mr-2" />NPC</Button>}
+                    title="Select an NPC"
                   />
                 </div>
               )}

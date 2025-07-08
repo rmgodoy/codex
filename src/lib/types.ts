@@ -385,7 +385,7 @@ export interface Hex {
 }
 
 // Calendar Types
-export const CALENDAR_PARTY_TYPES = ['faction', 'creature'] as const;
+export const CALENDAR_PARTY_TYPES = ['faction', 'creature', 'npc'] as const;
 export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
 
 export interface Calendar {

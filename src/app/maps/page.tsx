@@ -5,10 +5,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap } from "@/lib/types";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
-import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap } from "@/lib/idb";
+import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -208,6 +209,7 @@ export default function MapsPage() {
     
     const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
     const [allFactions, setAllFactions] = useState<Faction[]>([]);
+    const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
     
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
     const [isEyedropperActive, setIsEyedropperActive] = useState(false);
@@ -260,6 +262,7 @@ export default function MapsPage() {
         loadAllMaps();
         getAllDungeons().then(setAllDungeons);
         getAllFactions().then(setAllFactions);
+        getAllCalendarEvents().then(setAllEvents);
     }, []);
     
     const handleMapsUpdate = (newMapId?: string) => {
@@ -359,6 +362,17 @@ export default function MapsPage() {
     const dungeonMap = useMemo(() => new Map(allDungeons.map(d => [d.id, d])), [allDungeons]);
     const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f])), [allFactions]);
     
+    const eventsForSelectedTile = useMemo(() => {
+        if (!selectedTile || !activeMap) return [];
+        return allEvents.filter(event => 
+            event.location &&
+            event.location.mapId === activeMap.id &&
+            event.location.hex.q === selectedTile.hex.q &&
+            event.location.hex.r === selectedTile.hex.r &&
+            event.location.hex.s === selectedTile.hex.s
+        );
+    }, [selectedTile, activeMap, allEvents]);
+
     return (
         <MainLayout showSidebarTrigger={false}>
             <div className="w-full h-full bg-background relative">
@@ -598,6 +612,26 @@ export default function MapsPage() {
                                                 {(selectedTile.data.factionIds || []).map(id => <Badge key={id} variant="secondary">{factionMap.get(id)?.name}</Badge>)}
                                             </div>
                                         </div>
+
+                                        <Separator />
+                                        <div className="space-y-2">
+                                            <Label className="flex items-center gap-2"><CalendarIcon className="h-4 w-4"/>Events</Label>
+                                            {eventsForSelectedTile.length > 0 ? (
+                                                <div className="flex flex-col gap-1 text-xs">
+                                                    {eventsForSelectedTile.map(event => (
+                                                        <div key={event.id} className="p-1 rounded bg-muted/50">
+                                                            <p className="font-semibold text-sm">{event.title}</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {format(new Date(event.startDate), 'P')} - {format(new Date(event.endDate), 'P')}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">No events linked to this tile.</p>
+                                            )}
+                                        </div>
+
 
                                     </div>
                                 ) : (

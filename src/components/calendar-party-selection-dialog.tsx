@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -5,9 +6,9 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import type { Faction, Creature } from '@/lib/types';
+import type { Faction, Creature, Npc } from '@/lib/types';
 
-type SelectableItem = Pick<Faction, 'id' | 'name'> | Pick<Creature, 'id' | 'name'>;
+type SelectableItem = Pick<Faction, 'id' | 'name'> | Pick<Creature, 'id' | 'name'> | Pick<Npc, 'id' | 'name'>;
 
 interface CalendarPartySelectionDialogProps {
   items: SelectableItem[];
