@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction } from "@/lib/types";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2 } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
-import { getAllDungeons, getAllFactions } from "@/lib/idb";
+import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,11 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MultiItemSelectionDialog } from "@/components/multi-item-selection-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -42,12 +47,67 @@ const TERRAIN_COLORS = [
     { name: 'Snow', color: '#FFFFFF' },
 ];
 
-export default function MapsPage() {
-    const [grid, setGrid] = useState<HexTile[]>([]);
+const NewMapDialog = ({ onMapCreate }: { onMapCreate: (id: string) => void }) => {
+    const [name, setName] = useState('');
     const [radius, setRadius] = useState(20);
-    const [mapName, setMapName] = useState("My World Map");
+    const [isOpen, setIsOpen] = useState(false);
+    const { toast } = useToast();
+
+    const handleCreate = async () => {
+        if (!name.trim() || !radius || radius <= 0) {
+            toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid name and radius.' });
+            return;
+        }
+        try {
+            const newGrid = generateHexGrid(radius);
+            const newMap: NewMap = { name, radius, tiles: newGrid };
+            const newId = await addMap(newMap);
+            toast({ title: "Map Created!", description: `'${name}' has been added.`});
+            onMapCreate(newId);
+            setIsOpen(false);
+            setName('');
+            setRadius(20);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create new map.' });
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline"><Plus className="h-4 w-4 mr-2" />New Map</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Create New Map</DialogTitle>
+                    <DialogDescription>Enter the details for your new world map.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-map-name" className="text-right">Name</Label>
+                        <Input id="new-map-name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-map-radius" className="text-right">Radius</Label>
+                        <Input id="new-map-radius" type="number" value={radius} onChange={e => setRadius(parseInt(e.target.value, 10) || 0)} min="1" max="100" className="col-span-3" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleCreate}>Create</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
+export default function MapsPage() {
+    const [maps, setMaps] = useState<WorldMap[]>([]);
+    const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
+    const [activeMap, setActiveMap] = useState<WorldMap | null>(null);
+
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
-    const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'data'>('settings');
+    const [activeTool, setActiveTool] = useState<'paint' | 'data'>('paint');
     const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | 'erase'>('brush');
     const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
@@ -59,11 +119,42 @@ export default function MapsPage() {
     const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
     const [allFactions, setAllFactions] = useState<Faction[]>([]);
 
+    const { toast } = useToast();
+    const debouncedActiveMap = useDebounce(activeMap, 1000);
+
+    const loadAllMaps = useCallback(async () => {
+        const allMaps = await getAllMaps();
+        setMaps(allMaps.sort((a,b) => a.name.localeCompare(b.name)));
+        if (!selectedMapId && allMaps.length > 0) {
+            setSelectedMapId(allMaps[0].id);
+        }
+    }, [selectedMapId]);
+    
     useEffect(() => {
+        loadAllMaps();
         getAllDungeons().then(setAllDungeons);
         getAllFactions().then(setAllFactions);
-    }, []);
-
+    }, [loadAllMaps]);
+    
+    useEffect(() => {
+        if (debouncedActiveMap) {
+            updateMap(debouncedActiveMap).catch(() => {
+                toast({ variant: 'destructive', title: 'Auto-save failed' });
+            });
+        }
+    }, [debouncedActiveMap, toast]);
+    
+    useEffect(() => {
+        if (selectedMapId) {
+            getMapById(selectedMapId).then(mapData => {
+                if (mapData) setActiveMap(mapData);
+            });
+            setSelectedHex(null); // Deselect hex when changing map
+        } else {
+            setActiveMap(null);
+        }
+    }, [selectedMapId]);
+    
     const getLuminance = (hex: string) => {
         hex = hex.replace('#', '');
         const r = parseInt(hex.substring(0, 2), 16);
@@ -83,55 +174,75 @@ export default function MapsPage() {
     }, [isIconColorAuto, paintColor, manualIconColor]);
 
 
-    useEffect(() => {
-        setGrid(generateHexGrid(20));
-    }, []);
-
-    const handleRadiusChange = (newRadiusValue: number) => {
-        setRadius(newRadiusValue); // Can be NaN, which is fine for the input's controlled state.
-        if (!isNaN(newRadiusValue) && newRadiusValue > 0 && newRadiusValue <= 100) {
-            setGrid(prevGrid => resizeHexGrid(prevGrid, newRadiusValue));
-        }
+    const handleMapCreate = (newId: string) => {
+        loadAllMaps().then(() => {
+            setSelectedMapId(newId);
+        });
     };
     
+    const handleDeleteMap = async () => {
+        if (!selectedMapId) return;
+        try {
+            await deleteMap(selectedMapId);
+            toast({ title: "Map Deleted" });
+            setSelectedMapId(null);
+            setActiveMap(null);
+            loadAllMaps();
+        } catch {
+             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete map.' });
+        }
+    }
+    
     const handleGridUpdate = (newGrid: HexTile[]) => {
-        setGrid(newGrid);
+        if (activeMap) {
+            setActiveMap({ ...activeMap, tiles: newGrid });
+        }
     };
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
-        setGrid(prevGrid => prevGrid.map(tile => {
-            if (tile.hex.q === hex.q && tile.hex.r === hex.r) {
-                return {
-                    ...tile,
-                    data: { ...tile.data, ...updates }
-                };
-            }
-            return tile;
-        }));
+        if (activeMap) {
+            const newTiles = activeMap.tiles.map(tile => {
+                if (tile.hex.q === hex.q && tile.hex.r === hex.r) {
+                    return {
+                        ...tile,
+                        data: { ...tile.data, ...updates }
+                    };
+                }
+                return tile;
+            });
+            setActiveMap({ ...activeMap, tiles: newTiles });
+        }
     };
-
+    
     const isEraseMode = paintMode === 'erase';
-    const selectedTile = useMemo(() => grid.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [grid, selectedHex]);
+    const selectedTile = useMemo(() => activeMap?.tiles.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [activeMap, selectedHex]);
     const dungeonMap = useMemo(() => new Map(allDungeons.map(d => [d.id, d])), [allDungeons]);
     const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f])), [allFactions]);
     
     return (
         <MainLayout showSidebarTrigger={false}>
             <div className="w-full h-full bg-background relative">
-                <HexGrid 
-                    grid={grid} 
-                    hexSize={25} 
-                    className="w-full h-full" 
-                    onGridUpdate={handleGridUpdate}
-                    onHexHover={(hex) => { if (activeTool !== 'data') setSelectedHex(hex) }}
-                    onHexClick={setSelectedHex}
-                    activeTool={activeTool}
-                    paintMode={paintMode}
-                    paintColor={paintColor}
-                    paintIcon={paintIcon}
-                    paintIconColor={finalIconColor}
-                    selectedHex={selectedHex}
-                />
+                {activeMap ? (
+                    <HexGrid 
+                        grid={activeMap.tiles} 
+                        hexSize={25} 
+                        className="w-full h-full" 
+                        onGridUpdate={handleGridUpdate}
+                        onHexHover={() => {}} // Hover logic now internal to HexGrid for performance
+                        onHexClick={setSelectedHex}
+                        activeTool={activeTool}
+                        paintMode={paintMode}
+                        paintColor={paintColor}
+                        paintIcon={paintIcon}
+                        paintIconColor={finalIconColor}
+                        selectedHex={selectedHex}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <p>Select a map to begin, or create a new one.</p>
+                    </div>
+                )}
+
 
                 <Card className="fixed top-20 left-4 z-10 w-80 shadow-lg">
                     <CardHeader>
@@ -141,31 +252,37 @@ export default function MapsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'settings' |'paint' | 'data')} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="settings"><Wrench className="h-4 w-4 mr-2" />Settings</TabsTrigger>
+                        <div className="space-y-4 mb-4">
+                           <div className="space-y-2">
+                                <Label>Map Selection</Label>
+                                <div className="flex gap-2">
+                                    <Select value={selectedMapId || ''} onValueChange={setSelectedMapId}>
+                                        <SelectTrigger className="flex-1"><SelectValue placeholder="Select a map..."/></SelectTrigger>
+                                        <SelectContent>
+                                            {maps.map(map => <SelectItem key={map.id} value={map.id}>{map.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <NewMapDialog onMapCreate={handleMapCreate}/>
+                                    {selectedMapId && (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4"/></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <DialogHeader><DialogTitle>Delete Map?</DialogTitle><DialogDescription>Are you sure you want to delete '{activeMap?.name}'? This action cannot be undone.</DialogDescription></DialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteMap}>Delete</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'paint' | 'data')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="paint"><Paintbrush className="h-4 w-4 mr-2" />Paint</TabsTrigger>
                                 <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
                             </TabsList>
-                            <TabsContent value="settings" className="mt-4">
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="map-name">Map Name</Label>
-                                        <Input id="map-name" value={mapName} onChange={(e) => setMapName(e.target.value)} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="map-radius">Map Radius</Label>
-                                        <Input
-                                            id="map-radius"
-                                            type="number"
-                                            value={radius || ''}
-                                            onChange={(e) => handleRadiusChange(parseInt(e.target.value, 10))}
-                                            min="1"
-                                            max="100"
-                                        />
-                                    </div>
-                                </div>
-                            </TabsContent>
                             <TabsContent value="paint" className="mt-4">
                                 <div className="space-y-4">
                                     <div className="space-y-2">
@@ -323,5 +440,3 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
-
-    

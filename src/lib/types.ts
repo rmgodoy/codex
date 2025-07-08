@@ -423,3 +423,12 @@ export interface HexTile {
     hex: Hex;
     data: HexTileData; // For storing metadata
 }
+
+export interface Map {
+  id: string;
+  name: string;
+  radius: number;
+  tiles: HexTile[];
+}
+
+export type NewMap = Omit<Map, 'id'>;
