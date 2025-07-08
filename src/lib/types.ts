@@ -377,6 +377,13 @@ export interface Npc {
 
 export type NewNpc = Omit<Npc, 'id'>;
 
+// Hex Grid Types (before Calendar)
+export interface Hex {
+    q: number; // Corresponds to column
+    r: number; // Corresponds to row
+    s: number; // s = -q - r
+}
+
 // Calendar Types
 export const CALENDAR_PARTY_TYPES = ['faction', 'creature'] as const;
 export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
@@ -400,17 +407,15 @@ export interface CalendarEvent {
         id: string;
         name: string;
     };
+    location?: {
+        mapId: string;
+        hex: Hex;
+    };
 }
 
 export type NewCalendarEvent = Omit<CalendarEvent, 'id'>;
 
 // Hex Grid Types
-export interface Hex {
-    q: number; // Corresponds to column
-    r: number; // Corresponds to row
-    s: number; // s = -q - r
-}
-
 export interface HexTileData {
     color?: string;
     icon?: string;

@@ -14,7 +14,7 @@ import { CalendarEventDialog } from "@/components/calendar-event-dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, Cog, Plus, Check, X } from "lucide-react";
+import { Trash2, Edit, Cog, Plus, Check, X, MapPin } from "lucide-react";
 import { getAllCalendarEvents, deleteCalendarEvent } from "@/lib/idb/calendarEvents";
 import { getAllCalendars, addCalendar, updateCalendar, deleteCalendarAndEvents } from "@/lib/idb/calendars";
 import type { CalendarEvent, Calendar as CalendarType, NewCalendar } from "@/lib/types";
@@ -311,6 +311,11 @@ export default function CalendarPage() {
                                                 </CardDescription>
                                                 {event.description && <p className="text-sm mt-2">{event.description}</p>}
                                                 {event.party && <p className="text-xs text-muted-foreground mt-2">Party: <span className="font-semibold text-accent">{event.party.name} ({event.party.type})</span></p>}
+                                                {event.location && (
+                                                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                                        <MapPin className="h-3 w-3" /> Location set
+                                                    </p>
+                                                )}
                                                 {event.tags && event.tags.length > 0 && (
                                                     <div className="flex flex-wrap gap-1 mt-2">
                                                         {event.tags.map(tag => <Badge key={tag} variant="secondary">{tag}</Badge>)}

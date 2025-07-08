@@ -173,7 +173,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     if (canvasToDraw && canvasToDraw.width > 0 && canvasToDraw.height > 0) {
         const worldWidth = canvasToDraw.width;
         const worldHeight = canvasToDraw.height;
-        ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
+        ctx.drawImage(canvasToDraw, -worldWidth / 2, worldHeight / 2);
     }
     
     const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>, currentView);
@@ -203,6 +203,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.strokeStyle = themeColors.accent;
         ctx.lineWidth = 3 / currentView.zoom;
         ctx.stroke();
+        drawIcon(ctx, center, 'MapPin', hexSize, themeColors.accent);
     }
     
     ctx.restore();
@@ -472,4 +473,3 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 };
 
 export default HexGrid;
-
