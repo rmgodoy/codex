@@ -13,6 +13,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useMemo, useRef, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -164,31 +165,33 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
           <span className="sr-only">Open menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="p-0">
+      <SheetContent side="right" className="p-0 flex flex-col">
         <SheetHeader className="p-4 border-b">
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
-        <div className="flex flex-col gap-4 p-4">
-          <p className="font-bold text-lg">Compendium</p>
-          {compendiumLinks.map(link => (
-            <Link href={link.href} key={link.href} passHref>
-              <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
-            </Link>
-          ))}
-          <Separator className="my-2" />
-           <p className="font-bold text-lg">Random</p>
-          {randomLinks.map(link => (
-            <Link href={link.href} key={link.href} passHref>
-              <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
-            </Link>
-          ))}
-          <Separator className="my-2" />
-          {otherLinks.map(link => (
-            <Link href={link.href} key={link.href} passHref>
-              <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
-            </Link>
-          ))}
-        </div>
+        <ScrollArea className="flex-1">
+            <div className="flex flex-col gap-4 p-4">
+            <p className="font-bold text-lg">Compendium</p>
+            {compendiumLinks.map(link => (
+                <Link href={link.href} key={link.href} passHref>
+                <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                </Link>
+            ))}
+            <Separator className="my-2" />
+            <p className="font-bold text-lg">Random</p>
+            {randomLinks.map(link => (
+                <Link href={link.href} key={link.href} passHref>
+                <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                </Link>
+            ))}
+            <Separator className="my-2" />
+            {otherLinks.map(link => (
+                <Link href={link.href} key={link.href} passHref>
+                <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                </Link>
+            ))}
+            </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );
