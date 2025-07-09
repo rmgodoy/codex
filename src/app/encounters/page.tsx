@@ -189,19 +189,21 @@ export default function EncountersPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <EncounterEditorPanel
-                key={selectedEncounterId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                encounterId={selectedEncounterId}
-                isCreatingNew={isCreatingNew}
-                onEncounterSaveSuccess={onEncounterSaveSuccess}
-                onEncounterDeleteSuccess={onEncounterDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onRunEncounter={handleRunEncounter}
-                onFilterByClick={handleFilterByClick}
-                onBack={handleBack}
-                dataVersion={dataVersion}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <EncounterEditorPanel
+                  key={selectedEncounterId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  encounterId={selectedEncounterId}
+                  isCreatingNew={isCreatingNew}
+                  onEncounterSaveSuccess={onEncounterSaveSuccess}
+                  onEncounterDeleteSuccess={onEncounterDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onRunEncounter={handleRunEncounter}
+                  onFilterByClick={handleFilterByClick}
+                  onBack={handleBack}
+                  dataVersion={dataVersion}
+                />
+              </div>
             </div>
           )}
         </div>

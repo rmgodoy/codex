@@ -153,18 +153,20 @@ export default function ItemsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <ItemEditorPanel
-                key={selectedItemId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                itemId={selectedItemId}
-                isCreatingNew={isCreatingNew}
-                template={templateData}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
-                onEditCancel={onEditCancel}
-                onBack={handleBack}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <ItemEditorPanel
+                  key={selectedItemId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  itemId={selectedItemId}
+                  isCreatingNew={isCreatingNew}
+                  template={templateData}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onUseAsTemplate={handleUseAsTemplate}
+                  onEditCancel={onEditCancel}
+                  onBack={handleBack}
+                />
+              </div>
             </div>
           )}
         </div>

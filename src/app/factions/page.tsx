@@ -120,16 +120,18 @@ export default function FactionsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <FactionEditorPanel
-                key={selectedFactionId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                factionId={selectedFactionId}
-                isCreatingNew={isCreatingNew}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onBack={handleBack}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <FactionEditorPanel
+                  key={selectedFactionId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  factionId={selectedFactionId}
+                  isCreatingNew={isCreatingNew}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onBack={handleBack}
+                />
+              </div>
             </div>
           )}
         </div>

@@ -156,17 +156,19 @@ export default function AlchemyPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <AlchemyEditorPanel
-                key={selectedItemId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                itemId={selectedItemId}
-                isCreatingNew={isCreatingNew}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onFilterByClick={handleFilterByClick}
-                onBack={handleBack}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <AlchemyEditorPanel
+                  key={selectedItemId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  itemId={selectedItemId}
+                  isCreatingNew={isCreatingNew}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onFilterByClick={handleFilterByClick}
+                  onBack={handleBack}
+                />
+              </div>
             </div>
           )}
         </div>

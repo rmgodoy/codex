@@ -140,18 +140,20 @@ export default function RoomsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <RoomEditorPanel
-                key={selectedRoomId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                roomId={selectedRoomId}
-                isCreatingNew={isCreatingNew}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onFilterByClick={handleFilterByClick}
-                onBack={handleBack}
-                dataVersion={dataVersion}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <RoomEditorPanel
+                  key={selectedRoomId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  roomId={selectedRoomId}
+                  isCreatingNew={isCreatingNew}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onFilterByClick={handleFilterByClick}
+                  onBack={handleBack}
+                  dataVersion={dataVersion}
+                />
+              </div>
             </div>
           )}
         </div>

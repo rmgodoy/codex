@@ -165,20 +165,22 @@ export default function DeedsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <DeedEditorPanel
-                key={selectedDeedId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                deedId={selectedDeedId}
-                isCreatingNew={isCreatingNew}
-                template={templateData}
-                onDeedSaveSuccess={onDeedSaveSuccess}
-                onDeedDeleteSuccess={onDeedDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
-                onEditCancel={onEditCancel}
-                dataVersion={dataVersion}
-                onFilterByClick={handleFilterByClick}
-                onBack={handleBack}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <DeedEditorPanel
+                  key={selectedDeedId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  deedId={selectedDeedId}
+                  isCreatingNew={isCreatingNew}
+                  template={templateData}
+                  onDeedSaveSuccess={onDeedSaveSuccess}
+                  onDeedDeleteSuccess={onDeedDeleteSuccess}
+                  onUseAsTemplate={handleUseAsTemplate}
+                  onEditCancel={onEditCancel}
+                  dataVersion={dataVersion}
+                  onFilterByClick={handleFilterByClick}
+                  onBack={handleBack}
+                />
+              </div>
             </div>
           )}
         </div>

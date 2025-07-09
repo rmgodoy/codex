@@ -154,18 +154,20 @@ export default function EncounterTablesPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <EncounterTableEditorPanel
-                key={selectedTableId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                tableId={selectedTableId}
-                isCreatingNew={isCreatingNew}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onBack={handleBack}
-                dataVersion={dataVersion}
-                onFilterByClick={handleFilterByClick}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <EncounterTableEditorPanel
+                  key={selectedTableId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  tableId={selectedTableId}
+                  isCreatingNew={isCreatingNew}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onBack={handleBack}
+                  dataVersion={dataVersion}
+                  onFilterByClick={handleFilterByClick}
+                />
+              </div>
             </div>
           )}
         </div>

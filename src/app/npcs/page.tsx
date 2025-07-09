@@ -145,19 +145,21 @@ export default function NpcsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <NpcEditorPanel
-                key={selectedNpcId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                npcId={selectedNpcId}
-                isCreatingNew={isCreatingNew}
-                template={templateData}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
-                onEditCancel={onEditCancel}
-                onBack={handleBack}
-                dataVersion={dataVersion}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <NpcEditorPanel
+                  key={selectedNpcId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  npcId={selectedNpcId}
+                  isCreatingNew={isCreatingNew}
+                  template={templateData}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onUseAsTemplate={handleUseAsTemplate}
+                  onEditCancel={onEditCancel}
+                  onBack={handleBack}
+                  dataVersion={dataVersion}
+                />
+              </div>
             </div>
           )}
         </div>

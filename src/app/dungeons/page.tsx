@@ -156,18 +156,20 @@ export default function DungeonsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <DungeonEditorPanel
-                key={selectedDungeonId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                dungeonId={selectedDungeonId}
-                isCreatingNew={isCreatingNew}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onRunDungeon={handleRunDungeon}
-                onBack={handleBack}
-                dataVersion={dataVersion}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <DungeonEditorPanel
+                  key={selectedDungeonId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  dungeonId={selectedDungeonId}
+                  isCreatingNew={isCreatingNew}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onRunDungeon={handleRunDungeon}
+                  onBack={handleBack}
+                  dataVersion={dataVersion}
+                />
+              </div>
             </div>
           )}
         </div>

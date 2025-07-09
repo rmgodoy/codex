@@ -198,20 +198,22 @@ export default function Home() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <CreatureEditorPanel
-                key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                creatureId={selectedCreatureId}
-                isCreatingNew={isCreatingNew}
-                template={templateData}
-                onCreatureSaveSuccess={onCreatureSaveSuccess}
-                onCreatureDeleteSuccess={onCreatureDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
-                onEditCancel={onEditCancel}
-                dataVersion={dataVersion}
-                onFilterByClick={handleFilterByClick}
-                onBack={handleBack}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <CreatureEditorPanel
+                  key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  creatureId={selectedCreatureId}
+                  isCreatingNew={isCreatingNew}
+                  template={templateData}
+                  onCreatureSaveSuccess={onCreatureSaveSuccess}
+                  onCreatureDeleteSuccess={onCreatureDeleteSuccess}
+                  onUseAsTemplate={handleUseAsTemplate}
+                  onEditCancel={onEditCancel}
+                  dataVersion={dataVersion}
+                  onFilterByClick={handleFilterByClick}
+                  onBack={handleBack}
+                />
+              </div>
             </div>
           )}
         </div>

@@ -129,16 +129,18 @@ export default function TreasuresPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="p-4 sm:p-6 h-full w-full overflow-y-auto">
-              <TreasureEditorPanel
-                key={selectedTreasureId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                treasureId={selectedTreasureId}
-                isCreatingNew={isCreatingNew}
-                onSaveSuccess={onSaveSuccess}
-                onDeleteSuccess={onDeleteSuccess}
-                onEditCancel={onEditCancel}
-                onBack={handleBack}
-              />
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <TreasureEditorPanel
+                  key={selectedTreasureId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  treasureId={selectedTreasureId}
+                  isCreatingNew={isCreatingNew}
+                  onSaveSuccess={onSaveSuccess}
+                  onDeleteSuccess={onDeleteSuccess}
+                  onEditCancel={onEditCancel}
+                  onBack={handleBack}
+                />
+              </div>
             </div>
           )}
         </div>
