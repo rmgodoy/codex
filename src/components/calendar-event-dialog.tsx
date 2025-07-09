@@ -118,7 +118,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         title: "",
         description: "",
         tags: [],
-        startDate: new Date(),
+        startDate: initialDate,
         endDate: undefined,
         location: undefined,
       });
