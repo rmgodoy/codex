@@ -574,7 +574,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   return <canvas 
             ref={canvasRef} 
-            className={className} 
+            className={className}
+            style={{ touchAction: 'none' }}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseMove={handleMouseMove}
