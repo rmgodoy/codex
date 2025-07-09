@@ -19,11 +19,10 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MultiItemSelectionDialog } from "@/components/multi-item-selection-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 
 const ICONS = [
@@ -196,6 +195,7 @@ export default function MapsPage() {
     const [maps, setMaps] = useState<WorldMap[]>([]);
     const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
     const [activeMap, setActiveMap] = useState<WorldMap | null>(null);
+    const [mapSettings, setMapSettings] = useState<{name: string, radius: string} | null>(null);
 
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'data'>('settings');
@@ -215,7 +215,6 @@ export default function MapsPage() {
     const [isEyedropperActive, setIsEyedropperActive] = useState(false);
 
     const { toast } = useToast();
-    const debouncedActiveMap = useDebounce(activeMap, 1000);
     
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -268,15 +267,6 @@ export default function MapsPage() {
     const handleMapsUpdate = (newMapId?: string) => {
         loadAllMaps(newMapId);
     };
-
-    useEffect(() => {
-        if (debouncedActiveMap) {
-            updateMap(debouncedActiveMap).catch(() => {
-                toast({ variant: 'destructive', title: 'Auto-save failed' });
-            });
-            setMaps(prevMaps => prevMaps.map(m => m.id === debouncedActiveMap.id ? { ...m, name: debouncedActiveMap.name } : m));
-        }
-    }, [debouncedActiveMap, toast]);
     
     useEffect(() => {
         if (selectedMapId) {
@@ -289,6 +279,14 @@ export default function MapsPage() {
         }
     }, [selectedMapId]);
     
+     useEffect(() => {
+        if (activeMap) {
+            setMapSettings({ name: activeMap.name, radius: String(activeMap.radius) });
+        } else {
+            setMapSettings(null);
+        }
+    }, [activeMap]);
+
     const getLuminance = (hex: string) => {
         hex = hex.replace('#', '');
         const r = parseInt(hex.substring(0, 2), 16);
@@ -322,11 +320,15 @@ export default function MapsPage() {
         toast({ title: 'Tile properties copied to brush.' });
     };
 
-    const handleGridUpdate = (newGrid: HexTile[]) => {
+    const handleGridUpdate = useCallback((newGrid: HexTile[]) => {
         if (activeMap) {
-            setActiveMap({ ...activeMap, tiles: newGrid });
+            const updatedMap = { ...activeMap, tiles: newGrid };
+            setActiveMap(updatedMap);
+            updateMap(updatedMap).catch(() => {
+                toast({ variant: 'destructive', title: 'Auto-save failed during painting.' });
+            });
         }
-    };
+    }, [activeMap, toast]);
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
         if (activeMap) {
@@ -339,21 +341,42 @@ export default function MapsPage() {
                 }
                 return tile;
             });
-            setActiveMap({ ...activeMap, tiles: newTiles });
+            const updatedMap = { ...activeMap, tiles: newTiles };
+            setActiveMap(updatedMap);
+            updateMap(updatedMap).catch(() => {
+                toast({ variant: 'destructive', title: 'Data linking failed to save.' });
+            });
         }
     };
 
-    const handleMapSettingsChange = (field: 'name' | 'radius', value: string | number) => {
-        if (!activeMap) return;
+    const handleSaveMapSettings = async () => {
+        if (!activeMap || !mapSettings) return;
 
-        if (field === 'radius') {
-            const newRadius = Number(value);
-            if (!isNaN(newRadius) && newRadius > 0 && newRadius <= 100) {
-                const newGrid = resizeHexGrid(activeMap.tiles, newRadius);
-                setActiveMap({ ...activeMap, radius: newRadius, tiles: newGrid });
-            }
-        } else {
-            setActiveMap({ ...activeMap, [field]: value as string });
+        const newRadius = Number(mapSettings.radius);
+        if (!mapSettings.name.trim()) {
+            toast({ variant: 'destructive', title: 'Validation Error', description: 'Map name cannot be empty.' });
+            return;
+        }
+        if (isNaN(newRadius) || newRadius <= 0 || newRadius > 100) {
+            toast({ variant: 'destructive', title: 'Validation Error', description: 'Radius must be a number between 1 and 100.' });
+            return;
+        }
+
+        const newGrid = resizeHexGrid(activeMap.tiles, newRadius);
+        const updatedMap: WorldMap = { 
+            ...activeMap, 
+            name: mapSettings.name, 
+            radius: newRadius, 
+            tiles: newGrid 
+        };
+        
+        try {
+            await updateMap(updatedMap);
+            setActiveMap(updatedMap);
+            setMaps(prevMaps => prevMaps.map(m => m.id === updatedMap.id ? { ...m, name: updatedMap.name } : m));
+            toast({ title: 'Map settings saved!' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Save failed' });
         }
     };
     
@@ -428,14 +451,14 @@ export default function MapsPage() {
                                     </div>
                                 </div>
                                 <Separator/>
-                                {activeMap ? (
+                                {activeMap && mapSettings ? (
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="map-name">Map Name</Label>
                                             <Input
                                                 id="map-name"
-                                                value={activeMap.name}
-                                                onChange={(e) => handleMapSettingsChange('name', e.target.value)}
+                                                value={mapSettings.name}
+                                                onChange={(e) => setMapSettings(s => s ? {...s, name: e.target.value} : null)}
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -443,12 +466,13 @@ export default function MapsPage() {
                                             <Input
                                                 id="map-radius"
                                                 type="number"
-                                                value={activeMap.radius}
-                                                onChange={(e) => handleMapSettingsChange('radius', parseInt(e.target.value, 10))}
+                                                value={mapSettings.radius}
+                                                onChange={(e) => setMapSettings(s => s ? {...s, radius: e.target.value} : null)}
                                                 min="1"
                                                 max="100"
                                             />
                                         </div>
+                                        <Button onClick={handleSaveMapSettings} className="w-full">Save Settings</Button>
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground text-center pt-4">Select a map to view its settings, or create a new one.</p>
