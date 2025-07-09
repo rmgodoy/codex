@@ -435,8 +435,7 @@ export default function MapsPage() {
                     open={isMobile ? isToolsOpen : true}
                     onOpenChange={isMobile ? setIsToolsOpen : undefined}
                     className={cn(
-                        "fixed z-10 w-80 shadow-lg",
-                        isMobile ? "top-4 left-4" : "top-20 left-4"
+                        "fixed z-10 w-80 shadow-lg top-20 left-4"
                     )}
                 >
                     <Card>
@@ -697,3 +696,5 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
+
+    
