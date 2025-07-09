@@ -111,6 +111,8 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   const viewRef = useRef(view);
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const [lastTouchDistance, setLastTouchDistance] = useState(0);
+  const [isPinching, setIsPinching] = useState(false);
   
   const [isPainting, setIsPainting] = useState(false);
   const [lastPaintedHex, setLastPaintedHex] = useState<Hex | null>(null);
@@ -133,16 +135,14 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     }
   }, []);
 
-  const getHexFromMouseEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>, currentView: {x:number, y:number, zoom:number}): Hex | null => {
+  const getHexFromCanvasCoordinates = useCallback((canvasX: number, canvasY: number): Hex | null => {
       const canvas = canvasRef.current;
       if (!canvas) return null;
-
+      const currentView = viewRef.current;
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
 
-      const worldX = (mouseX - (rect.width / 2 + currentView.x)) / currentView.zoom;
-      const worldY = (mouseY - (rect.height / 2 + currentView.y)) / currentView.zoom;
+      const worldX = (canvasX - (rect.width / 2 + currentView.x)) / currentView.zoom;
+      const worldY = (canvasY - (rect.height / 2 + currentView.y)) / currentView.zoom;
       
       return pixelToHex(worldX, worldY, hexSize);
   }, [hexSize]);
@@ -176,7 +176,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
     
-    const currentHoveredHex = getHexFromMouseEvent({ clientX: lastPanPoint.x, clientY: lastPanPoint.y } as React.MouseEvent<HTMLCanvasElement>, currentView);
+    const currentHoveredHex = getHexFromCanvasCoordinates(lastPanPoint.x, lastPanPoint.y);
 
     if ((activeTool === 'paint' || isEyedropperActive) && currentHoveredHex) {
         const center = hexToPixel(currentHoveredHex, hexSize);
@@ -207,7 +207,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     
     ctx.restore();
 
-  }, [getHexFromMouseEvent, hexSize, themeColors, lastPanPoint, selectedHex, activeTool, isEyedropperActive]);
+  }, [getHexFromCanvasCoordinates, hexSize, themeColors, lastPanPoint, selectedHex, activeTool, isEyedropperActive]);
 
   useEffect(() => {
       if (!grid.length || !canvasRef.current) return;
@@ -360,7 +360,10 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const clickedHex = getHexFromMouseEvent(e, viewRef.current);
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const clickedHex = getHexFromCanvasCoordinates(mouseX, mouseY);
     if (!clickedHex) return;
     
     if (isEyedropperActive) {
@@ -370,7 +373,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
     if (e.button === 2 || e.button === 1) { // Right or Middle click for panning
       setIsPanning(true);
-      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      setLastPanPoint({ x: mouseX, y: mouseY });
       return;
     }
     
@@ -387,7 +390,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     } else {
       onHexClick(clickedHex);
     }
-  }, [getHexFromMouseEvent, onHexClick, paintMode, paintTile, bucketFill, activeTool, isCtrlPressed, isEyedropperActive, onEyedropperClick]);
+  }, [getHexFromCanvasCoordinates, onHexClick, paintMode, paintTile, bucketFill, activeTool, isCtrlPressed, isEyedropperActive, onEyedropperClick]);
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 0) { setIsPainting(false); setLastPaintedHex(null); }
@@ -410,18 +413,22 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   }
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
     if (isPanning) {
-        const dx = e.clientX - lastPanPoint.x;
-        const dy = e.clientY - lastPanPoint.y;
-        setLastPanPoint({ x: e.clientX, y: e.clientY });
+        const dx = mouseX - lastPanPoint.x;
+        const dy = mouseY - lastPanPoint.y;
+        setLastPanPoint({ x: mouseX, y: mouseY });
         viewRef.current.x += dx;
         viewRef.current.y += dy;
         requestAnimationFrame(draw);
         return;
     }
     
-    setLastPanPoint({ x: e.clientX, y: e.clientY });
-    const currentHex = getHexFromMouseEvent(e, viewRef.current);
+    setLastPanPoint({ x: mouseX, y: mouseY });
+    const currentHex = getHexFromCanvasCoordinates(mouseX, mouseY);
     onHexHover(currentHex);
 
     if (activeTool === 'paint' && (paintMode === 'brush' || paintMode === 'erase') && isPainting) {
@@ -432,7 +439,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             }
         }
     }
-  }, [isPanning, lastPanPoint, getHexFromMouseEvent, paintMode, isPainting, paintTile, onHexHover, activeTool, draw]);
+  }, [isPanning, lastPanPoint, getHexFromCanvasCoordinates, paintMode, isPainting, paintTile, onHexHover, activeTool, draw]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -458,6 +465,112 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     viewRef.current = { x: newX, y: newY, zoom: finalZoom };
     setView({ x: newX, y: newY, zoom: finalZoom });
   };
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touches = e.touches;
+    const rect = canvasRef.current!.getBoundingClientRect();
+
+    if (touches.length === 1) {
+      const touch = touches[0];
+      const touchX = touch.clientX - rect.left;
+      const touchY = touch.clientY - rect.top;
+      const tappedHex = getHexFromCanvasCoordinates(touchX, touchY);
+      
+      if (isEyedropperActive) {
+          if (tappedHex) onEyedropperClick(tappedHex);
+          return;
+      }
+      
+      setIsPanning(true);
+      setLastPanPoint({ x: touchX, y: touchY });
+
+      if (activeTool === 'paint' && (paintMode === 'brush' || paintMode === 'erase')) {
+          if(tappedHex) {
+              setIsPainting(true);
+              paintTile(tappedHex);
+              setLastPaintedHex(tappedHex);
+          }
+      } else {
+        if (tappedHex) onHexClick(tappedHex);
+      }
+    } else if (touches.length === 2) {
+      setIsPanning(true);
+      setIsPinching(true);
+      const t1 = touches[0];
+      const t2 = touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      setLastTouchDistance(dist);
+      setLastPanPoint({
+          x: (t1.clientX + t2.clientX) / 2 - rect.left,
+          y: (t1.clientY + t2.clientY) / 2 - rect.top,
+      });
+    }
+  }, [getHexFromCanvasCoordinates, isEyedropperActive, onEyedropperClick, activeTool, paintMode, paintTile, onHexClick]);
+  
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touches = e.touches;
+    const rect = canvasRef.current!.getBoundingClientRect();
+
+    if (touches.length === 1 && !isPinching) {
+        const touch = touches[0];
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
+        
+        const dx = touchX - lastPanPoint.x;
+        const dy = touchY - lastPanPoint.y;
+        
+        if (isPainting) {
+            const currentHex = getHexFromCanvasCoordinates(touchX, touchY);
+            if (currentHex) {
+              if (!lastPaintedHex || currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r) {
+                  paintTile(currentHex);
+                  setLastPaintedHex(currentHex);
+              }
+            }
+        } else if (isPanning) {
+            viewRef.current.x += dx;
+            viewRef.current.y += dy;
+            requestAnimationFrame(draw);
+        }
+        setLastPanPoint({ x: touchX, y: touchY });
+    } else if (touches.length === 2 && isPanning) {
+        const t1 = touches[0];
+        const t2 = touches[1];
+        const newDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const newMidPoint = {
+            x: (t1.clientX + t2.clientX) / 2 - rect.left,
+            y: (t1.clientY + t2.clientY) / 2 - rect.top,
+        };
+
+        const zoomFactor = newDist / lastTouchDistance;
+        const newZoom = Math.max(0.1, Math.min(5, viewRef.current.zoom * zoomFactor));
+
+        const worldX = (newMidPoint.x - (rect.width / 2 + viewRef.current.x)) / viewRef.current.zoom;
+        const worldY = (newMidPoint.y - (rect.height / 2 + viewRef.current.y)) / viewRef.current.zoom;
+        
+        const newX = newMidPoint.x - worldX * newZoom - rect.width / 2;
+        const newY = newMidPoint.y - worldY * newZoom - rect.height / 2;
+        
+        viewRef.current = { x: newX, y: newY, zoom: newZoom };
+        setView({ x: newX, y: newY, zoom: newZoom });
+        
+        setLastTouchDistance(newDist);
+        setLastPanPoint(newMidPoint);
+    }
+  }, [isPanning, isPinching, isPainting, lastPanPoint, lastTouchDistance, draw, getHexFromCanvasCoordinates, paintTile, lastPaintedHex]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+      setIsPanning(false);
+      setIsPinching(false);
+      setIsPainting(false);
+      setLastPaintedHex(null);
+      if (e.touches.length === 0) {
+        onHexHover(null);
+      }
+  }, [onHexHover]);
+
 
   return <canvas 
             ref={canvasRef} 
@@ -467,6 +580,9 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             onWheel={handleWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             onContextMenu={(e) => e.preventDefault()}
         />;
 };
