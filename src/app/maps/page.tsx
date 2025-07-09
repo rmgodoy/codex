@@ -413,7 +413,6 @@ export default function MapsPage() {
                         hexSize={25} 
                         className={cn("w-full h-full", isEyedropperActive && 'cursor-crosshair')} 
                         onGridUpdate={handleGridUpdate}
-                        onHexHover={() => {}} 
                         onHexClick={setSelectedHex}
                         activeTool={activeTool}
                         paintMode={paintMode}

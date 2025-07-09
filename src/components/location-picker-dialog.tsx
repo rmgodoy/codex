@@ -77,7 +77,6 @@ export function LocationPickerDialog({ children, onLocationSelect }: LocationPic
                             onHexClick={setSelectedHex}
                             selectedHex={selectedHex}
                             onGridUpdate={() => {}}
-                            onHexHover={() => {}}
                             activeTool="data"
                             paintMode="brush"
                             paintColor=""

@@ -82,7 +82,6 @@ interface HexGridProps {
   hexSize?: number;
   className?: string;
   onGridUpdate: (grid: HexTile[]) => void;
-  onHexHover: (hex: Hex | null) => void;
   onHexClick: (hex: Hex | null) => void;
   activeTool: 'settings' | 'paint' | 'data';
   paintMode: 'brush' | 'bucket' | 'erase';
@@ -95,7 +94,7 @@ interface HexGridProps {
   onEyedropperClick: (hex: Hex) => void;
 }
 
-const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexHover, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex, isCtrlPressed, isEyedropperActive, onEyedropperClick }) => {
+const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGridUpdate, onHexClick, activeTool, paintMode, paintColor, paintIcon, paintIconColor, selectedHex, isCtrlPressed, isEyedropperActive, onEyedropperClick }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCanvasSimpleRef = useRef<HTMLCanvasElement | null>(null);
@@ -176,22 +175,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         const worldHeight = canvasToDraw.height;
         ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
-    
-    const currentHoveredHex = getHexFromCanvasCoordinates(lastPanPointRef.current.x, lastPanPointRef.current.y);
-
-    if ((activeTool === 'paint' || isEyedropperActive) && currentHoveredHex) {
-        const center = hexToPixel(currentHoveredHex, hexSize);
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const corner = getHexCorner(center, hexSize, i);
-            if (i === 0) ctx.moveTo(corner.x, corner.y); else ctx.lineTo(corner.x, corner.y);
-        }
-        ctx.closePath();
-        ctx.fillStyle = themeColors.accent;
-        ctx.globalAlpha = 0.3;
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-    }
 
     if (selectedHex) {
         const center = hexToPixel(selectedHex, hexSize);
@@ -208,7 +191,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     
     ctx.restore();
 
-  }, [getHexFromCanvasCoordinates, hexSize, themeColors, selectedHex, activeTool, isEyedropperActive]);
+  }, [hexSize, themeColors, selectedHex]);
 
   useEffect(() => {
       if (!grid.length || !canvasRef.current) return;
@@ -295,7 +278,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 
       draw();
   }, [grid, hexSize, themeColors, draw]);
-
 
   useEffect(() => {
     draw();
@@ -410,7 +392,6 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     }
     setIsPainting(false); 
     setLastPaintedHex(null); 
-    onHexHover(null);
   }
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -429,10 +410,9 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     }
     
     lastPanPointRef.current = { x: mouseX, y: mouseY };
-    const currentHex = getHexFromCanvasCoordinates(mouseX, mouseY);
-    onHexHover(currentHex);
-
+    
     if (activeTool === 'paint' && (paintMode === 'brush' || paintMode === 'erase') && isPainting) {
+        const currentHex = getHexFromCanvasCoordinates(mouseX, mouseY);
         if (currentHex) {
             if (!lastPaintedHex || (currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r)) {
                 paintTile(currentHex);
@@ -440,7 +420,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
             }
         }
     }
-  }, [isPanning, getHexFromCanvasCoordinates, paintMode, isPainting, paintTile, onHexHover, activeTool, draw, lastPaintedHex]);
+  }, [isPanning, getHexFromCanvasCoordinates, paintMode, isPainting, paintTile, activeTool, draw, lastPaintedHex]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -567,10 +547,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
       setIsPinching(false);
       setIsPainting(false);
       setLastPaintedHex(null);
-      if (e.touches.length === 0) {
-        onHexHover(null);
-      }
-  }, [onHexHover]);
+  }, []);
 
 
   return <canvas 
