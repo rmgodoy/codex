@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -284,7 +283,7 @@ export default function CreatureListPanel({
                     <Download />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="sm:max-w-4xl">
                   <DialogHeader>
                     <DialogTitle>Export Creatures to PNG</DialogTitle>
                     <DialogDescription>Select the creatures you want to export. They will be downloaded as a single ZIP file.</DialogDescription>

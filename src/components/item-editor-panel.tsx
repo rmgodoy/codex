@@ -128,7 +128,7 @@ const SingleDeedSelectionDialog = ({ onSelectDeed, allDeeds, children }: { onSel
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-2xl h-[70vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl h-[70vh] flex flex-col">
         <DialogHeader><DialogTitle>Select a Deed</DialogTitle></DialogHeader>
         <div className="flex gap-2 mb-4 flex-wrap">
           <Input 

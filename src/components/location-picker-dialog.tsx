@@ -53,7 +53,7 @@ export function LocationPickerDialog({ children, onLocationSelect }: LocationPic
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+            <DialogContent className="sm:max-w-4xl h-[90vh] sm:h-[80vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Select a Location</DialogTitle>
                 </DialogHeader>
