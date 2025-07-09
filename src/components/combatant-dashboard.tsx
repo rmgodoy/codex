@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -337,12 +336,18 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
             </div>
           </div>
           
-          {combatant.type === 'monster' && combatant.abilities && (
+          {combatant.type === 'monster' && combatant.abilities && combatant.abilities.length > 0 && (
             <>
                 <Separator/>
                 <div>
                     <h3 className="text-xl font-semibold text-primary-foreground my-4">Abilities</h3>
-                    <p className="text-foreground/90 whitespace-pre-wrap">{combatant.abilities}</p>
+                    <div className="space-y-2 text-foreground/90 whitespace-pre-wrap">
+                        {combatant.abilities.map((ability) => (
+                            <p key={ability.id}>
+                                <span className="font-bold">{ability.name}:</span> {ability.description}
+                            </p>
+                        ))}
+                    </div>
                 </div>
             </>
           )}
