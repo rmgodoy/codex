@@ -8,8 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { getEncounterById, addEncounter, updateEncounter, deleteEncounter, getAllCreatures, addTags, getAllEncounterTables } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Encounter, Creature, MonsterEncounterGroup, PlayerEncounterEntry, EncounterTable } from "@/lib/types";
+import type { Encounter, Creature, MonsterEncounterGroup, PlayerEncounterEntry, EncounterTable, CreatureTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ROLES, type Role } from "@/lib/roles";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,15 +52,21 @@ const encounterSchema = z.object({
 
 type EncounterFormData = z.infer<typeof encounterSchema>;
 
+const TEMPLATES: CreatureTemplate[] = ['Normal', 'Underling', 'Paragon', 'Tyrant'];
+
 const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures: { id: string; name: string; quantity: number }[]) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
   const [selectedCreatures, setSelectedCreatures] = useState<Map<string, number>>(new Map());
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [minTR, setMinTR] = useState('');
   const [maxTR, setMaxTR] = useState('');
   const [minLevel, setMinLevel] = useState('');
   const [maxLevel, setMaxLevel] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [templateFilter, setTemplateFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('');
 
 
   useEffect(() => {
@@ -71,6 +78,8 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
   const filteredCreatures = useMemo(() => {
     return allCreatures.filter(c => {
       const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === 'all' || c.role === roleFilter;
+      const matchesTemplate = templateFilter === 'all' || c.template === templateFilter;
       
       let matchesTR = true;
       if (minTR && !isNaN(parseInt(minTR))) {
@@ -87,10 +96,18 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
       if (maxLevel && !isNaN(parseInt(maxLevel))) {
           matchesLevel = matchesLevel && c.level <= parseInt(maxLevel, 10);
       }
+      
+      let matchesTags = true;
+      if (tagFilter) {
+        const tags = tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+        if (tags.length > 0) {
+          matchesTags = c.tags && c.tags.length > 0 ? tags.every(tag => c.tags!.some(ct => ct.toLowerCase().includes(tag))) : false;
+        }
+      }
 
-      return matchesSearch && matchesTR && matchesLevel;
+      return matchesSearch && matchesRole && matchesTemplate && matchesTR && matchesLevel && matchesTags;
     });
-  }, [allCreatures, searchTerm, minTR, maxTR, minLevel, maxLevel]);
+  }, [allCreatures, searchTerm, minTR, maxTR, minLevel, maxLevel, roleFilter, templateFilter, tagFilter]);
 
 
   const handleQuantityChange = (creatureId: string, quantity: number) => {
@@ -125,6 +142,9 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
     setMaxLevel("");
     setMinTR("");
     setMaxTR("");
+    setRoleFilter('all');
+    setTemplateFilter('all');
+    setTagFilter('');
   };
 
   return (
@@ -138,17 +158,41 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
         </DialogHeader>
         <div className="space-y-2">
             <Input
-            placeholder="Search monsters..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="shrink-0"
+              placeholder="Search monsters..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="shrink-0"
             />
-            <div className="flex gap-2">
-                <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} />
-                <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} />
-                <Input placeholder="Min TR" type="number" value={minTR} onChange={e => setMinTR(e.target.value)} />
-                <Input placeholder="Max TR" type="number" value={maxTR} onChange={e => setMaxTR(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by role" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={templateFilter} onValueChange={setTemplateFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by template" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Templates</SelectItem>
+                        {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} />
+              <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} />
+            </div>
+             <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="Min TR" type="number" value={minTR} onChange={e => setMinTR(e.target.value)} />
+              <Input placeholder="Max TR" type="number" value={maxTR} onChange={e => setMaxTR(e.target.value)} />
+            </div>
+             <TagInput
+              value={tagFilter ? tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+              onChange={(tags) => setTagFilter(tags.join(','))}
+              placeholder="Filter by tags..."
+              tagSource="creature"
+            />
         </div>
         <ScrollArea className="flex-1 border rounded-md p-2 mt-2">
           <div className="space-y-1">
