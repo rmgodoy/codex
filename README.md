@@ -33,7 +33,7 @@ Need some quick inspiration? Use the random generators.
 
 *   **Encounter Tables**: Create weighted tables to randomly generate encounters based on a Threat Rating.
 *   **Treasures**: Create a library of treasure items with varying materials, gemstones, and values. You can also randomly generate new treasures.
-*   **Commoners**: Instantly generate four random commoner NPCs with unique past lives, attributes, skills, and equipment.
+*   **Commoners**: Instantly generate four random commoner PCs for their first day of adventuring, complete with unique past lives, attributes, skills, and equipment.
 
 ## Getting Started
 
@@ -41,6 +41,18 @@ Need some quick inspiration? Use the random generators.
 2.  **Build an Encounter**: Navigate to the **Encounters** page and create a new encounter. Add some players and monsters from your bestiary. Click "Run Encounter" to see the live combat tracker in action.
 3.  **Create a Map**: Go to the **Maps** page, create a new map, and start painting your world.
 4.  **Add an Event**: Open the **Calendar**, add an event, and use the location picker to place it on the map you just created.
+
+## To-Do / In Progress
+
+Here is a list of features and fixes currently planned for future updates:
+
+*   Update the Commoners page to be scrollable on all screen sizes.
+*   Make the mobile navigation menu scrollable to accommodate all links.
+*   Set the default "start date" in the New Event dialog to the date selected on the calendar.
+*   Revisit the "Random Encounter Table" feature; consider refactoring it into a more generic "Random Creature Table".
+*   Allow creating Deeds directly from the NPC editor.
+*   Fix issue in encounter mode where going back a turn jumps to the start of the round.
+*   Update the dataset to include all official deeds for creatures from the Tresspasser rulebook.
 
 ## Import & Export
 
