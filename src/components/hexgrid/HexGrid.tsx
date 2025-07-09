@@ -111,6 +111,9 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
   const viewRef = useRef(view);
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const lastPanPointRef = useRef(lastPanPoint);
+  lastPanPointRef.current = lastPanPoint;
+
   const [lastTouchDistance, setLastTouchDistance] = useState(0);
   const [isPinching, setIsPinching] = useState(false);
   
@@ -176,7 +179,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
         ctx.drawImage(canvasToDraw, -worldWidth / 2, -worldHeight / 2);
     }
     
-    const currentHoveredHex = getHexFromCanvasCoordinates(lastPanPoint.x, lastPanPoint.y);
+    const currentHoveredHex = getHexFromCanvasCoordinates(lastPanPointRef.current.x, lastPanPointRef.current.y);
 
     if ((activeTool === 'paint' || isEyedropperActive) && currentHoveredHex) {
         const center = hexToPixel(currentHoveredHex, hexSize);
@@ -207,7 +210,7 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
     
     ctx.restore();
 
-  }, [getHexFromCanvasCoordinates, hexSize, themeColors, lastPanPoint, selectedHex, activeTool, isEyedropperActive]);
+  }, [getHexFromCanvasCoordinates, hexSize, themeColors, selectedHex, activeTool, isEyedropperActive]);
 
   useEffect(() => {
       if (!grid.length || !canvasRef.current) return;
@@ -589,3 +592,5 @@ const HexGrid: React.FC<HexGridProps> = ({ grid, hexSize = 25, className, onGrid
 };
 
 export default HexGrid;
+
+    
