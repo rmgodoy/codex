@@ -45,6 +45,45 @@ const rollQuantity = (quantityStr: string): number => {
     return 1;
 };
 
+// Helper function to calculate turn order
+const calculateTurnOrder = (combatants: Combatant[]) => {
+  if (!combatants || combatants.length === 0) {
+    return {
+      turnOrder: [],
+      untrackedPlayers: [],
+    };
+  }
+
+  const allPlayers = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
+  const monsters = combatants.filter((c): c is MonsterCombatant => c.type === 'monster');
+    
+  const untracked = allPlayers.filter(p => (p.initiative === undefined || p.initiative <= 0) && !p.nat20);
+  const trackedPlayers = allPlayers.filter(p => (p.initiative !== undefined && p.initiative > 0) || p.nat20);
+
+  const sortByInitiative = (a: Combatant, b: Combatant) => (b.initiative || 0) - (a.initiative || 0);
+  
+  const nat20Players = trackedPlayers.filter(p => p.nat20).sort(sortByInitiative);
+  const otherPlayers = trackedPlayers.filter(p => !p.nat20);
+
+  const maxMonsterInitiative = monsters.length > 0 ? Math.max(...monsters.map(m => m.initiative)) : -Infinity;
+  const highInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) > maxMonsterInitiative).sort(sortByInitiative);
+  const lowInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) <= maxMonsterInitiative).sort(sortByInitiative);
+  
+  const sortedMonsters = [...monsters].sort(sortByInitiative);
+  const paragonsAndTyrants = monsters.filter(m => m.template === 'Paragon' || m.template === 'Tyrant').sort(sortByInitiative);
+
+  const finalTurnOrder = [
+    ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-start` })),
+    ...highInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
+    ...sortedMonsters.map(c => ({ ...c, turnId: c.id })),
+    ...lowInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
+    ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-end` })),
+    ...paragonsAndTyrants.map(c => ({ ...c, turnId: `${c.id}-extra` })),
+  ];
+  
+  return { turnOrder: finalTurnOrder, untrackedPlayers: untracked };
+};
+
 export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEncounterViewProps) {
   const [combatantsByRound, setCombatantsByRound] = useState<Record<number, Combatant[]>>({});
   const [loading, setLoading] = useState(true);
@@ -129,33 +168,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   const { turnOrder, activeTurn, untrackedPlayers } = useMemo(() => {
     if (loading || combatants.length === 0) return { turnOrder: [], activeTurn: null, untrackedPlayers: [] };
 
-    const allPlayers = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
-    const monsters = combatants.filter((c): c is MonsterCombatant => c.type === 'monster');
-    
-    const untracked = allPlayers.filter(p => (p.initiative === undefined || p.initiative <= 0) && !p.nat20);
-    const trackedPlayers = allPlayers.filter(p => (p.initiative !== undefined && p.initiative > 0) || p.nat20);
-
-    const sortByInitiative = (a: Combatant, b: Combatant) => (b.initiative || 0) - (a.initiative || 0);
-    
-    const nat20Players = trackedPlayers.filter(p => p.nat20).sort(sortByInitiative);
-    const otherPlayers = trackedPlayers.filter(p => !p.nat20);
-
-    const maxMonsterInitiative = monsters.length > 0 ? Math.max(...monsters.map(m => m.initiative)) : -Infinity;
-    const highInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) > maxMonsterInitiative).sort(sortByInitiative);
-    const lowInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) <= maxMonsterInitiative).sort(sortByInitiative);
-    
-    const sortedMonsters = [...monsters].sort(sortByInitiative);
-    const paragonsAndTyrants = monsters.filter(m => m.template === 'Paragon' || m.template === 'Tyrant').sort(sortByInitiative);
-
-    const finalTurnOrder = [
-      ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-start` })),
-      ...highInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
-      ...sortedMonsters.map(c => ({ ...c, turnId: c.id })),
-      ...lowInitiativePlayers.map(c => ({ ...c, turnId: c.id })),
-      ...nat20Players.map(c => ({ ...c, turnId: `${c.id}-end` })),
-      ...paragonsAndTyrants.map(c => ({ ...c, turnId: `${c.id}-extra` })),
-    ];
-    
+    const { turnOrder: finalTurnOrder, untrackedPlayers: untracked } = calculateTurnOrder(combatants);
     const currentActiveTurn = allPlayersReady ? finalTurnOrder[turnIndex] : null;
 
     return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn, untrackedPlayers: untracked };
@@ -291,15 +304,14 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
 
   const prevTurn = () => {
     if (turnIndex === 0 && round > 1) {
-        // Go to previous round
-        const newRound = round - 1;
-        setRound(newRound);
-        // This is complex. The turn order length of previous round is needed.
-        // A simpler approach is to just set turn index to the end of the previous round.
-        // For now, let's just go to the start of the previous round. A full back-step is tricky.
-        setTurnIndex(0); // Simplification: go to start of prev round.
+      const newRound = round - 1;
+      const prevRoundCombatants = combatantsByRound[newRound] || [];
+      const { turnOrder: prevTurnOrder } = calculateTurnOrder(prevRoundCombatants);
+      
+      setRound(newRound);
+      setTurnIndex(prevTurnOrder.length > 0 ? prevTurnOrder.length - 1 : 0);
     } else if (turnIndex > 0) {
-        setTurnIndex(prevIndex => prevIndex - 1);
+      setTurnIndex(prevIndex => prevIndex - 1);
     }
   };
   
