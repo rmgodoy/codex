@@ -20,25 +20,27 @@ export default function CommonersPage() {
   return (
     <SidebarProvider>
       <MainLayout>
-        <div className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
-          <div className="flex justify-center mb-8">
-            <Button onClick={handleGenerate} size="lg">
-              <Dices className="mr-2 h-5 w-5" />
-              Generate Commoners
-            </Button>
-          </div>
+        <div className="h-full overflow-y-auto p-4 sm:p-6 md:p-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex justify-center mb-8">
+              <Button onClick={handleGenerate} size="lg">
+                <Dices className="mr-2 h-5 w-5" />
+                Generate Commoners
+              </Button>
+            </div>
 
-          {commoners.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {commoners.map((commoner) => (
-                <CommonerCard key={commoner.id} commoner={commoner} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground mt-16">
-              <p>Click the button to generate your first set of commoners.</p>
-            </div>
-          )}
+            {commoners.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {commoners.map((commoner) => (
+                  <CommonerCard key={commoner.id} commoner={commoner} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground mt-16">
+                <p>Click the button to generate your first set of commoners.</p>
+              </div>
+            )}
+          </div>
         </div>
       </MainLayout>
     </SidebarProvider>
