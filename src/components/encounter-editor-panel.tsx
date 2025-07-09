@@ -56,6 +56,11 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
   const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
   const [selectedCreatures, setSelectedCreatures] = useState<Map<string, number>>(new Map());
   const [searchTerm, setSearchTerm] = useState("");
+  const [minTR, setMinTR] = useState('');
+  const [maxTR, setMaxTR] = useState('');
+  const [minLevel, setMinLevel] = useState('');
+  const [maxLevel, setMaxLevel] = useState('');
+
 
   useEffect(() => {
     if (isOpen) {
@@ -64,8 +69,29 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
   }, [isOpen]);
 
   const filteredCreatures = useMemo(() => {
-    return allCreatures.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [allCreatures, searchTerm]);
+    return allCreatures.filter(c => {
+      const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      let matchesTR = true;
+      if (minTR && !isNaN(parseInt(minTR))) {
+          matchesTR = matchesTR && c.TR >= parseInt(minTR, 10);
+      }
+      if (maxTR && !isNaN(parseInt(maxTR))) {
+          matchesTR = matchesTR && c.TR <= parseInt(maxTR, 10);
+      }
+
+      let matchesLevel = true;
+      if (minLevel && !isNaN(parseInt(minLevel))) {
+          matchesLevel = matchesLevel && c.level >= parseInt(minLevel, 10);
+      }
+      if (maxLevel && !isNaN(parseInt(maxLevel))) {
+          matchesLevel = matchesLevel && c.level <= parseInt(maxLevel, 10);
+      }
+
+      return matchesSearch && matchesTR && matchesLevel;
+    });
+  }, [allCreatures, searchTerm, minTR, maxTR, minLevel, maxLevel]);
+
 
   const handleQuantityChange = (creatureId: string, quantity: number) => {
     if (quantity >= 1) {
@@ -95,6 +121,10 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
     setIsOpen(false);
     setSelectedCreatures(new Map());
     setSearchTerm("");
+    setMinLevel("");
+    setMaxLevel("");
+    setMinTR("");
+    setMaxTR("");
   };
 
   return (
@@ -106,15 +136,23 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
         <DialogHeader>
           <DialogTitle>Select Monsters from Bestiary</DialogTitle>
         </DialogHeader>
-        <Input
-          placeholder="Search monsters..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="mb-4 shrink-0"
-        />
-        <ScrollArea className="flex-1 border rounded-md p-2">
+        <div className="space-y-2">
+            <Input
+            placeholder="Search monsters..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="shrink-0"
+            />
+            <div className="flex gap-2">
+                <Input placeholder="Min Lvl" type="number" value={minLevel} onChange={e => setMinLevel(e.target.value)} />
+                <Input placeholder="Max Lvl" type="number" value={maxLevel} onChange={e => setMaxLevel(e.target.value)} />
+                <Input placeholder="Min TR" type="number" value={minTR} onChange={e => setMinTR(e.target.value)} />
+                <Input placeholder="Max TR" type="number" value={maxTR} onChange={e => setMaxTR(e.target.value)} />
+            </div>
+        </div>
+        <ScrollArea className="flex-1 border rounded-md p-2 mt-2">
           <div className="space-y-1">
-            {filteredCreatures.map(creature => (
+            {filteredCreatures.length > 0 ? filteredCreatures.map(creature => (
               <div key={creature.id} className="flex items-center gap-3 p-2 rounded-md">
                 <Input
                   type="number"
@@ -124,10 +162,12 @@ const MonsterSelectionDialog = ({ onAddCreatures }: { onAddCreatures: (creatures
                   className="w-20 h-8"
                 />
                 <label htmlFor={`creature-${creature.id}`} className="flex-1">
-                  <p className="font-semibold">{creature.name} <span className="text-xs text-muted-foreground">(Lvl {creature.level})</span></p>
+                  <p className="font-semibold">{creature.name} <span className="text-xs text-muted-foreground">(Lvl {creature.level}, TR {creature.TR})</span></p>
                 </label>
               </div>
-            ))}
+            )) : (
+                <p className="text-center text-sm text-muted-foreground py-4">No monsters found.</p>
+            )}
           </div>
         </ScrollArea>
         <div className="flex justify-end gap-2 pt-4 shrink-0">
