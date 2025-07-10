@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, Calendar, CalendarEvent, Map, PantheonEntity } from '@/lib/types';
@@ -134,11 +135,11 @@ export const importData = async (data: any): Promise<void> => {
     }
     if (data.npcs && Array.isArray(data.npcs)) {
         data.npcs.forEach((item: Npc & { factionId?: string }) => {
-            const migratedItem = { ...item };
+            const migratedItem: any = { ...item };
             if (migratedItem.factionId && (!migratedItem.factionIds || migratedItem.factionIds.length === 0)) {
                 migratedItem.factionIds = [migratedItem.factionId];
             }
-            delete (migratedItem as any).factionId;
+            delete migratedItem.factionId;
             stores[NPCS_STORE_NAME].put(migratedItem);
             processTags(item.tags, 'npc');
         });

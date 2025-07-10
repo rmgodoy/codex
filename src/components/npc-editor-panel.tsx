@@ -1,13 +1,14 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getNpcById, addNpc, updateNpc, deleteNpc, addTags, getAllFactions, getAllNpcs } from "@/lib/idb";
+import { getNpcById, addNpc, updateNpc, deleteNpc, addTags, getAllFactions, getAllNpcs, getAllPantheonEntities } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Npc, NewNpc, Faction, NpcRelationship } from "@/lib/types";
+import type { Npc, NewNpc, Faction, NpcRelationship, PantheonEntity } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Copy, Plus, Users } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Copy, Plus, Users, Sparkles } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
@@ -45,6 +46,7 @@ const npcSchema = z.object({
   backstory: z.string().optional(),
   appearance: z.string().optional(),
   factionIds: z.array(z.string()).optional(),
+  beliefIds: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
   relationships: z.array(npcRelationshipSchema).optional(),
 });
@@ -126,6 +128,70 @@ const FactionSelectionDialog = ({
     </Dialog>
   );
 };
+
+const BeliefSelectionDialog = ({ onConfirm, allEntities, initialSelectedIds, children }: { onConfirm: (ids: string[]) => void; allEntities: PantheonEntity[]; initialSelectedIds: string[]; children: React.ReactNode; }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentSelection, setCurrentSelection] = useState(new Set(initialSelectedIds));
+    
+    useEffect(() => {
+        if(isOpen) {
+            setCurrentSelection(new Set(initialSelectedIds));
+        }
+    }, [isOpen, initialSelectedIds]);
+
+    const filteredEntities = useMemo(() => {
+        return allEntities.filter(entity => entity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [allEntities, searchTerm]);
+    
+    const handleConfirm = () => {
+        onConfirm(Array.from(currentSelection));
+        setIsOpen(false);
+    };
+
+    const handleCheckboxChange = (entityId: string) => {
+        setCurrentSelection(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(entityId)) {
+                newSet.delete(entityId);
+            } else {
+                newSet.add(entityId);
+            }
+            return newSet;
+        });
+    };
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-md h-[60vh] flex flex-col">
+                <DialogHeader><DialogTitle>Select Beliefs</DialogTitle></DialogHeader>
+                <Input
+                    placeholder="Search entities..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="mb-4 shrink-0"
+                />
+                <ScrollArea className="flex-1 border rounded-md p-2">
+                    {filteredEntities.map(entity => (
+                        <div key={entity.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-accent">
+                            <Checkbox
+                                id={`belief-dialog-${entity.id}`}
+                                checked={currentSelection.has(entity.id)}
+                                onCheckedChange={() => handleCheckboxChange(entity.id)}
+                            />
+                            <label htmlFor={`belief-dialog-${entity.id}`} className="font-normal flex-1 cursor-pointer">{entity.name}</label>
+                        </div>
+                    ))}
+                </ScrollArea>
+                <DialogFooter className="pt-4">
+                    <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+                    <Button onClick={handleConfirm}>Confirm</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 const AddRelationshipDialog = ({ currentNpcId, allNpcs, onAdd }: { currentNpcId: string | null, allNpcs: Npc[], onAdd: (relationship: NpcRelationship) => void }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -233,6 +299,7 @@ const defaultValues: NpcFormData = {
   backstory: "",
   appearance: "",
   factionIds: [],
+  beliefIds: [],
   tags: [],
   relationships: [],
 };
@@ -244,9 +311,11 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
   const [npcData, setNpcData] = useState<Npc | null>(null);
   const [allNpcs, setAllNpcs] = useState<Npc[]>([]);
   const [allFactions, setAllFactions] = useState<Faction[]>([]);
+  const [allEntities, setAllEntities] = useState<PantheonEntity[]>([]);
   const isMobile = useIsMobile();
   
   const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f.name])), [allFactions]);
+  const entityMap = useMemo(() => new Map(allEntities.map(e => [e.id, e.name])), [allEntities]);
   const npcMap = useMemo(() => new Map(allNpcs.map(n => [n.id, n.name])), [allNpcs]);
 
   const form = useForm<NpcFormData>({
@@ -262,10 +331,12 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
   useEffect(() => {
     Promise.all([
       getAllNpcs(),
-      getAllFactions()
-    ]).then(([npcs, factions]) => {
+      getAllFactions(),
+      getAllPantheonEntities()
+    ]).then(([npcs, factions, entities]) => {
       setAllNpcs(npcs);
       setAllFactions(factions);
+      setAllEntities(entities);
     });
   }, [dataVersion]);
 
@@ -326,6 +397,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
         ...data,
         tags: data.tags || [],
         factionIds: data.factionIds || [],
+        beliefIds: data.beliefIds || [],
         relationships: data.relationships || [],
       };
 
@@ -413,14 +485,30 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
-                        {npcData.factionIds && npcData.factionIds.length > 0 && (
+                        {(npcData.factionIds && npcData.factionIds.length > 0 || npcData.beliefIds && npcData.beliefIds.length > 0) && (
                             <>
                                 <div>
-                                <h3 className="text-lg font-semibold text-primary-foreground mb-2">Factions</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {npcData.factionIds.map(id => (
-                                    <Badge key={id} variant="secondary">{factionMap.get(id) || 'Unknown'}</Badge>
-                                    ))}
+                                <div className="flex flex-wrap gap-x-8 gap-y-4">
+                                {npcData.factionIds && npcData.factionIds.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-primary-foreground mb-2">Factions</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {npcData.factionIds.map(id => (
+                                                <Badge key={id} variant="secondary">{factionMap.get(id) || 'Unknown'}</Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {npcData.beliefIds && npcData.beliefIds.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-primary-foreground mb-2">Beliefs</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {npcData.beliefIds.map(id => (
+                                                <Badge key={id} variant="secondary">{entityMap.get(id) || 'Unknown'}</Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 </div>
                                 </div>
                                 <Separator />
@@ -533,6 +621,35 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                         )}
                         />
                 </div>
+                <FormField
+                    control={form.control}
+                    name="beliefIds"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Beliefs</FormLabel>
+                        <div className="space-y-2">
+                            <BeliefSelectionDialog
+                                onConfirm={field.onChange}
+                                allEntities={allEntities}
+                                initialSelectedIds={field.value || []}
+                            >
+                                <Button type="button" variant="outline" className="w-full justify-between">
+                                    <span>{field.value?.length ? `${field.value.length} selected` : 'Select Beliefs...'}</span>
+                                    <Sparkles className="h-4 w-4 opacity-50" />
+                                </Button>
+                            </BeliefSelectionDialog>
+                            <div className="flex flex-wrap gap-1">
+                            {(field.value || []).map(id => {
+                                const entityName = entityMap.get(id);
+                                if (!entityName) return null;
+                                return ( <Badge key={id} variant="secondary">{entityName}</Badge> )
+                            })}
+                            </div>
+                        </div>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 <FormField name="appearance" control={form.control} render={({ field }) => (<FormItem><FormLabel>Appearance</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
                 <FormField name="personality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Personality</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
                 <FormField name="motivation" control={form.control} render={({ field }) => (<FormItem><FormLabel>Motivation</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />

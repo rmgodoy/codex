@@ -372,6 +372,7 @@ export interface Npc {
   appearance: string;
   race: string;
   factionIds?: string[];
+  beliefIds?: string[];
   tags: string[];
   relationships?: NpcRelationship[];
 }

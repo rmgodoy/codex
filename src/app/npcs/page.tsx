@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ export default function NpcsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [factionFilter, setFactionFilter] = useState<string[]>([]);
+  const [beliefFilter, setBeliefFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -35,6 +37,7 @@ export default function NpcsPage() {
     searchTerm,
     tagFilter,
     factionFilter,
+    beliefFilter,
     sortBy,
     sortOrder,
   };
@@ -43,6 +46,7 @@ export default function NpcsPage() {
     setSearchTerm,
     setTagFilter,
     setFactionFilter,
+    setBeliefFilter,
     setSortBy,
     setSortOrder,
   };
@@ -51,6 +55,7 @@ export default function NpcsPage() {
     setSearchTerm('');
     setTagFilter('');
     setFactionFilter([]);
+    setBeliefFilter([]);
     setSortBy('name');
     setSortOrder('asc');
   };
@@ -145,8 +150,7 @@ export default function NpcsPage() {
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="h-full w-full overflow-y-auto">
-              <div className="p-4 sm:p-6">
+            <div className="h-full w-full overflow-y-auto p-4 sm:p-6">
                 <NpcEditorPanel
                   key={selectedNpcId ?? (isCreatingNew ? 'new' : 'placeholder')}
                   npcId={selectedNpcId}
@@ -159,7 +163,6 @@ export default function NpcsPage() {
                   onBack={handleBack}
                   dataVersion={dataVersion}
                 />
-              </div>
             </div>
           )}
         </div>
