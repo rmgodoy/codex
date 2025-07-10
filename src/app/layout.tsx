@@ -4,6 +4,7 @@ import 'react-calendar/dist/Calendar.css';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { WorldProvider } from '@/components/world-provider';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
   title: 'Tresspasser Compendium',
@@ -45,7 +46,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <WorldProvider>
-          {children}
+          <SidebarProvider>
+            {children}
+          </SidebarProvider>
         </WorldProvider>
         <Toaster />
       </body>
