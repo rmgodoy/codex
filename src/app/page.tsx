@@ -13,8 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld } from '@/lib/idb';
 import { Download, Edit, Trash2 } from 'lucide-react';
 import { exportWorldData } from '@/lib/idb/import-export';
+import AppRouter from '@/components/app-router';
 
-export default function LandingPage() {
+export default function LandingOrAppPage() {
   const [worlds, setWorlds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNewWorldDialogOpen, setIsNewWorldDialogOpen] = useState(false);
@@ -22,6 +23,18 @@ export default function LandingPage() {
   const [editingWorld, setEditingWorld] = useState<{ oldName: string, newName: string } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setHash(window.location.hash);
+    };
+    
+    handleHashChange(); // Set initial hash
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const fetchWorlds = async () => {
     setLoading(true);
@@ -44,7 +57,8 @@ export default function LandingPage() {
       toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
       return;
     }
-    router.push(`/${slug}`);
+    // Navigate using hash
+    window.location.hash = `#/${slug}`;
   };
 
   const handleDeleteWorld = async (worldName: string) => {
@@ -118,6 +132,11 @@ export default function LandingPage() {
     </Dialog>
   );
 
+  // If there's a hash, we're in a world context
+  if (hash && hash !== '#/') {
+    return <AppRouter />;
+  }
+
   return (
     <MainLayout showImportExport={false}>
       <div className="h-full overflow-y-auto bg-background/50">
@@ -149,7 +168,7 @@ export default function LandingPage() {
                     </CardHeader>
                     <CardContent className="flex-grow">
                       <Button asChild className="w-full">
-                        <a href={`/${world.toLowerCase().replace(/\s+/g, '-')}`}>Enter World</a>
+                        <a href={`#/${world.toLowerCase().replace(/\s+/g, '-')}`}>Enter World</a>
                       </Button>
                     </CardContent>
                     <CardFooter className="gap-2">

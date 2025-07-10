@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { setWorldDbName, DB_NAME, WORLDS_METADATA_STORE_NAME, getDb } from '@/lib/idb';
-import { usePathname } from 'next/navigation';
 
 interface WorldContextType {
   worldSlug: string;
   worldName: string;
+  refreshWorldName: () => void;
 }
 
 const WorldContext = createContext<WorldContextType | null>(null);
@@ -22,41 +22,74 @@ export function useWorld(): WorldContextType {
 
 interface WorldProviderProps {
   children: React.ReactNode;
-  worldSlug: string;
 }
 
-export default function WorldProvider({ children, worldSlug }: WorldProviderProps) {
+export function WorldProvider({ children }: WorldProviderProps) {
+  const [worldSlug, setWorldSlug] = useState("");
   const [worldName, setWorldName] = useState("");
-  const pathname = usePathname();
-  
-  useEffect(() => {
-    setWorldDbName(worldSlug);
-    
-    const fetchWorldName = async () => {
-        try {
-            const db = await getDb();
-            const store = db.transaction(WORLDS_METADATA_STORE_NAME, 'readonly').objectStore(WORLDS_METADATA_STORE_NAME);
-            const request = store.get(worldSlug);
-            request.onsuccess = () => {
-                if (request.result) {
-                    setWorldName(request.result.name);
-                } else {
-                    const defaultName = worldSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    setWorldName(defaultName);
-                }
-            };
-        } catch(e) {
-            console.error("Could not fetch world name", e);
-             const defaultName = worldSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-             setWorldName(defaultName);
+
+  const fetchWorldName = useCallback(async (slug: string) => {
+    if (!slug) {
+        setWorldName("");
+        return;
+    }
+    try {
+      const db = await getDb();
+      const store = db.transaction(WORLDS_METADATA_STORE_NAME, 'readwrite').objectStore(WORLDS_METADATA_STORE_NAME);
+      const request = store.get(slug);
+
+      request.onsuccess = () => {
+        if (request.result) {
+          setWorldName(request.result.name);
+        } else {
+          const defaultName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const newMetadata = { name: defaultName, description: 'A new world of adventure awaits...' };
+          store.put(newMetadata, slug);
+          setWorldName(defaultName);
         }
-    };
+      };
+      request.onerror = (e) => {
+          console.error("Could not fetch world name", e);
+          const defaultName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          setWorldName(defaultName);
+      }
+    } catch(e) {
+      console.error("Could not fetch world name", e);
+      const defaultName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      setWorldName(defaultName);
+    }
+  }, []);
+  
+  const handleHashChange = useCallback(() => {
+    const hash = window.location.hash.slice(1); // Remove '#'
+    const parts = hash.split('/').filter(Boolean);
+    const slug = parts[0] || '';
     
-    fetchWorldName();
+    if (slug) {
+      setWorldDbName(slug);
+      setWorldSlug(slug);
+      fetchWorldName(slug);
+    } else {
+      setWorldSlug('');
+      setWorldName('');
+    }
+  }, [fetchWorldName]);
 
-  }, [worldSlug, pathname]);
+  useEffect(() => {
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [handleHashChange]);
 
-  const value = { worldSlug, worldName };
+  const refreshWorldName = useCallback(() => {
+    if (worldSlug) {
+      fetchWorldName(worldSlug);
+    }
+  }, [worldSlug, fetchWorldName]);
+
+  const value = { worldSlug, worldName, refreshWorldName };
 
   return (
     <WorldContext.Provider value={value}>
@@ -64,4 +97,3 @@ export default function WorldProvider({ children, worldSlug }: WorldProviderProp
     </WorldContext.Provider>
   );
 }
-

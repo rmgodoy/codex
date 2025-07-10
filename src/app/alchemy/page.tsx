@@ -9,10 +9,12 @@ import type { AlchemicalItem } from '@/lib/types';
 import AlchemyListPanel from '@/components/alchemy-list-panel';
 import AlchemyEditorPanel from '@/components/alchemy-editor-panel';
 import { populateDefaultAlchemyData } from '@/lib/default-alchemy-data';
+import { useWorld } from '@/components/world-provider';
 
 type SortByType = 'name' | 'tier' | 'cost';
 
 export default function AlchemyPage() {
+  const { worldSlug } = useWorld();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
@@ -143,7 +145,7 @@ export default function AlchemyPage() {
 
   if (isMobile) {
     return (
-      <MainLayout showSidebarTrigger={false}>
+      <MainLayout>
         <div className="h-full w-full">
           {mobileView === 'list' ? (
             <AlchemyListPanel

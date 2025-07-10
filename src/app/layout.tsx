@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import 'react-calendar/dist/Calendar.css';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { WorldProvider } from '@/components/world-provider';
 
 export const metadata: Metadata = {
   title: 'Tresspasser Compendium',
@@ -43,10 +44,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
+        <WorldProvider>
+          {children}
+        </WorldProvider>
         <Toaster />
       </body>
     </html>
   );
 }
-

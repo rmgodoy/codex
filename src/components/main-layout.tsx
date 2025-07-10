@@ -15,20 +15,31 @@ import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { importData } from '@/lib/idb';
+import { useWorld } from './world-provider';
 
 
-export default function MainLayout({ children, showSidebarTrigger = true, pageTitle, worldSlug, showImportExport = true }: { children: React.ReactNode, showSidebarTrigger?: boolean, pageTitle?: string, worldSlug?: string, showImportExport?: boolean }) {
-  const pathname = usePathname();
+export default function MainLayout({ children, showSidebarTrigger = true, showImportExport = true }: { children: React.ReactNode, showSidebarTrigger?: boolean, pageTitle?: string, showImportExport?: boolean }) {
+  const { worldSlug, worldName } = useWorld();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setHash(window.location.hash);
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !worldSlug) return;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -60,41 +71,41 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
   };
   
   const finalPageTitle = useMemo(() => {
-    if (pageTitle) return pageTitle;
-    if (pathname.startsWith('/random/encounter-tables')) return 'Encounter Tables';
-    if (pathname.startsWith('/random/treasures')) return 'Treasures';
-    if (pathname.startsWith('/random/commoners')) return 'Commoners';
-    if (pathname.startsWith('/alchemy')) return 'Alchemy';
-    if (pathname.startsWith('/rooms')) return 'Rooms';
-    if (pathname.startsWith('/dungeons')) return 'Dungeons';
-    if (pathname.startsWith('/items')) return 'Items';
-    if (pathname.startsWith('/npcs')) return 'NPCs';
-    if (pathname.startsWith('/factions')) return 'Factions';
-    if (pathname.startsWith('/calendar')) return 'Calendar';
-    if (pathname.startsWith('/maps')) return 'Maps';
-    if (pathname.startsWith('/pantheon')) return 'Pantheon';
-    if (pathname.startsWith('/bestiary')) return 'Bestiary';
-    if (pathname.startsWith('/deeds')) return 'Deeds';
-    if (pathname.startsWith('/encounters')) return 'Encounters';
-    return 'Compendium';
-  }, [pathname, pageTitle]);
+    const pageKey = hash.split('/').slice(2).join('/');
+    if (pageKey.startsWith('random/encounter-tables')) return 'Encounter Tables';
+    if (pageKey.startsWith('random/treasures')) return 'Treasures';
+    if (pageKey.startsWith('random/commoners')) return 'Commoners';
+    if (pageKey.startsWith('alchemy')) return 'Alchemy';
+    if (pageKey.startsWith('rooms')) return 'Rooms';
+    if (pageKey.startsWith('dungeons')) return 'Dungeons';
+    if (pageKey.startsWith('items')) return 'Items';
+    if (pageKey.startsWith('npcs')) return 'NPCs';
+    if (pageKey.startsWith('factions')) return 'Factions';
+    if (pageKey.startsWith('calendar')) return 'Calendar';
+    if (pageKey.startsWith('maps')) return 'Maps';
+    if (pageKey.startsWith('pantheon')) return 'Pantheon';
+    if (pageKey.startsWith('bestiary')) return 'Bestiary';
+    if (pageKey.startsWith('deeds')) return 'Deeds';
+    if (pageKey.startsWith('encounters')) return 'Encounters';
+    return worldName || 'Compendium';
+  }, [hash, worldName]);
 
   const navLinks = [
-    { href: `/${worldSlug}/alchemy`, label: 'Alchemy', group: 'Compendium' },
-    { href: `/${worldSlug}/bestiary`, label: 'Bestiary', group: 'Compendium' },
-    { href: `/${worldSlug}/deeds`, label: 'Deeds', group: 'Compendium' },
-    { href: `/${worldSlug}/encounters`, label: 'Encounters', group: 'Compendium' },
-    { href: `/${worldSlug}/items`, label: 'Items', group: 'Compendium' },
-    { href: `/${worldSlug}/npcs`, label: 'NPCs', group: 'Compendium' },
-    { href: `/${worldSlug}/factions`, label: 'Factions', group: 'Compendium' },
-    { href: `/${worldSlug}/pantheon`, label: 'Pantheon', group: 'Compendium' },
-    { href: `/${worldSlug}/rooms`, label: 'Rooms', group: 'Compendium' },
-    { href: `/${worldSlug}/random/treasures`, label: 'Treasures', group: 'Compendium' },
-    { href: `/${worldSlug}/random/encounter-tables`, label: 'Encounter Tables', group: 'Random' },
-    { href: `/${worldSlug}/random/commoners`, label: 'Commoners', group: 'Random' },
-    { href: `/${worldSlug}/dungeons`, label: 'Dungeons' },
-    { href: `/${worldSlug}/calendar`, label: 'Calendar' },
-    { href: `/${worldSlug}/maps`, label: 'Maps' },
+    { href: `/#/${worldSlug}/alchemy`, label: 'Alchemy', group: 'Compendium' },
+    { href: `/#/${worldSlug}/bestiary`, label: 'Bestiary', group: 'Compendium' },
+    { href: `/#/${worldSlug}/deeds`, label: 'Deeds', group: 'Compendium' },
+    { href: `/#/${worldSlug}/encounters`, label: 'Encounters', group: 'Compendium' },
+    { href: `/#/${worldSlug}/items`, label: 'Items', group: 'Compendium' },
+    { href: `/#/${worldSlug}/npcs`, label: 'NPCs', group: 'Compendium' },
+    { href: `/#/${worldSlug}/factions`, label: 'Factions', group: 'Compendium' },
+    { href: `/#/${worldSlug}/pantheon`, label: 'Pantheon', group: 'Compendium' },
+    { href: `/#/${worldSlug}/rooms`, label: 'Rooms', group: 'Compendium' },
+    { href: `/#/${worldSlug}/random/treasures`, label: 'Treasures', group: 'Compendium' },
+    { href: `/#/${worldSlug}/random/encounter-tables`, label: 'Encounter Tables', group: 'Random' },
+    { href: `/#/${worldSlug}/random/commoners`, label: 'Commoners', group: 'Random' },
+    { href: `/#/${worldSlug}/dungeons`, label: 'Dungeons' },
+    { href: `/#/${worldSlug}/calendar`, label: 'Calendar' },
+    { href: `/#/${worldSlug}/maps`, label: 'Maps' },
   ];
 
   const compendiumLinks = navLinks.filter(link => link.group === 'Compendium');
@@ -109,9 +120,9 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {compendiumLinks.map(link => (
-            <Link href={link.href} key={link.href} passHref>
+            <a href={link.href} key={link.href}>
               <DropdownMenuItem>{link.label}</DropdownMenuItem>
-            </Link>
+            </a>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -121,18 +132,18 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {randomLinks.map(link => (
-            <Link href={link.href} key={link.href} passHref>
+            <a href={link.href} key={link.href}>
               <DropdownMenuItem>{link.label}</DropdownMenuItem>
-            </Link>
+            </a>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
       {otherLinks.map(link => (
-        <Link href={link.href} key={link.href} passHref>
-          <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'}>
+        <a href={link.href} key={link.href}>
+          <Button variant={hash.endsWith(link.href.split('/').pop()!) ? 'secondary' : 'ghost'}>
             {link.label}
           </Button>
-        </Link>
+        </a>
       ))}
     </>
   );
@@ -153,22 +164,22 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
             <div className="flex flex-col gap-4 p-4">
             <p className="font-bold text-lg">Compendium</p>
             {compendiumLinks.map(link => (
-                <Link href={link.href} key={link.href} passHref>
-                <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
-                </Link>
+                <a href={link.href} key={link.href}>
+                <Button variant={hash.endsWith(link.href.split('/').pop()!) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                </a>
             ))}
             <Separator className="my-2" />
             <p className="font-bold text-lg">Random</p>
             {randomLinks.map(link => (
-                <Link href={link.href} key={link.href} passHref>
-                <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
-                </Link>
+                <a href={link.href} key={link.href}>
+                <Button variant={hash.endsWith(link.href.split('/').pop()!) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                </a>
             ))}
             <Separator className="my-2" />
             {otherLinks.map(link => (
-                <Link href={link.href} key={link.href} passHref>
-                <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
-                </Link>
+                <a href={link.href} key={link.href}>
+                <Button variant={hash.endsWith(link.href.split('/').pop()!) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                </a>
             ))}
             </div>
         </ScrollArea>
@@ -182,13 +193,13 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname !== '/' && showSidebarTrigger) && <SidebarTrigger />}
-          <Link href="/" className="flex items-center gap-3">
+          {(isWorldContext && showSidebarTrigger) && <SidebarTrigger />}
+          <a href="/#" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">
                 {finalPageTitle}
             </h1>
-          </Link>
+          </a>
           {isWorldContext && (
             <>
               <Separator orientation="vertical" className="h-6 mx-2 hidden md:block" />
@@ -199,7 +210,7 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
           )}
         </div>
         <div className="flex items-center gap-1">
-            {showImportExport && (
+            {showImportExport && worldSlug && (
                 <>
                 <input
                     type="file"
@@ -230,7 +241,6 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-                {/* Note: Export is now handled on the main landing page per world */}
                 </>
             )}
           {isWorldContext && <div className="md:hidden">
@@ -242,4 +252,3 @@ export default function MainLayout({ children, showSidebarTrigger = true, pageTi
     </div>
   );
 }
-

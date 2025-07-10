@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useWorld } from "@/components/world-provider";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -195,6 +196,7 @@ function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsU
 }
 
 export default function MapsPage() {
+    const { worldSlug } = useWorld();
     const [maps, setMaps] = useState<WorldMap[]>([]);
     const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
     const [activeMap, setActiveMap] = useState<WorldMap | null>(null);
@@ -431,7 +433,7 @@ export default function MapsPage() {
     }, [selectedTile, activeMap, allEvents]);
 
     return (
-        <MainLayout showSidebarTrigger={false}>
+        <MainLayout>
             <div className="w-full h-full bg-background relative">
                 {activeMap ? (
                     <HexGrid 
@@ -845,4 +847,3 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
         </div>
     );
 }
-

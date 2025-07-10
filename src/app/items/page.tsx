@@ -8,10 +8,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import type { Item } from '@/lib/types';
 import ItemListPanel from '@/components/item-list-panel';
 import ItemEditorPanel from '@/components/item-editor-panel';
+import { useWorld } from '@/components/world-provider';
 
 type SortByType = 'name' | 'type' | 'price' | 'quality';
 
 export default function ItemsPage() {
+  const { worldSlug } = useWorld();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<Item> | null>(null);
@@ -140,7 +142,7 @@ export default function ItemsPage() {
 
   if (isMobile) {
     return (
-      <MainLayout showSidebarTrigger={false}>
+      <MainLayout>
         <div className="h-full w-full">
           {mobileView === 'list' ? (
             <ItemListPanel

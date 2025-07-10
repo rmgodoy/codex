@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { CreatureWithDeeds, Role, CreatureTemplate } from "@/lib/types";
+import type { CreatureWithDeeds } from "@/lib/types";
 import CreatureListPanel from "@/components/monster-list-panel";
 import CreatureEditorPanel from "@/components/monster-editor-panel";
 import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -185,7 +185,7 @@ export default function BestiaryPage() {
 
   if (isMobile) {
     return (
-      <MainLayout showSidebarTrigger={false}>
+      <MainLayout>
         <div className="h-full w-full">
           {mobileView === 'list' ? (
             <CreatureListPanel

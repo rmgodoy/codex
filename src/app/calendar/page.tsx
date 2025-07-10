@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { format, isSameDay, isWithinInterval, startOfDay, eachDayOfInterval } from "date-fns";
-import { DateRange } from "react-day-picker";
 import Calendar from 'react-calendar';
 
 import MainLayout from "@/components/main-layout";
@@ -23,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useWorld } from "@/components/world-provider";
 
 function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars: CalendarType[], onCalendarsUpdate: (newCalendarId?: string) => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -152,6 +152,7 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
 }
 
 export default function CalendarPage() {
+  const { worldSlug } = useWorld();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('all');
