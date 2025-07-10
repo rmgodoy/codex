@@ -114,7 +114,7 @@ export default function WorldLandingPage() {
   ].sort((a,b) => a.title.localeCompare(b.title));
 
   return (
-    <MainLayout>
+    <MainLayout showSidebarTrigger={false}>
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
