@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -358,7 +359,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                 <div>
                     <h3 className="text-xl font-semibold text-primary-foreground mb-4">Deeds</h3>
                     {combatant.deeds.map((deed, i) => (
-                        <DeedDisplay key={i} deed={deed} dmgReplacement={combatant.attributes.DMG} />
+                        <DeedDisplay key={`${deed.id}-${i}`} deed={deed} dmgReplacement={combatant.attributes.DMG} />
                     ))}
                 </div>
             </>
