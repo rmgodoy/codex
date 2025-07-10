@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import AppRouter from '@/components/app-router';
 import MainLayout from '@/components/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -159,15 +159,15 @@ function LandingPage() {
                 <div className="max-w-3xl mx-auto space-y-4">
                     {worlds.map((world) => (
                       <div key={world.slug} className="border rounded-lg p-4 flex items-center justify-between gap-4 bg-card">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg text-primary-foreground">{world.name}</h3>
-                          <p className="text-sm text-muted-foreground truncate">{world.description}</p>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-lg text-primary-foreground truncate">{world.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate hidden md:block">{world.description}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                           <Button asChild>
+                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                           <Button asChild size="sm">
                                 <a href={`#/${world.slug}`}>Enter World</a>
                            </Button>
-                           <Separator orientation="vertical" className="h-6" />
+                           <Separator orientation="vertical" className="h-6 hidden sm:block" />
                            <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world.name, newName: world.name, slug: world.slug })}><Edit/></Button>
                            <Button variant="ghost" size="icon" onClick={() => handleExport(world.slug)}><Download/></Button>
                            <AlertDialog>
