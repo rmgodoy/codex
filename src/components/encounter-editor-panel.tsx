@@ -297,8 +297,12 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
       setEncounterData(null);
       setIsEditing(true);
       setLoading(false);
-      const tables = await getAllEncounterTables();
+      const [tables, creatures] = await Promise.all([
+        getAllEncounterTables(),
+        getAllCreatures()
+      ]);
       setAllEncounterTables(tables);
+      setAllCreatures(creatures);
       return;
     }
     
@@ -718,3 +722,4 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
     </div>
   );
 }
+
