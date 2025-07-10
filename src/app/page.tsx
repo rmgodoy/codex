@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -316,61 +317,61 @@ function LandingPage() {
                         <Button asChild size="sm">
                           <a href={`#/${world.slug}`}>Enter World</a>
                         </Button>
-                        <Separator
-                          orientation="vertical"
-                          className="h-6 hidden sm:block"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            setEditingWorld({
-                              oldName: world.name,
-                              newName: world.name,
-                              slug: world.slug,
-                            })
-                          }
-                        >
-                          <Edit />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleExport(world.slug)}
-                        >
-                          <Download />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive"
-                            >
-                              <Trash2 />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete "{world.name}"?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. All data for this
-                                world will be permanently deleted.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteWorld(world.slug)}
-                                className="bg-destructive hover:bg-destructive/90"
+                        <DropdownMenu>
+                           <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                 <MoreVertical />
+                                 <span className="sr-only">More options</span>
+                              </Button>
+                           </DropdownMenuTrigger>
+                           <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  setEditingWorld({
+                                    oldName: world.name,
+                                    newName: world.name,
+                                    slug: world.slug,
+                                  })
+                                }
                               >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Edit className="mr-2" /> Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => handleExport(world.slug)}>
+                                <Download className="mr-2" /> Export
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                               <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem
+                                      onSelect={(e) => e.preventDefault()}
+                                      className="text-destructive focus:bg-destructive/20 focus:text-destructive"
+                                    >
+                                      <Trash2 className="mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete "{world.name}"?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This action cannot be undone. All data for this
+                                        world will be permanently deleted.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteWorld(world.slug)}
+                                        className="bg-destructive hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                           </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
