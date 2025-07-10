@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, Calendar, CalendarEvent, Map, PantheonEntity } from '@/lib/types';
+import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, Calendar, CalendarEvent, Map, PantheonEntity, Path } from '@/lib/types';
 import { getDb, generateId, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, CALENDARS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME, PANTHEON_STORE_NAME } from './db';
 
 // Import/Export
@@ -178,7 +178,8 @@ export const importData = async (data: any): Promise<void> => {
     }
      if (data.maps && Array.isArray(data.maps)) {
         data.maps.forEach((item: Map) => {
-            stores[MAPS_STORE_NAME].put(item);
+            const migratedMap = { ...item, paths: item.paths || [] };
+            stores[MAPS_STORE_NAME].put(migratedMap);
         });
     }
     

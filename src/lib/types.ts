@@ -440,6 +440,15 @@ export interface CalendarEvent {
 
 export type NewCalendarEvent = Omit<CalendarEvent, 'id'>;
 
+// Path Type for Maps
+export interface Path {
+  id: string;
+  name: string;
+  color: string;
+  strokeWidth: number;
+  points: { x: number; y: number }[];
+}
+
 // Hex Grid Types
 export interface HexTileData {
     color?: string;
@@ -459,6 +468,7 @@ export interface Map {
   name: string;
   radius: number;
   tiles: HexTile[];
+  paths: Path[];
 }
 
 export type NewMap = Omit<Map, 'id'>;

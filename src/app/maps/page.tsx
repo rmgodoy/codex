@@ -5,8 +5,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent } from "@/lib/types";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
 import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -64,7 +65,7 @@ function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsU
         }
         try {
             const newGrid = generateHexGrid(newMapRadius);
-            const newMap: NewMap = { name: newMapName.trim(), radius: newMapRadius, tiles: newGrid };
+            const newMap: NewMap = { name: newMapName.trim(), radius: newMapRadius, tiles: newGrid, paths: [] };
             const newId = await addMap(newMap);
             toast({ title: 'Map Created', description: `'${newMapName}' has been added.` });
             setNewMapName("");
@@ -200,10 +201,11 @@ export default function MapsPage() {
     const [mapSettings, setMapSettings] = useState<{name: string, radius: string} | null>(null);
 
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
-    const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'data'>('settings');
+    const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'path' | 'data'>('settings');
     const [paintMode, setPaintMode] = useState<'brush' | 'bucket' | 'erase'>('brush');
     const [paintColor, setPaintColor] = useState('#8A2BE2');
     const [paintIcon, setPaintIcon] = useState<string | null>(null);
+    const [pathDrawingId, setPathDrawingId] = useState<string | null>(null);
 
     const [manualIconColor, setManualIconColor] = useState('#E0D6F0');
     const [isIconColorAuto, setIsIconColorAuto] = useState(true);
@@ -260,15 +262,11 @@ export default function MapsPage() {
 
         const currentSelectedId = selectedMapId;
 
-        // If a map is selected, check if it still exists.
         if (currentSelectedId && !sortedMaps.some(m => m.id === currentSelectedId)) {
-            // It was deleted. Select the first map, or null if no maps exist.
             setSelectedMapId(sortedMaps.length > 0 ? sortedMaps[0].id : null);
         } else if (!currentSelectedId && sortedMaps.length > 0) {
-            // No map was selected, but maps exist. Select the first one.
             setSelectedMapId(sortedMaps[0].id);
         } else if (sortedMaps.length === 0) {
-            // No maps exist at all.
             setSelectedMapId(null);
             setActiveMap(null);
         }
@@ -291,6 +289,7 @@ export default function MapsPage() {
                 if (mapData) setActiveMap(mapData);
             });
             setSelectedHex(null); 
+            setPathDrawingId(null);
         } else {
             setActiveMap(null);
         }
@@ -336,16 +335,19 @@ export default function MapsPage() {
         setIsEyedropperActive(false);
         toast({ title: 'Tile properties copied to brush.' });
     };
+    
+    const handleMapUpdate = useCallback((updatedMap: WorldMap) => {
+        setActiveMap(updatedMap);
+        updateMap(updatedMap).catch(() => {
+            toast({ variant: 'destructive', title: 'Auto-save failed.' });
+        });
+    }, [toast]);
 
     const handleGridUpdate = useCallback((newGrid: HexTile[]) => {
         if (activeMap) {
-            const updatedMap = { ...activeMap, tiles: newGrid };
-            setActiveMap(updatedMap);
-            updateMap(updatedMap).catch(() => {
-                toast({ variant: 'destructive', title: 'Auto-save failed during painting.' });
-            });
+            handleMapUpdate({ ...activeMap, tiles: newGrid });
         }
-    }, [activeMap, toast]);
+    }, [activeMap, handleMapUpdate]);
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
         if (activeMap) {
@@ -358,13 +360,28 @@ export default function MapsPage() {
                 }
                 return tile;
             });
-            const updatedMap = { ...activeMap, tiles: newTiles };
-            setActiveMap(updatedMap);
-            updateMap(updatedMap).catch(() => {
-                toast({ variant: 'destructive', title: 'Data linking failed to save.' });
-            });
+            handleMapUpdate({ ...activeMap, tiles: newTiles });
         }
     };
+    
+    const handlePathUpdate = useCallback((newPaths: Path[]) => {
+        if (activeMap) {
+            handleMapUpdate({ ...activeMap, paths: newPaths });
+        }
+    }, [activeMap, handleMapUpdate]);
+    
+    const handleAddPointToPath = useCallback((point: {x: number, y: number}) => {
+        if (!activeMap || !pathDrawingId) return;
+
+        const updatedPaths = (activeMap.paths || []).map(path => {
+            if (path.id === pathDrawingId) {
+                return { ...path, points: [...path.points, point] };
+            }
+            return path;
+        });
+
+        handlePathUpdate(updatedPaths);
+    }, [activeMap, pathDrawingId, handlePathUpdate]);
 
     const handleSaveMapSettings = async () => {
         if (!activeMap || !mapSettings) return;
@@ -418,12 +435,13 @@ export default function MapsPage() {
             <div className="w-full h-full bg-background relative">
                 {activeMap ? (
                     <HexGrid 
-                        grid={activeMap.tiles} 
+                        mapData={activeMap}
                         hexSize={25} 
                         className={cn("w-full h-full", (isEyedropperActive || (isAltPressed && activeTool === 'paint' && paintMode === 'brush')) && 'cursor-crosshair')} 
                         style={{ touchAction: 'none' }}
                         onGridUpdate={handleGridUpdate}
                         onHexClick={setSelectedHex}
+                        onAddPointToPath={handleAddPointToPath}
                         activeTool={activeTool}
                         paintMode={paintMode}
                         paintColor={paintColor}
@@ -435,6 +453,7 @@ export default function MapsPage() {
                         isShiftPressed={isShiftPressed}
                         isEyedropperActive={isEyedropperActive}
                         onEyedropperClick={handleEyedropperClick}
+                        pathDrawingId={pathDrawingId}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -467,10 +486,11 @@ export default function MapsPage() {
                         </CardHeader>
                         <CollapsibleContent>
                             <CardContent>
-                                <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as 'settings' | 'paint' | 'data')} className="w-full">
-                                    <TabsList className="grid w-full grid-cols-3">
+                                <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as any)} className="w-full">
+                                    <TabsList className="grid w-full grid-cols-4">
                                         <TabsTrigger value="settings"><Wrench className="h-4 w-4 mr-2" />Settings</TabsTrigger>
                                         <TabsTrigger value="paint"><Paintbrush className="h-4 w-4 mr-2" />Paint</TabsTrigger>
+                                        <TabsTrigger value="path"><Waypoints className="h-4 w-4 mr-2" />Path</TabsTrigger>
                                         <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="settings" className="mt-4 space-y-4">
@@ -634,6 +654,9 @@ export default function MapsPage() {
                                             </fieldset>
                                         </div>
                                     </TabsContent>
+                                    <TabsContent value="path" className="mt-4">
+                                      <PathToolPanel activeMap={activeMap} onPathUpdate={handlePathUpdate} pathDrawingId={pathDrawingId} setPathDrawingId={setPathDrawingId} />
+                                    </TabsContent>
                                     <TabsContent value="data" className="mt-4">
                                         {selectedHex && selectedTile ? (
                                             <div className="space-y-4">
@@ -712,3 +735,89 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
+
+function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingId }: { activeMap: WorldMap | null, onPathUpdate: (paths: Path[]) => void, pathDrawingId: string | null, setPathDrawingId: (id: string | null) => void }) {
+    
+    const handleAddPath = () => {
+        const newPath: Path = {
+            id: crypto.randomUUID(),
+            name: `Path ${((activeMap?.paths || []).length) + 1}`,
+            color: '#FFD700',
+            strokeWidth: 3,
+            points: [],
+        };
+        const newPaths = [...(activeMap?.paths || []), newPath];
+        onPathUpdate(newPaths);
+        setPathDrawingId(newPath.id);
+    };
+
+    const handleUpdatePath = (pathId: string, updates: Partial<Path>) => {
+        const newPaths = (activeMap?.paths || []).map(p => p.id === pathId ? { ...p, ...updates } : p);
+        onPathUpdate(newPaths);
+    };
+
+    const handleDeletePath = (pathId: string) => {
+        if (pathDrawingId === pathId) {
+            setPathDrawingId(null);
+        }
+        const newPaths = (activeMap?.paths || []).filter(p => p.id !== pathId);
+        onPathUpdate(newPaths);
+    };
+
+    if (!activeMap) {
+        return <p className="text-sm text-muted-foreground text-center pt-4">Select a map to manage paths.</p>;
+    }
+
+    return (
+        <div className="space-y-4">
+            <Button onClick={handleAddPath} className="w-full"><Plus className="h-4 w-4 mr-2" />Add New Path</Button>
+            <Separator />
+            <ScrollArea className="h-96">
+                <div className="space-y-3 pr-2">
+                    {(activeMap.paths || []).map(path => (
+                        <div key={path.id} className="p-3 border rounded-md bg-muted/50 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Input
+                                    value={path.name}
+                                    onChange={(e) => handleUpdatePath(path.id, { name: e.target.value })}
+                                    className="h-8 flex-1"
+                                />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete Path?</AlertDialogTitle>
+                                            <AlertDialogDescription>Are you sure you want to delete "{path.name}"? This cannot be undone.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeletePath(path.id)} className="bg-destructive">Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Label>Color:</Label>
+                                <Input type="color" value={path.color} onChange={(e) => handleUpdatePath(path.id, { color: e.target.value })} className="h-8 w-16 p-1"/>
+                                <Label>Width:</Label>
+                                <Input type="number" value={path.strokeWidth} min="1" max="20" onChange={(e) => handleUpdatePath(path.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })} className="h-8 flex-1"/>
+                            </div>
+                            <Button
+                                variant={pathDrawingId === path.id ? "secondary" : "outline"}
+                                size="sm"
+                                className="w-full"
+                                onClick={() => setPathDrawingId(prev => prev === path.id ? null : path.id)}
+                            >
+                                {pathDrawingId === path.id ? <Check className="h-4 w-4 mr-2" /> : <Paintbrush className="h-4 w-4 mr-2" />}
+                                {pathDrawingId === path.id ? "Drawing..." : "Draw Path"}
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+        </div>
+    );
+}
+
