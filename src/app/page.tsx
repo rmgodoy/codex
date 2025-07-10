@@ -5,13 +5,13 @@ import React, { useState, useEffect } from 'react';
 import AppRouter from '@/components/app-router';
 import MainLayout from '@/components/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
-import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon } from 'lucide-react';
+import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { WorldMetadata } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
@@ -125,7 +125,13 @@ function LandingPage() {
             <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
               <Dialog open={isNewWorldDialogOpen} onOpenChange={setIsNewWorldDialogOpen}>
                 <DialogTrigger asChild>
-                   <Button size="lg">{worlds.length > 0 ? "New World" : "Get Started"}</Button>
+                   <Button size="lg" disabled={loading}>
+                    {loading ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      worlds.length > 0 ? "New World" : "Get Started"
+                    )}
+                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -151,9 +157,7 @@ function LandingPage() {
           </div>
 
           <div className="mt-20">
-            {loading ? (
-              <p className="text-center text-muted-foreground">Loading worlds...</p>
-            ) : worlds.length > 0 ? (
+            {worlds.length > 0 ? (
                 <>
                 <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
                 <div className="max-w-3xl mx-auto space-y-4">
@@ -188,7 +192,7 @@ function LandingPage() {
                     ))}
                 </div>
               </>
-            ) : (
+            ) : !loading && (
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {landingFeatures.map((feature) => (
                         <Card key={feature.title}>
