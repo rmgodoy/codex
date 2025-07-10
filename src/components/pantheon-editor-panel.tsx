@@ -28,7 +28,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { Label } from "./ui/label";
 import Link from "next/link";
-import ItemEditorPanel from "./item-editor-panel";
 
 const pantheonRelationshipSchema = z.object({
   id: z.string(),
@@ -204,7 +203,6 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
   
   const entityMap = useMemo(() => new Map(allEntities.map(e => [e.id, e.name])), [allEntities]);
   const artifactMap = useMemo(() => new Map(allArtifacts.map(a => [a.id, a.name])), [allArtifacts]);
-  const [isNewArtifactDialogOpen, setIsNewArtifactDialogOpen] = useState(false);
 
   const form = useForm<PantheonFormData>({
     resolver: zodResolver(pantheonEntitySchema),
@@ -226,7 +224,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
       setAllEntities(entities);
       setAllArtifacts(artifacts);
     });
-  }, [dataVersion, isNewArtifactDialogOpen]);
+  }, [dataVersion]);
 
   useEffect(() => {
     const fetchEntityData = async () => {
@@ -324,6 +322,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
   }
 
   if (!isEditing && entityData) {
+    const fullTitle = `${entityData.name}, The ${entityData.entityType || '...'} of ${entityData.domain || '...'}`;
     return (
         <div className="w-full max-w-5xl mx-auto">
             <Card>
@@ -332,8 +331,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                         <div className="flex items-center gap-2">
                              {isMobile && onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2 -mt-1"><ArrowLeft className="h-5 w-5" /></Button>}
                             <div>
-                                <CardTitle className="text-3xl font-bold">{entityData.name}</CardTitle>
-                                <CardDescription>{entityData.entityType} of {entityData.domain}</CardDescription>
+                                <CardTitle className="text-3xl font-bold">{fullTitle}</CardTitle>
                             </div>
                         </div>
                         <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4"/><span className="hidden sm:inline ml-2">Edit</span></Button>
@@ -440,4 +438,3 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
     </div>
   );
 }
-
