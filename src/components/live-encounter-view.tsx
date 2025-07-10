@@ -54,7 +54,7 @@ const calculateTurnOrder = (combatants: Combatant[]) => {
     };
   }
   
-  const activeCombatants = combatants.filter(c => c.type === 'player' || c.currentHp > 0);
+  const activeCombatants = combatants.filter(c => c.type === 'player' || (c.type === 'monster' && c.currentHp > 0));
 
   const allPlayers = activeCombatants.filter((c): c is PlayerCombatant => c.type === 'player');
   const monsters = activeCombatants.filter((c): c is MonsterCombatant => c.type === 'monster');
@@ -169,7 +169,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   
   const { activeCombatants, defeatedCombatants } = useMemo(() => {
     const active = combatants.filter(c => c.type === 'player' || (c.type === 'monster' && c.currentHp > 0));
-    const defeated = combatants.filter(c => c.type === 'monster' && c.currentHp <= 0);
+    const defeated = combatants.filter((c): c is MonsterCombatant => c.type === 'monster' && c.currentHp <= 0);
     return { activeCombatants: active, defeatedCombatants: defeated };
   }, [combatants]);
 
@@ -258,7 +258,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     currentHp: creature.template === 'Underling' ? 1 : creature.attributes.HP,
                     attributes: creature.attributes,
                     deeds: monsterDeeds,
-                    abilities: creature.abilities,
+                    abilities: (creature.abilities || []).map(a => ({...a, id: a.id || crypto.randomUUID()})),
                     description: creature.description,
                     tags: creature.tags,
                     states: [],
