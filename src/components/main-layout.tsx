@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { importData, exportWorldData } from '@/lib/idb';
 import { useWorld } from './world-provider';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export default function MainLayout({ children, showSidebarTrigger = true, showImportExport = true }: { children: React.ReactNode, showSidebarTrigger?: boolean, showImportExport?: boolean }) {
@@ -25,6 +26,7 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [hash, setHash] = useState('');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -90,8 +92,6 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     if (!worldSlug) return "Compendium";
     
     const pathParts = hash.split('/').filter(p => p && p !== '#');
-    
-    // The world slug is the first part, the rest is the page key
     const pageKey = pathParts.slice(1).join('/');
     
     let pageName = '';
@@ -115,12 +115,16 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
         else if (pageKeyLower.startsWith('encounters')) pageName = 'Encounters';
     }
 
+    if (isMobile) {
+        return pageName || worldName || "Compendium";
+    }
+
     if (pageName) {
         return `${worldName} | ${pageName}`;
     }
     
     return worldName || "Compendium";
-  }, [hash, worldName, worldSlug]);
+  }, [hash, worldName, worldSlug, isMobile]);
 
   const navLinks = [
     { href: `/#/${worldSlug}/alchemy`, label: 'Alchemy', group: 'Compendium' },
