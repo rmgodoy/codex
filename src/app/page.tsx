@@ -1,259 +1,120 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import type { CreatureWithDeeds, Role, CreatureTemplate } from "@/lib/types";
-import CreatureListPanel from "@/components/monster-list-panel";
-import CreatureEditorPanel from "@/components/monster-editor-panel";
-import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import MainLayout from "@/components/main-layout";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookCopy, Calendar, Dices, FlaskConical, Map, Shield, Skull, Sword, User, Users, Warehouse } from "lucide-react";
+import Link from "next/link";
 
-type SortByType = 'name' | 'TR' | 'level';
+const features = [
+  {
+    title: "Bestiary",
+    description: "Create, edit, and manage all the creatures for your game. Define their stats, roles, abilities, and deeds.",
+    icon: Skull,
+    href: "/bestiary"
+  },
+  {
+    title: "Deeds Library",
+    description: "A library of actions. Create and manage reusable 'deeds' that creatures can perform, from simple attacks to complex spells.",
+    icon: BookCopy,
+    href: "/deeds"
+  },
+  {
+    title: "Items & Alchemy",
+    description: "Catalog weapons, armor, and alchemical concoctions. Define their properties, prices, and magical enchantments.",
+    icon: FlaskConical,
+    href: "/items"
+  },
+  {
+    title: "NPCs & Factions",
+    description: "Create detailed Non-Player Characters and manage the various factions in your world, defining their goals and relationships.",
+    icon: Users,
+    href: "/npcs"
+  },
+  {
+    title: "Encounter Builder",
+    description: "Design and run combat encounters with an initiative tracker and a dashboard to manage combatant stats and states.",
+    icon: Sword,
+    href: "/encounters"
+  },
+  {
+    title: "World Map",
+    description: "A powerful hex-grid map creator. Paint terrain, add landmarks, and link map tiles to your world's content.",
+    icon: Map,
+    href: "/maps"
+  },
+    {
+    title: "Pantheon",
+    description: "Manage the godlike entities of your world, their domains, relationships, and the artifacts they control.",
+    icon: Shield,
+    href: "/pantheon"
+  },
+  {
+    title: "Calendar",
+    description: "A fully-featured in-game calendar. Create multiple calendars, add events, and link them to factions, creatures, and locations.",
+    icon: Calendar,
+    href: "/calendar"
+  },
+    {
+    title: "Random Generators",
+    description: "Instantly generate commoners, encounter tables, and treasures to bring your world to life on the fly.",
+    icon: Dices,
+    href: "/random/commoners"
+  },
+];
 
-export default function Home() {
-  const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
-  const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
-  const [templateData, setTemplateData] = useState<Partial<CreatureWithDeeds> | null>(null);
-  const [dataVersion, setDataVersion] = useState(0);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [templateFilter, setTemplateFilter] = useState('all');
-  const [minLevel, setMinLevel] = useState('');
-  const [maxLevel, setMaxLevel] = useState('');
-  const [minTR, setMinTR] = useState('');
-  const [maxTR, setMaxTR] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
-  const [sortBy, setSortBy] = useState<SortByType>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  const [isClient, setIsClient] = useState(false);
-  const isMobile = useIsMobile();
-  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const filters = {
-    searchTerm,
-    roleFilter,
-    templateFilter,
-    minLevel,
-    maxLevel,
-    minTR,
-    maxTR,
-    tagFilter,
-    sortBy,
-    sortOrder
-  };
-
-  const setFilters = {
-    setSearchTerm,
-    setRoleFilter,
-    setTemplateFilter,
-    setMinLevel,
-    setMaxLevel,
-    setMinTR,
-    setMaxTR,
-    setTagFilter,
-    setSortBy,
-    setSortOrder
-  };
-
-  const handleFilterByClick = (updates: Partial<Omit<typeof filters, 'searchTerm' | 'sortBy' | 'sortOrder'>>, e: React.MouseEvent) => {
-    const isAdditive = e.shiftKey;
-
-    if (!isAdditive) {
-      // Clear filters and apply the new one
-      setRoleFilter(updates.roleFilter || 'all');
-      setTemplateFilter(updates.templateFilter || 'all');
-      setMinLevel(updates.minLevel !== undefined ? String(updates.minLevel) : '');
-      setMaxLevel(updates.maxLevel !== undefined ? String(updates.maxLevel) : '');
-      setMinTR(updates.minTR !== undefined ? String(updates.minTR) : '');
-      setMaxTR(updates.maxTR !== undefined ? String(updates.maxTR) : '');
-      setTagFilter(updates.tagFilter || '');
-    } else {
-      // Additive filtering
-      if (updates.roleFilter) setRoleFilter(updates.roleFilter);
-      if (updates.templateFilter) setTemplateFilter(updates.templateFilter);
-      if (updates.minLevel !== undefined) setMinLevel(String(updates.minLevel));
-      if (updates.maxLevel !== undefined) setMaxLevel(String(updates.maxLevel));
-      if (updates.minTR !== undefined) setMinTR(String(updates.minTR));
-      if (updates.maxTR !== undefined) setMaxTR(String(updates.maxTR));
-      if (updates.tagFilter) {
-        setTagFilter(prev => {
-          if (!prev) return updates.tagFilter!;
-          const existingTags = prev.split(',').map(t => t.trim());
-          if (!existingTags.includes(updates.tagFilter!)) {
-            return `${prev}, ${updates.tagFilter}`;
-          }
-          return prev;
-        });
-      }
-    }
-  };
-  
-  const clearFilters = () => {
-    setSearchTerm('');
-    setRoleFilter('all');
-    setTemplateFilter('all');
-    setMinLevel('');
-    setMaxLevel('');
-    setMinTR('');
-    setMaxTR('');
-    setTagFilter('');
-    setSortBy('name');
-    setSortOrder('asc');
-  };
-
-  const refreshList = () => setDataVersion(v => v + 1);
-
-  const handleSelectCreature = (id: string | null) => {
-    setSelectedCreatureId(id);
-    setIsCreatingNew(false);
-    setTemplateData(null);
-    if (isMobile) {
-      setMobileView('editor');
-    }
-  };
-
-  const handleNewCreature = () => {
-    setSelectedCreatureId(null);
-    setIsCreatingNew(true);
-    setTemplateData(null);
-    if (isMobile) {
-      setMobileView('editor');
-    }
-  };
-
-  const handleUseAsTemplate = (creatureData: CreatureWithDeeds) => {
-    const template = { ...creatureData };
-    const baseName = (creatureData.name || 'creature').replace(/^(Copy of\s*)+/, '');
-    template.name = `Copy of ${baseName}`;
-    delete template.id;
-
-    setSelectedCreatureId(null);
-    setIsCreatingNew(true);
-    setTemplateData(template);
-    if (isMobile) {
-      setMobileView('editor');
-    }
-  };
-
-  const onCreatureSaveSuccess = (id: string) => {
-    refreshList();
-    setSelectedCreatureId(id);
-    setIsCreatingNew(false);
-    setTemplateData(null);
-    if (isMobile) {
-      setMobileView('editor');
-    }
-  };
-
-  const onCreatureDeleteSuccess = () => {
-    refreshList();
-    setSelectedCreatureId(null);
-    setIsCreatingNew(false); 
-    setTemplateData(null);
-    if (isMobile) {
-      setMobileView('list');
-    }
-  };
-  
-  const handleBack = () => {
-    setMobileView('list');
-    setSelectedCreatureId(null);
-    setIsCreatingNew(false);
-    setTemplateData(null);
-  };
-
-  const onEditCancel = () => {
-    if (isCreatingNew) {
-      setIsCreatingNew(false);
-      setSelectedCreatureId(null);
-      if (isMobile) {
-        setMobileView('list');
-      }
-    }
-  };
-  
-  if (!isClient) {
-    return null;
-  }
-
-  if (isMobile) {
-    return (
-      <MainLayout showSidebarTrigger={false}>
-        <div className="h-full w-full">
-          {mobileView === 'list' ? (
-            <CreatureListPanel
-              onSelectCreature={handleSelectCreature}
-              onNewCreature={handleNewCreature}
-              selectedCreatureId={selectedCreatureId}
-              dataVersion={dataVersion}
-              filters={filters}
-              setFilters={setFilters}
-              onClearFilters={clearFilters}
-            />
-          ) : (
-            <div className="h-full w-full overflow-y-auto">
-              <div className="p-4 sm:p-6">
-                <CreatureEditorPanel
-                  key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                  creatureId={selectedCreatureId}
-                  isCreatingNew={isCreatingNew}
-                  template={templateData}
-                  onCreatureSaveSuccess={onCreatureSaveSuccess}
-                  onCreatureDeleteSuccess={onCreatureDeleteSuccess}
-                  onUseAsTemplate={handleUseAsTemplate}
-                  onEditCancel={onEditCancel}
-                  dataVersion={dataVersion}
-                  onFilterByClick={handleFilterByClick}
-                  onBack={handleBack}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </MainLayout>
-    );
-  }
-
+export default function LandingPage() {
   return (
-    <SidebarProvider>
-      <MainLayout>
-        <div className="flex w-full h-full overflow-hidden">
-          <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
-            <CreatureListPanel
-              onSelectCreature={handleSelectCreature}
-              onNewCreature={handleNewCreature}
-              selectedCreatureId={selectedCreatureId}
-              dataVersion={dataVersion}
-              filters={filters}
-              setFilters={setFilters}
-              onClearFilters={clearFilters}
-            />
-          </Sidebar>
-          <SidebarInset className="flex-1 overflow-y-auto">
-            <div className="bg-background/50 p-4 sm:p-6 md:p-8 w-full">
-              <CreatureEditorPanel
-                key={selectedCreatureId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                creatureId={selectedCreatureId}
-                isCreatingNew={isCreatingNew}
-                template={templateData}
-                onCreatureSaveSuccess={onCreatureSaveSuccess}
-                onCreatureDeleteSuccess={onCreatureDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
-                onEditCancel={onEditCancel}
-                dataVersion={dataVersion}
-                onFilterByClick={handleFilterByClick}
-              />
+    <MainLayout>
+        <div className="h-full overflow-y-auto bg-background/50">
+            <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
+                <div className="text-center">
+                    <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
+                        Your TTRPG World, Organized
+                    </h1>
+                    <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">
+                        A comprehensive application for managing and organizing your TTRPG world. Create creatures, design encounters, build dungeons, and bring your stories to life.
+                    </p>
+                    <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+                        <div className="rounded-md shadow">
+                            <Link href="/bestiary">
+                                <Button size="lg">
+                                    Get Started
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-20">
+                    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                        {features.map((feature) => (
+                        <Card key={feature.title} className="flex flex-col">
+                            <CardHeader className="flex-shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <feature.icon className="h-8 w-8 text-accent" />
+                                    <CardTitle>{feature.title}</CardTitle>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <p className="text-muted-foreground">{feature.description}</p>
+                            </CardContent>
+                            <CardContent>
+                                <Link href={feature.href}>
+                                    <Button variant="outline" className="w-full">
+                                        Go to {feature.title}
+                                    </Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                        ))}
+                    </div>
+                </div>
             </div>
-          </SidebarInset>
         </div>
-      </MainLayout>
-    </SidebarProvider>
+    </MainLayout>
   );
 }
+

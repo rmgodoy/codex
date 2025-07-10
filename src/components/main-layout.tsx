@@ -89,22 +89,23 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     if (pathname.startsWith('/calendar')) return 'Calendar';
     if (pathname.startsWith('/maps')) return 'Maps';
     if (pathname.startsWith('/pantheon')) return 'Pantheon';
+    if (pathname.startsWith('/bestiary')) return 'Bestiary';
     switch (pathname) {
       case '/':
-        return 'Bestiary';
+        return 'Compendium';
       case '/deeds':
         return 'Deeds';
       case '/encounters':
         return 'Encounters';
       default:
-        return 'Bestiary';
+        return 'Compendium';
     }
   }, [pathname]);
 
   const navLinks = [
     { href: '/alchemy', label: 'Alchemy', group: 'Compendium' },
     { href: '/deeds', label: 'Deeds', group: 'Compendium' },
-    { href: '/', label: 'Bestiary', group: 'Compendium' },
+    { href: '/bestiary', label: 'Bestiary', group: 'Compendium' },
     { href: '/items', label: 'Items', group: 'Compendium' },
     { href: '/npcs', label: 'NPCs', group: 'Compendium' },
     { href: '/factions', label: 'Factions', group: 'Compendium' },
@@ -202,11 +203,10 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname === '/' || pathname.startsWith('/deeds') || pathname.startsWith('/encounters') || pathname.startsWith('/random') || pathname.startsWith('/alchemy') || pathname.startsWith('/rooms') || pathname.startsWith('/items') || pathname.startsWith('/dungeons') || pathname.startsWith('/npcs') || pathname.startsWith('/factions') || pathname.startsWith('/calendar') || pathname.startsWith('/maps') || pathname.startsWith('/pantheon')) && showSidebarTrigger && <SidebarTrigger />}
+          {(pathname !== '/' && showSidebarTrigger) && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">
-                <span className="hidden sm:inline">Tresspasser </span>
                 {pageTitle}
             </h1>
           </Link>

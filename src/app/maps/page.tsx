@@ -488,10 +488,10 @@ export default function MapsPage() {
                             <CardContent>
                                 <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as any)} className="w-full">
                                     <TabsList className="grid w-full grid-cols-4">
-                                        <TabsTrigger value="settings"><Wrench className="h-4 w-4 mr-2" />Settings</TabsTrigger>
-                                        <TabsTrigger value="paint"><Paintbrush className="h-4 w-4 mr-2" />Paint</TabsTrigger>
-                                        <TabsTrigger value="path"><Waypoints className="h-4 w-4 mr-2" />Path</TabsTrigger>
-                                        <TabsTrigger value="data"><Database className="h-4 w-4 mr-2" />Data</TabsTrigger>
+                                        <TabsTrigger value="settings">Settings</TabsTrigger>
+                                        <TabsTrigger value="paint">Paint</TabsTrigger>
+                                        <TabsTrigger value="path">Path</TabsTrigger>
+                                        <TabsTrigger value="data">Data</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="settings" className="mt-4 space-y-4">
                                         <div className="space-y-2">
