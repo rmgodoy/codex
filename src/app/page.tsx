@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
-import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon, Loader2 } from 'lucide-react';
+import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon, Loader2, Dices, FlaskConical, Warehouse, Shield, User, Calendar, Gem } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { WorldMetadata } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
@@ -157,7 +157,22 @@ function LandingPage() {
           </div>
 
           <div className="mt-20">
-            {worlds.length > 0 ? (
+            {loading && (
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {landingFeatures.map((feature) => (
+                  <Card key={feature.title}>
+                    <CardHeader className="flex flex-row items-center gap-4">
+                      <feature.icon className="h-8 w-8 text-accent shrink-0" />
+                      <CardTitle>{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            {!loading && worlds.length > 0 ? (
                 <>
                 <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
                 <div className="max-w-3xl mx-auto space-y-4">
@@ -192,7 +207,7 @@ function LandingPage() {
                     ))}
                 </div>
               </>
-            ) : !loading && (
+            ) : !loading && worlds.length === 0 && (
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {landingFeatures.map((feature) => (
                         <Card key={feature.title}>
