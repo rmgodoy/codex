@@ -46,12 +46,8 @@ Need some quick inspiration? Use the random generators.
 
 Here is a list of features and fixes currently planned for future updates:
 
-*   Update the Commoners page to be scrollable on all screen sizes.
-*   Make the mobile navigation menu scrollable to accommodate all links.
-*   Set the default "start date" in the New Event dialog to the date selected on the calendar.
 *   Revisit the "Random Encounter Table" feature; consider refactoring it into a more generic "Random Creature Table".
 *   Allow creating Deeds directly from the NPC editor.
-*   Fix issue in encounter mode where going back a turn jumps to the start of the round.
 *   Update the dataset to include all official deeds for creatures from the Tresspasser rulebook.
 
 ## Import & Export
