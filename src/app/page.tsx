@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import AppRouter from '@/components/app-router';
 import MainLayout from '@/components/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,7 +109,19 @@ function LandingPage() {
       console.error("Export failed:", error);
       toast({ variant: "destructive", title: "Export Failed", description: "Could not export the data." });
     }
-  }
+  };
+
+  const truncateDescription = (description: string) => {
+    if (description.length <= 50) {
+      return description;
+    }
+    const truncated = description.substring(0, 50);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    if (lastSpaceIndex > 0) {
+      return truncated.substring(0, lastSpaceIndex) + '...';
+    }
+    return truncated + '...';
+  };
 
   return (
     <MainLayout showSidebarTrigger={false}>
@@ -157,7 +169,7 @@ function LandingPage() {
           </div>
 
           <div className="mt-20">
-            {loading && (
+            {loading ? (
               <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {landingFeatures.map((feature) => (
                   <Card key={feature.title}>
@@ -171,8 +183,7 @@ function LandingPage() {
                   </Card>
                 ))}
               </div>
-            )}
-            {!loading && worlds.length > 0 ? (
+            ) : worlds.length > 0 ? (
                 <>
                 <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
                 <div className="max-w-3xl mx-auto space-y-4">
@@ -180,7 +191,7 @@ function LandingPage() {
                       <div key={world.slug} className="border rounded-lg p-4 flex items-center justify-between gap-4 bg-card">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-lg text-primary-foreground truncate">{world.name}</h3>
-                          <p className="text-sm text-muted-foreground truncate hidden md:block">{world.description}</p>
+                          <p className="text-sm text-muted-foreground hidden md:block">{truncateDescription(world.description)}</p>
                         </div>
                         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                            <Button asChild size="sm">
@@ -207,7 +218,7 @@ function LandingPage() {
                     ))}
                 </div>
               </>
-            ) : !loading && worlds.length === 0 && (
+            ) : (
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {landingFeatures.map((feature) => (
                         <Card key={feature.title}>
