@@ -17,12 +17,15 @@ import type { WorldMetadata } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 
 const landingFeatures = [
-    { title: "Bestiary", description: "Create, edit, and manage all the creatures for your game.", icon: Skull },
-    { title: "Deeds Library", description: "A library of actions that creatures can perform.", icon: BookCopy },
-    { title: "Items & Alchemy", description: "Catalog weapons, armor, potions, and other items.", icon: Sword },
-    { title: "NPCs & Factions", description: "Create detailed characters and manage the factions in your world.", icon: Users },
-    { title: "Encounters", description: "Design and run combat encounters.", icon: SwordsIcon },
-    { title: "Maps & Dungeons", description: "Build your world on a hex grid and assemble complex dungeons.", icon: MapIcon },
+    { title: "Bestiary", description: "Create, edit, and manage creatures with detailed stats, roles, templates, abilities, and deeds.", icon: Skull },
+    { title: "Deeds Library", description: "A library of reusable actions for creatures, from simple attacks to complex magical spells.", icon: BookCopy },
+    { title: "Items & Alchemy", description: "Catalog weapons, armor, potions, and alchemical items with unique properties.", icon: FlaskConical },
+    { title: "NPCs & Factions", description: "Create detailed characters and manage the various factions, goals, and relationships in your world.", icon: Users },
+    { title: "Encounters", description: "Design combat encounters, add monsters from your bestiary, and run them with a live initiative tracker.", icon: SwordsIcon },
+    { title: "Maps & Dungeons", description: "Build your world on a hex grid and assemble complex, interconnected dungeons from a library of rooms.", icon: MapIcon },
+    { title: "Calendar & Events", description: "Track in-game events on multiple calendars, and link them to factions, creatures, or map locations.", icon: Calendar },
+    { title: "Random Generators", description: "Instantly generate random treasures, commoner PCs for a quick start, or roll on encounter tables.", icon: Dices },
+    { title: "Pantheon", description: "Define the gods and powerful entities of your world, complete with their domains, symbols, and artifacts.", icon: Shield },
 ];
 
 function LandingPage() {
