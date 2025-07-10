@@ -1,46 +1,37 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import AppRouter from '@/components/app-router';
 import MainLayout from '@/components/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { listWorlds, deleteWorld, renameWorld } from '@/lib/idb';
+import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
 import { Download, Edit, Trash2 } from 'lucide-react';
-import { exportWorldData } from '@/lib/idb/import-export';
-import AppRouter from '@/components/app-router';
 
-export default function LandingOrAppPage() {
+function LandingPage() {
   const [worlds, setWorlds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNewWorldDialogOpen, setIsNewWorldDialogOpen] = useState(false);
   const [newWorldName, setNewWorldName] = useState('');
   const [editingWorld, setEditingWorld] = useState<{ oldName: string, newName: string } | null>(null);
-  const router = useRouter();
   const { toast } = useToast();
-  
-  const [hash, setHash] = useState('');
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      setHash(window.location.hash);
-    };
-    
-    handleHashChange(); // Set initial hash
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
   const fetchWorlds = async () => {
     setLoading(true);
-    const worldNames = await listWorlds();
-    setWorlds(worldNames);
-    setLoading(false);
+    try {
+      const worldNames = await listWorlds();
+      setWorlds(worldNames);
+    } catch (e) {
+      console.error("Failed to list worlds", e);
+      toast({ variant: "destructive", title: "Error", description: "Could not load worlds list." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -53,14 +44,13 @@ export default function LandingOrAppPage() {
       return;
     }
     const slug = newWorldName.trim().toLowerCase().replace(/\s+/g, '-');
-    if (worlds.map(w => w.toLowerCase().replace(/\s+/g, '-')).includes(slug)) {
+    if (worlds.some(w => w.toLowerCase().replace(/\s+/g, '-') === slug)) {
       toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
       return;
     }
-    // Navigate using hash
     window.location.hash = `#/${slug}`;
   };
-
+  
   const handleDeleteWorld = async (worldName: string) => {
     await deleteWorld(worldName);
     toast({ title: 'World Deleted', description: `"${worldName}" has been permanently deleted.` });
@@ -74,7 +64,7 @@ export default function LandingOrAppPage() {
     }
     const { oldName, newName } = editingWorld;
     const slug = newName.trim().toLowerCase().replace(/\s+/g, '-');
-    if (worlds.map(w => w.toLowerCase().replace(/\s+/g, '-')).includes(slug)) {
+    if (worlds.some(w => w.toLowerCase().replace(/\s+/g, '-') === slug)) {
         toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
         return;
     }
@@ -87,7 +77,7 @@ export default function LandingOrAppPage() {
          toast({ variant: 'destructive', title: 'Error', description: 'Could not rename world.' });
     }
   };
-  
+
   const handleExport = async (worldName: string) => {
      try {
       const dataToExport = await exportWorldData(worldName);
@@ -105,40 +95,8 @@ export default function LandingOrAppPage() {
     }
   }
 
-  const GetStartedButton = () => (
-    <Dialog open={isNewWorldDialogOpen} onOpenChange={setIsNewWorldDialogOpen}>
-      <DialogTrigger asChild>
-        <Button size="lg">Get Started</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create a New World</DialogTitle>
-          <DialogDescription>Give your new world a name to begin your journey.</DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <Label htmlFor="world-name">World Name</Label>
-          <Input 
-            id="world-name"
-            value={newWorldName}
-            onChange={(e) => setNewWorldName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWorld() }}
-            placeholder="e.g., Aethelgard"
-          />
-        </div>
-        <DialogFooter>
-          <Button onClick={handleCreateWorld}>Create World</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-
-  // If there's a hash, we're in a world context
-  if (hash && hash !== '#/') {
-    return <AppRouter />;
-  }
-
   return (
-    <MainLayout showImportExport={false}>
+    <MainLayout showImportExport={true}>
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -149,9 +107,30 @@ export default function LandingOrAppPage() {
               A comprehensive application for managing and organizing your TTRPG worlds. Create creatures, design encounters, build dungeons, and bring your stories to life.
             </p>
             <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-              <div className="rounded-md shadow">
-                <GetStartedButton />
-              </div>
+              <Dialog open={isNewWorldDialogOpen} onOpenChange={setIsNewWorldDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg">Get Started</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create a New World</DialogTitle>
+                    <DialogDescription>Give your new world a name to begin your journey.</DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Label htmlFor="world-name">World Name</Label>
+                    <Input 
+                      id="world-name"
+                      value={newWorldName}
+                      onChange={(e) => setNewWorldName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWorld() }}
+                      placeholder="e.g., Aethelgard"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleCreateWorld}>Create World</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -220,4 +199,26 @@ export default function LandingOrAppPage() {
       )}
     </MainLayout>
   );
+}
+
+export default function LandingOrAppPage() {
+  const [hash, setHash] = useState('');
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setHash(window.location.hash);
+    };
+    
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const hasWorldInHash = hash && hash.startsWith('#/') && hash.length > 2;
+
+  if (hasWorldInHash) {
+    return <AppRouter />;
+  }
+
+  return <LandingPage />;
 }

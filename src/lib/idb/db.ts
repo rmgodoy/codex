@@ -36,61 +36,43 @@ export const ALL_STORE_NAMES = [
   ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME,
   ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME,
   NPCS_STORE_NAME, PANTHEON_STORE_NAME, CALENDARS_STORE_NAME,
-  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME, WORLDS_METADATA_STORE_NAME
+  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME
 ];
 
 let db: IDBDatabase | null = null;
 let metadataDb: IDBDatabase | null = null;
 
-export const setWorldDbName = (worldName: string) => {
-  const slug = worldName.trim().toLowerCase().replace(/\s+/g, '-');
-  DB_NAME = `${DB_PREFIX}${slug}`;
-  // Reset the db connection when the name changes
+export const setWorldDbName = (worldSlug: string) => {
+  if (!worldSlug) {
+    DB_NAME = '';
+  } else {
+    DB_NAME = `${DB_PREFIX}${worldSlug}`;
+  }
+
   if (db) {
     db.close();
     db = null;
   }
 };
 
-const getMetadataDb = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-        if (metadataDb) {
-            return resolve(metadataDb);
-        }
-        if (typeof window === 'undefined') {
-            return reject('IndexedDB can only be used in a browser environment.');
-        }
-
-        const request = indexedDB.open(METADATA_DB_NAME, METADATA_DB_VERSION);
-
-        request.onupgradeneeded = () => {
-            const mdb = request.result;
-            if (!mdb.objectStoreNames.contains(WORLDS_METADATA_STORE_NAME)) {
-                mdb.createObjectStore(WORLDS_METADATA_STORE_NAME, { keyPath: 'slug' });
-            }
-        };
-
-        request.onsuccess = () => {
-            metadataDb = request.result;
-            resolve(metadataDb);
-        };
-        request.onerror = () => reject(request.error);
-    });
-};
-
 export const listWorlds = async (): Promise<string[]> => {
+    if (!window.indexedDB) return [];
     if (indexedDB.databases) {
-      const dbs = await indexedDB.databases();
-      return dbs
-        .filter(db => db.name?.startsWith(DB_PREFIX))
-        .map(db => db.name!.replace(DB_PREFIX, '').replace(/-/g, ' '));
+      try {
+        const dbs = await indexedDB.databases();
+        return dbs
+          .filter(db => db.name?.startsWith(DB_PREFIX))
+          .map(db => db.name!.replace(DB_PREFIX, ''));
+      } catch (e) {
+        console.error("Could not list databases", e);
+        return [];
+      }
     }
     return [];
 };
 
-export const deleteWorld = (worldName: string): Promise<void> => {
-    const slug = worldName.trim().toLowerCase().replace(/\s+/g, '-');
-    const dbName = `${DB_PREFIX}${slug}`;
+export const deleteWorld = (worldSlug: string): Promise<void> => {
+    const dbName = `${DB_PREFIX}${worldSlug}`;
     return new Promise((resolve, reject) => {
         const deleteRequest = indexedDB.deleteDatabase(dbName);
         deleteRequest.onsuccess = () => resolve();
@@ -102,31 +84,26 @@ export const deleteWorld = (worldName: string): Promise<void> => {
     });
 };
 
-export const renameWorld = async (oldName: string, newName: string) => {
-    const oldSlug = oldName.trim().toLowerCase().replace(/\s+/g, '-');
+export const renameWorld = async (oldSlug: string, newName: string) => {
     const newSlug = newName.trim().toLowerCase().replace(/\s+/g, '-');
-    
-    // 1. Export data from old DB
     const data = await exportWorldData(oldSlug);
     
-    // 2. Set new DB name and import data
     setWorldDbName(newSlug);
     await importData(data);
-    
-    // 3. Delete old DB
-    await deleteWorld(oldName);
-
-    return;
+    await deleteWorld(oldSlug);
 };
 
 
 export const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
-    if (db) {
+    if (db && db.name === DB_NAME) {
       return resolve(db);
     }
     if (typeof window === 'undefined') {
       return reject('IndexedDB can only be used in a browser environment.');
+    }
+    if (!DB_NAME) {
+      return reject('Database name is not set. Please select a world.');
     }
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -169,9 +146,7 @@ export const getDb = (): Promise<IDBDatabase> => {
         eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
       }
       
-      const worldMetadataStore = currentDb.objectStoreNames.contains(WORLDS_METADATA_STORE_NAME)
-        ? request.transaction!.objectStore(WORLDS_METADATA_STORE_NAME)
-        : currentDb.createObjectStore(WORLDS_METADATA_STORE_NAME, { keyPath: 'name' });
+      createStore(WORLDS_METADATA_STORE_NAME, 'slug');
     };
 
     request.onsuccess = () => {
@@ -187,4 +162,3 @@ export const getDb = (): Promise<IDBDatabase> => {
 };
 
 export const generateId = () => crypto.randomUUID();
-

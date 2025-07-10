@@ -1,17 +1,19 @@
 
 "use client";
 
-import type { Creature, Deed, Encounter, EncounterTable, Tag, Treasure, AlchemicalItem, Room, Dungeon, Item, Faction, Npc, TagSource, CreatureAbility, Calendar, CalendarEvent, Map, PantheonEntity, Path, WorldMetadata } from '@/lib/types';
-import { getDb, generateId, DB_NAME, DB_VERSION, ALL_STORE_NAMES, WORLDS_METADATA_STORE_NAME, setWorldDbName } from './db';
+import { getDb, ALL_STORE_NAMES, setWorldDbName } from './db';
+import type { TagSource } from '@/lib/types';
+
 
 // Import/Export
-export const exportWorldData = async (worldName: string): Promise<any> => {
-    setWorldDbName(worldName);
+export const exportWorldData = async (worldSlug: string): Promise<any> => {
+    setWorldDbName(worldSlug);
     const db = await getDb();
     
-    const transaction = db.transaction(ALL_STORE_NAMES, 'readonly');
+    const storeNamesToExport = ALL_STORE_NAMES.filter(name => name !== 'worlds');
+    const transaction = db.transaction(storeNamesToExport, 'readonly');
     
-    const promises = ALL_STORE_NAMES.map(name => {
+    const promises = storeNamesToExport.map(name => {
       return new Promise((resolve, reject) => {
         const request = transaction.objectStore(name).getAll();
         request.onsuccess = () => resolve({ name, data: request.result });
@@ -34,16 +36,17 @@ export const importData = async (data: any): Promise<void> => {
     if (typeof data !== 'object' || data === null) {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
-
-    const tx = db.transaction(ALL_STORE_NAMES, 'readwrite');
+    
+    const storeNamesToImport = ALL_STORE_NAMES.filter(name => name !== 'worlds');
+    const tx = db.transaction(storeNamesToImport, 'readwrite');
     
     const stores: { [key: string]: IDBObjectStore } = {};
-    ALL_STORE_NAMES.forEach(name => {
+    storeNamesToImport.forEach(name => {
       stores[name] = tx.objectStore(name);
       stores[name].clear();
     });
 
-    const allTagsToCreate = new Map<string, Tag>();
+    const allTagsToCreate = new Map<string, {name: string, source: TagSource}>();
 
     const processTags = (tags: string[] | undefined, source: TagSource) => {
         if (tags && Array.isArray(tags)) {
@@ -67,10 +70,8 @@ export const importData = async (data: any): Promise<void> => {
         }
     };
 
-    ALL_STORE_NAMES.forEach(storeName => {
-        if(storeName !== WORLDS_METADATA_STORE_NAME) { // metadata is not a regular store
-             processStore(storeName, data[storeName]);
-        }
+    storeNamesToImport.forEach(storeName => {
+        processStore(storeName, data[storeName]);
     });
     
     allTagsToCreate.forEach(tag => {
@@ -82,4 +83,3 @@ export const importData = async (data: any): Promise<void> => {
         tx.onerror = () => reject(tx.error);
     });
 };
-

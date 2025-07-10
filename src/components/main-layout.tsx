@@ -1,8 +1,8 @@
 
 'use client';
 
-import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar, Map, Sparkles, Gem } from 'lucide-react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Warehouse, Sword, Users, Shield, User, Calendar, Map, Gem } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,18 +11,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useMemo, useRef, useState, useEffect } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { importData } from '@/lib/idb';
 import { useWorld } from './world-provider';
 
 
-export default function MainLayout({ children, showSidebarTrigger = true, showImportExport = true }: { children: React.ReactNode, showSidebarTrigger?: boolean, pageTitle?: string, showImportExport?: boolean }) {
+export default function MainLayout({ children, showSidebarTrigger = true, showImportExport = true }: { children: React.ReactNode, showSidebarTrigger?: boolean, showImportExport?: boolean }) {
   const { worldSlug, worldName } = useWorld();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -71,6 +69,7 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
   };
   
   const finalPageTitle = useMemo(() => {
+    if (!worldSlug) return "Tresspasser Compendium";
     const pageKey = hash.split('/').slice(2).join('/');
     if (pageKey.startsWith('random/encounter-tables')) return 'Encounter Tables';
     if (pageKey.startsWith('random/treasures')) return 'Treasures';
@@ -88,7 +87,7 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     if (pageKey.startsWith('deeds')) return 'Deeds';
     if (pageKey.startsWith('encounters')) return 'Encounters';
     return worldName || 'Compendium';
-  }, [hash, worldName]);
+  }, [hash, worldName, worldSlug]);
 
   const navLinks = [
     { href: `/#/${worldSlug}/alchemy`, label: 'Alchemy', group: 'Compendium' },

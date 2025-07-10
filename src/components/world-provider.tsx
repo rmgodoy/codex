@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { setWorldDbName, DB_NAME, WORLDS_METADATA_STORE_NAME, getDb } from '@/lib/idb';
+import { setWorldDbName, getDb, WORLDS_METADATA_STORE_NAME } from '@/lib/idb';
 
 interface WorldContextType {
   worldSlug: string;
@@ -70,6 +70,7 @@ export function WorldProvider({ children }: WorldProviderProps) {
       setWorldSlug(slug);
       fetchWorldName(slug);
     } else {
+      setWorldDbName(''); // Reset to default or handle no-world state
       setWorldSlug('');
       setWorldName('');
     }

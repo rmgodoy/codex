@@ -58,6 +58,7 @@ export default function WorldLandingPage() {
   }, [worldSlug, contextWorldName]);
 
   const handleSave = async () => {
+    if (!worldSlug) return;
     try {
       const db = await getDb();
       const tx = db.transaction(WORLDS_METADATA_STORE_NAME, 'readwrite');
@@ -149,11 +150,11 @@ export default function WorldLandingPage() {
                     <p className="text-muted-foreground">{feature.description}</p>
                   </CardContent>
                   <CardContent>
-                    <Link href={feature.href} passHref>
+                    <a href={feature.href}>
                       <Button variant="outline" className="w-full">
                         Go to {feature.title}
                       </Button>
-                    </Link>
+                    </a>
                   </CardContent>
                 </Card>
               ))}

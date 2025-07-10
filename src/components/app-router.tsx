@@ -4,8 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorld } from './world-provider';
 
-// Import all page components
-import WorldLandingPage from './world-landing-page';
+import WorldLandingPage from '@/components/world-landing-page';
 import BestiaryPage from '@/app/bestiary/page';
 import DeedsPage from '@/app/deeds/page';
 import AlchemyPage from '@/app/alchemy/page';
@@ -43,32 +42,28 @@ const routes: { [key: string]: React.ComponentType<any> } = {
 
 export default function AppRouter() {
   const { worldSlug } = useWorld();
-  const [page, setPage] = useState<React.ComponentType<any> | null>(() => WorldLandingPage);
+  const [page, setPage] = useState<React.ComponentType<any> | null>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
       const parts = hash.split('/').filter(Boolean);
       const currentWorldSlug = parts[0];
-      let pageKey = parts.slice(1).join('/');
+      const pageKey = parts.slice(1).join('/') || '';
 
-      if (currentWorldSlug !== worldSlug) {
-        // The world has changed, WorldProvider will handle it.
-        // We just need to make sure we render the correct page for the new world.
+      if (currentWorldSlug === worldSlug) {
+        const PageComponent = routes[pageKey] || WorldLandingPage; 
+        setPage(() => PageComponent);
       }
-      
-      const PageComponent = routes[pageKey] || WorldLandingPage; // Default to landing page if route not found
-      setPage(() => PageComponent);
     };
 
-    handleHashChange(); // Initial load
+    handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [worldSlug]);
   
   if (!worldSlug) {
-    // This can happen briefly on load or if the hash is invalid
-    return null; // Or a loading spinner
+    return null;
   }
 
   const PageComponent = page;
