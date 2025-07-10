@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-import type {NextConfig} from 'next';
-
 const repoName = 'codex';
 const isProd = process.env.NODE_ENV === 'production';
 
