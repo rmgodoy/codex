@@ -2,26 +2,29 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import type { Combatant, PlayerCombatant } from "@/lib/types";
+import type { Combatant, PlayerCombatant, MonsterCombatant } from "@/lib/types";
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
-import { ChevronUp, ChevronDown, User, Bot, AlertTriangle, UserPlus } from "lucide-react";
+import { ChevronUp, ChevronDown, User, Bot, AlertTriangle, UserPlus, HeartPulse } from "lucide-react";
 import { Input } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
 
 interface InitiativeTrackerProps {
   combatantsInTurnOrder: (Combatant & { turnId: string })[];
   untrackedPlayers: PlayerCombatant[];
+  defeatedCombatants: MonsterCombatant[];
   activeTurnId: string | null;
   round: number;
   onNextTurn: () => void;
   onPrevTurn: () => void;
   onCombatantUpdate: (combatant: Combatant) => void;
+  onRevive: (combatantId: string) => void;
   perilRoll: number;
   perilText: string;
   allPlayersReady: boolean;
@@ -32,11 +35,13 @@ interface InitiativeTrackerProps {
 export default function InitiativeTracker({
   combatantsInTurnOrder,
   untrackedPlayers,
+  defeatedCombatants,
   activeTurnId,
   round,
   onNextTurn,
   onPrevTurn,
   onCombatantUpdate,
+  onRevive,
   perilRoll,
   perilText,
   allPlayersReady,
@@ -278,6 +283,38 @@ export default function InitiativeTracker({
           <p className="text-muted-foreground text-center pt-4">Waiting for players...</p>
         )}
       </ScrollArea>
+      {defeatedCombatants.length > 0 && (
+          <>
+            <Separator className="my-2" />
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between">
+                  Defeated ({defeatedCombatants.length})
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                 <ScrollArea className="flex-1">
+                  <ul className="space-y-2 pr-4 pt-2">
+                    {defeatedCombatants.map((c) => (
+                      <li key={c.id} className="p-3 rounded-lg bg-destructive/10">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Bot className="h-5 w-5 text-destructive/80" />
+                            <span className="font-semibold text-destructive/80 line-through">{c.name}</span>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => onRevive(c.id)}>
+                            <HeartPulse className="h-4 w-4 mr-2" /> Revive
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                 </ScrollArea>
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+      )}
     </div>
   );
 }

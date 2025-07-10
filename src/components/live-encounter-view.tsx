@@ -53,9 +53,11 @@ const calculateTurnOrder = (combatants: Combatant[]) => {
       untrackedPlayers: [],
     };
   }
+  
+  const activeCombatants = combatants.filter(c => c.type === 'player' || c.currentHp > 0);
 
-  const allPlayers = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
-  const monsters = combatants.filter((c): c is MonsterCombatant => c.type === 'monster');
+  const allPlayers = activeCombatants.filter((c): c is PlayerCombatant => c.type === 'player');
+  const monsters = activeCombatants.filter((c): c is MonsterCombatant => c.type === 'monster');
     
   const untracked = allPlayers.filter(p => (p.initiative === undefined || p.initiative <= 0) && !p.nat20);
   const trackedPlayers = allPlayers.filter(p => (p.initiative !== undefined && p.initiative > 0) || p.nat20);
@@ -164,15 +166,22 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     if (players.length === 0) return true;
     return players.every(p => (p.initiative !== undefined && p.initiative > 0) || p.nat20);
   }, [combatants, loading]);
+  
+  const { activeCombatants, defeatedCombatants } = useMemo(() => {
+    const active = combatants.filter(c => c.type === 'player' || (c.type === 'monster' && c.currentHp > 0));
+    const defeated = combatants.filter(c => c.type === 'monster' && c.currentHp <= 0);
+    return { activeCombatants: active, defeatedCombatants: defeated };
+  }, [combatants]);
 
   const { turnOrder, activeTurn, untrackedPlayers } = useMemo(() => {
-    if (loading || combatants.length === 0) return { turnOrder: [], activeTurn: null, untrackedPlayers: [] };
+    if (loading || activeCombatants.length === 0) return { turnOrder: [], activeTurn: null, untrackedPlayers: [] };
 
-    const { turnOrder: finalTurnOrder, untrackedPlayers: untracked } = calculateTurnOrder(combatants);
+    const { turnOrder: finalTurnOrder, untrackedPlayers: untracked } = calculateTurnOrder(activeCombatants);
     const currentActiveTurn = allPlayersReady ? finalTurnOrder[turnIndex] : null;
 
     return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn, untrackedPlayers: untracked };
-  }, [combatants, turnIndex, loading, allPlayersReady]);
+  }, [activeCombatants, turnIndex, loading, allPlayersReady]);
+
 
   useEffect(() => {
     const initializeCombatants = async () => {
@@ -244,11 +253,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     type: 'monster',
                     name: group.quantity > 1 ? `${creature.name} ${i + 1}` : creature.name,
                     monsterId: creature.id,
-                    level: creature.level,
-                    role: creature.role,
                     template: creature.template || 'Normal',
-                    TR: creature.TR,
-                    initiative: creature.attributes.Initiative,
                     maxHp: creature.template === 'Underling' ? 1 : creature.attributes.HP,
                     currentHp: creature.template === 'Underling' ? 1 : creature.attributes.HP,
                     attributes: creature.attributes,
@@ -257,6 +262,10 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                     description: creature.description,
                     tags: creature.tags,
                     states: [],
+                    level: creature.level,
+                    role: creature.role,
+                    TR: creature.TR,
+                    initiative: creature.attributes.Initiative,
                 };
                 initialCombatants.push(instance);
             }
@@ -272,10 +281,11 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
   
   const nextTurn = () => {
     if (!allPlayersReady) return;
+    
+    // Check if turnOrder is empty or if we are already at the end
+    const isEndOfRound = turnOrder.length === 0 || turnIndex >= turnOrder.length - 1;
 
-    const isLastTurnOfRound = turnIndex + 1 >= turnOrder.length;
-
-    if (isLastTurnOfRound) {
+    if (isEndOfRound) {
         // End of round, start new one
         const newRound = round + 1;
         
@@ -344,6 +354,13 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
       return newState;
     });
   }, [round]);
+
+  const reviveCombatant = useCallback((combatantId: string) => {
+    const combatantToRevive = combatants.find(c => c.id === combatantId);
+    if (combatantToRevive && combatantToRevive.type === 'monster') {
+      updateCombatant({ ...combatantToRevive, currentHp: 1 });
+    }
+  }, [combatants, updateCombatant]);
   
   if (loading) {
     return (
@@ -367,11 +384,13 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
             <InitiativeTracker 
                 combatantsInTurnOrder={turnOrder}
                 untrackedPlayers={untrackedPlayers}
+                defeatedCombatants={defeatedCombatants}
                 activeTurnId={activeTurn?.turnId || null}
                 round={round}
                 onNextTurn={nextTurn}
                 onPrevTurn={prevTurn}
                 onCombatantUpdate={updateCombatant}
+                onRevive={reviveCombatant}
                 perilRoll={currentPeril.roll}
                 perilText={currentPeril.text}
                 allPlayersReady={allPlayersReady}
@@ -416,11 +435,13 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                   <InitiativeTracker 
                       combatantsInTurnOrder={turnOrder}
                       untrackedPlayers={untrackedPlayers}
+                      defeatedCombatants={defeatedCombatants}
                       activeTurnId={activeTurn?.turnId || null}
                       round={round}
                       onNextTurn={nextTurn}
                       onPrevTurn={prevTurn}
                       onCombatantUpdate={updateCombatant}
+                      onRevive={reviveCombatant}
                       perilRoll={currentPeril.roll}
                       perilText={currentPeril.text}
                       allPlayersReady={allPlayersReady}
