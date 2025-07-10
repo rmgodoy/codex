@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
 import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { WorldMetadata } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 
