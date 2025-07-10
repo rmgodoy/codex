@@ -36,11 +36,42 @@ export const ALL_STORE_NAMES = [
   ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME,
   ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME,
   NPCS_STORE_NAME, PANTHEON_STORE_NAME, CALENDARS_STORE_NAME,
-  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME, WORLDS_METADATA_STORE_NAME
+  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME
 ];
 
 let db: IDBDatabase | null = null;
 let metadataDb: IDBDatabase | null = null;
+
+const getMetadataDb = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    if (metadataDb) {
+      return resolve(metadataDb);
+    }
+    if (typeof window === 'undefined') {
+      return reject('IndexedDB can only be used in a browser environment.');
+    }
+
+    const request = indexedDB.open(METADATA_DB_NAME, METADATA_DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const currentDb = request.result;
+      if (!currentDb.objectStoreNames.contains(WORLDS_METADATA_STORE_NAME)) {
+        currentDb.createObjectStore(WORLDS_METADATA_STORE_NAME, { keyPath: 'slug' });
+      }
+    };
+
+    request.onsuccess = () => {
+      metadataDb = request.result;
+      resolve(metadataDb);
+    };
+
+    request.onerror = () => {
+      console.error('Metadata DB error:', request.error);
+      reject(request.error);
+    };
+  });
+};
+
 
 export const setWorldDbName = (worldSlug: string) => {
   if (!worldSlug) {
@@ -55,23 +86,32 @@ export const setWorldDbName = (worldSlug: string) => {
   }
 };
 
-export const listWorlds = async (): Promise<string[]> => {
+export const listWorlds = async (): Promise<WorldMetadata[]> => {
     if (!window.indexedDB) return [];
-    const db = await getDb();
-    const store = db.transaction(WORLDS_METADATA_STORE_NAME, 'readonly').objectStore(WORLDS_METADATA_STORE_NAME);
-    const request = store.getAll();
-    
-    return new Promise((resolve, reject) => {
-        request.onsuccess = () => {
-            const worlds = request.result as WorldMetadata[];
-            resolve(worlds.map(w => w.name));
-        };
-        request.onerror = () => reject(request.error);
-    });
+    try {
+        const metaDb = await getMetadataDb();
+        const store = metaDb.transaction(WORLDS_METADATA_STORE_NAME, 'readonly').objectStore(WORLDS_METADATA_STORE_NAME);
+        const request = store.getAll();
+        
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => {
+                const worlds = request.result as WorldMetadata[];
+                resolve(worlds);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    } catch(e) {
+        console.error("Failed to list worlds:", e);
+        return [];
+    }
 };
 
-export const deleteWorld = (worldSlug: string): Promise<void> => {
+export const deleteWorld = async (worldSlug: string): Promise<void> => {
     const dbName = `${DB_PREFIX}${worldSlug}`;
+    const metaDb = await getMetadataDb();
+    const store = metaDb.transaction(WORLDS_METADATA_STORE_NAME, 'readwrite').objectStore(WORLDS_METADATA_STORE_NAME);
+    store.delete(worldSlug);
+
     return new Promise((resolve, reject) => {
         const deleteRequest = indexedDB.deleteDatabase(dbName);
         deleteRequest.onsuccess = () => resolve();
@@ -89,6 +129,14 @@ export const renameWorld = async (oldSlug: string, newName: string) => {
     
     setWorldDbName(newSlug);
     await importData(data);
+
+    // Add new metadata
+    const metaDb = await getMetadataDb();
+    const metaTx = metaDb.transaction(WORLDS_METADATA_STORE_NAME, 'readwrite');
+    const metaStore = metaTx.objectStore(WORLDS_METADATA_STORE_NAME);
+    const newMetadata: WorldMetadata = { slug: newSlug, name: newName, description: data[WORLDS_METADATA_STORE_NAME]?.[0]?.description || 'A world of adventure awaits...' };
+    metaStore.put(newMetadata);
+    
     await deleteWorld(oldSlug);
 };
 
@@ -144,8 +192,6 @@ export const getDb = (): Promise<IDBDatabase> => {
       if (!eventsStore.indexNames.contains('by_calendar')) {
         eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
       }
-      
-      createStore(WORLDS_METADATA_STORE_NAME, 'slug');
     };
 
     request.onsuccess = () => {
@@ -161,3 +207,4 @@ export const getDb = (): Promise<IDBDatabase> => {
 };
 
 export const generateId = () => crypto.randomUUID();
+

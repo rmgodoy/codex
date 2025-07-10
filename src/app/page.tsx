@@ -11,8 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
-import { Download, Edit, Trash2, Skull, BookCopy, Sword, FlaskConical, User, Users, Shield, Swords as SwordsIcon, Warehouse, Dices, Map as MapIcon, Calendar, Gem } from 'lucide-react';
+import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import type { WorldMetadata } from '@/lib/types';
 
 const landingFeatures = [
     { title: "Bestiary", description: "Create, edit, and manage all the creatures for your game.", icon: Skull },
@@ -24,18 +25,18 @@ const landingFeatures = [
 ];
 
 function LandingPage() {
-  const [worlds, setWorlds] = useState<string[]>([]);
+  const [worlds, setWorlds] = useState<WorldMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNewWorldDialogOpen, setIsNewWorldDialogOpen] = useState(false);
   const [newWorldName, setNewWorldName] = useState('');
-  const [editingWorld, setEditingWorld] = useState<{ oldName: string, newName: string } | null>(null);
+  const [editingWorld, setEditingWorld] = useState<{ oldName: string, newName: string, slug: string } | null>(null);
   const { toast } = useToast();
 
   const fetchWorlds = async () => {
     setLoading(true);
     try {
-      const worldNames = await listWorlds();
-      setWorlds(worldNames);
+      const worldData = await listWorlds();
+      setWorlds(worldData);
     } catch (e) {
       console.error("Failed to list worlds", e);
       toast({ variant: "destructive", title: "Error", description: "Could not load worlds list." });
@@ -54,16 +55,18 @@ function LandingPage() {
       return;
     }
     const slug = newWorldName.trim().toLowerCase().replace(/\s+/g, '-');
-    if (worlds.some(w => w.toLowerCase().replace(/\s+/g, '-') === slug)) {
+    if (worlds.some(w => w.slug === slug)) {
       toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
       return;
     }
     window.location.hash = `#/${slug}`;
   };
   
-  const handleDeleteWorld = async (worldName: string) => {
-    await deleteWorld(worldName);
-    toast({ title: 'World Deleted', description: `"${worldName}" has been permanently deleted.` });
+  const handleDeleteWorld = async (worldSlug: string) => {
+    const worldToDelete = worlds.find(w => w.slug === worldSlug);
+    if (!worldToDelete) return;
+    await deleteWorld(worldSlug);
+    toast({ title: 'World Deleted', description: `"${worldToDelete.name}" has been permanently deleted.` });
     fetchWorlds();
   };
   
@@ -72,14 +75,14 @@ function LandingPage() {
       toast({ variant: 'destructive', title: 'Invalid Name', description: 'New world name cannot be empty.' });
       return;
     }
-    const { oldName, newName } = editingWorld;
-    const slug = newName.trim().toLowerCase().replace(/\s+/g, '-');
-    if (worlds.some(w => w.toLowerCase().replace(/\s+/g, '-') === slug)) {
+    const { oldName, newName, slug: oldSlug } = editingWorld;
+    const newSlug = newName.trim().toLowerCase().replace(/\s+/g, '-');
+    if (worlds.some(w => w.slug === newSlug && w.slug !== oldSlug)) {
         toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
         return;
     }
     try {
-        await renameWorld(oldName, newName);
+        await renameWorld(oldSlug, newName);
         toast({ title: 'World Renamed', description: `"${oldName}" is now "${newName}".` });
         setEditingWorld(null);
         fetchWorlds();
@@ -88,17 +91,19 @@ function LandingPage() {
     }
   };
 
-  const handleExport = async (worldName: string) => {
+  const handleExport = async (worldSlug: string) => {
+     const worldToExport = worlds.find(w => w.slug === worldSlug);
+     if (!worldToExport) return;
      try {
-      const dataToExport = await exportWorldData(worldName);
+      const dataToExport = await exportWorldData(worldSlug);
       const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
       const link = document.createElement("a");
       link.href = jsonString;
-      link.download = `tresspasser_world_${worldName}.json`;
+      link.download = `tresspasser_world_${worldToExport.name}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast({ title: "Export Successful", description: `"${worldName}" data has been downloaded.` });
+      toast({ title: "Export Successful", description: `"${worldToExport.name}" data has been downloaded.` });
     } catch (error) {
       console.error("Export failed:", error);
       toast({ variant: "destructive", title: "Export Failed", description: "Could not export the data." });
@@ -152,31 +157,31 @@ function LandingPage() {
                 <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {worlds.map((world) => (
-                    <Card key={world} className="flex flex-col">
+                    <Card key={world.slug} className="flex flex-col">
                         <CardHeader>
-                        <CardTitle>{world}</CardTitle>
+                        <CardTitle>{world.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow">
                         <Button asChild className="w-full">
-                            <a href={`#/${world.toLowerCase().replace(/\s+/g, '-')}`}>Enter World</a>
+                            <a href={`#/${world.slug}`}>Enter World</a>
                         </Button>
                         </CardContent>
                         <CardFooter className="gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world, newName: world })}><Edit/></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleExport(world)}><Download/></Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2/></Button></AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete "{world}"?</AlertDialogTitle>
-                                    <AlertDialogDescription>This action cannot be undone. All data for this world will be permanently deleted.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteWorld(world)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                           <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world.name, newName: world.name, slug: world.slug })}><Edit/></Button>
+                           <Button variant="ghost" size="icon" onClick={() => handleExport(world.slug)}><Download/></Button>
+                           <AlertDialog>
+                               <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2/></Button></AlertDialogTrigger>
+                               <AlertDialogContent>
+                               <AlertDialogHeader>
+                                   <AlertDialogTitle>Delete "{world.name}"?</AlertDialogTitle>
+                                   <AlertDialogDescription>This action cannot be undone. All data for this world will be permanently deleted.</AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter>
+                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                   <AlertDialogAction onClick={() => handleDeleteWorld(world.slug)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                               </AlertDialogFooter>
+                               </AlertDialogContent>
+                           </AlertDialog>
                         </CardFooter>
                     </Card>
                     ))}

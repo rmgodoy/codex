@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { setWorldDbName, getDb, WORLDS_METADATA_STORE_NAME } from '@/lib/idb';
+import { setWorldDbName, getDb, WORLDS_METADATA_STORE_NAME } from '@/lib/idb/db';
 import type { WorldMetadata } from '@/lib/types';
 
 interface WorldContextType {
@@ -25,6 +25,20 @@ interface WorldProviderProps {
   children: React.ReactNode;
 }
 
+const getMetadataDb = (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("TresspasserWorldsMetadata", 1);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(WORLDS_METADATA_STORE_NAME)) {
+                db.createObjectStore(WORLDS_METADATA_STORE_NAME, { keyPath: 'slug' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
 export function WorldProvider({ children }: WorldProviderProps) {
   const [worldSlug, setWorldSlug] = useState("");
   const [worldName, setWorldName] = useState("");
@@ -35,8 +49,8 @@ export function WorldProvider({ children }: WorldProviderProps) {
         return;
     }
     try {
-      const db = await getDb();
-      const store = db.transaction(WORLDS_METADATA_STORE_NAME, 'readwrite').objectStore(WORLDS_METADATA_STORE_NAME);
+      const metaDb = await getMetadataDb();
+      const store = metaDb.transaction(WORLDS_METADATA_STORE_NAME, 'readwrite').objectStore(WORLDS_METADATA_STORE_NAME);
       const request = store.get(slug);
 
       request.onsuccess = () => {
