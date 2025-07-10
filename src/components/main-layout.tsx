@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Warehouse, Sword, Users, Shield, User, Calendar, Map, Gem } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Warehouse, Sword, Users, Shield, User, Calendar, Map as MapIcon, Gem } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -94,28 +94,28 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     let pageName = '';
     
     if (pageKey) {
-        if (pageKey.startsWith('random/encounter-tables')) pageName = 'Encounter Tables';
-        else if (pageKey.startsWith('random/treasures')) pageName = 'Treasures';
-        else if (pageKey.startsWith('random/commoners')) pageName = 'Commoners';
-        else if (pageKey.startsWith('alchemy')) pageName = 'Alchemy';
-        else if (pageKey.startsWith('rooms')) pageName = 'Rooms';
-        else if (pageKey.startsWith('dungeons')) pageName = 'Dungeons';
-        else if (pageKey.startsWith('items')) pageName = 'Items';
-        else if (pageKey.startsWith('npcs')) pageName = 'NPCs';
-        else if (pageKey.startsWith('factions')) pageName = 'Factions';
-        else if (pageKey.startsWith('calendar')) pageName = 'Calendar';
-        else if (pageKey.startsWith('maps')) pageName = 'Maps';
-        else if (pageKey.startsWith('pantheon')) pageName = 'Pantheon';
-        else if (pageKey.startsWith('bestiary')) pageName = 'Bestiary';
-        else if (pageKey.startsWith('deeds')) pageName = 'Deeds';
-        else if (pageKey.startsWith('encounters')) pageName = 'Encounters';
+      if (pageKey.startsWith('random/encounter-tables')) pageName = 'Encounter Tables';
+      else if (pageKey.startsWith('random/treasures')) pageName = 'Treasures';
+      else if (pageKey.startsWith('random/commoners')) pageName = 'Commoners';
+      else if (pageKey.startsWith('alchemy')) pageName = 'Alchemy';
+      else if (pageKey.startsWith('rooms')) pageName = 'Rooms';
+      else if (pageKey.startsWith('dungeons')) pageName = 'Dungeons';
+      else if (pageKey.startsWith('items')) pageName = 'Items';
+      else if (pageKey.startsWith('npcs')) pageName = 'NPCs';
+      else if (pageKey.startsWith('factions')) pageName = 'Factions';
+      else if (pageKey.startsWith('calendar')) pageName = 'Calendar';
+      else if (pageKey.startsWith('maps')) pageName = 'Maps';
+      else if (pageKey.startsWith('pantheon')) pageName = 'Pantheon';
+      else if (pageKey.startsWith('bestiary')) pageName = 'Bestiary';
+      else if (pageKey.startsWith('deeds')) pageName = 'Deeds';
+      else if (pageKey.startsWith('encounters')) pageName = 'Encounters';
     }
 
     if (pageName) {
         return `${worldName} | ${pageName}`;
     }
     
-    return worldName || 'Compendium';
+    return worldName || "Compendium";
   }, [hash, worldName, worldSlug]);
 
   const navLinks = [
@@ -134,7 +134,7 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     { href: `/#/${worldSlug}/dungeons`, label: 'Dungeons' },
     { href: `/#/${worldSlug}/calendar`, label: 'Calendar' },
     { href: `/#/${worldSlug}/maps`, label: 'Maps' },
-  ];
+  ].sort((a,b) => a.label.localeCompare(b.label));
 
   const compendiumLinks = navLinks.filter(link => link.group === 'Compendium');
   const randomLinks = navLinks.filter(link => link.group === 'Random');
