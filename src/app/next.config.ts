@@ -2,7 +2,7 @@
 
 import type {NextConfig} from 'next';
 
-const repoName = 'tresspasser-compendium';
+const repoName = 'codex';
 const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
