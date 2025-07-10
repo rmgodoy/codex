@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -70,7 +71,7 @@ const AddRelationshipDialog = ({ currentEntityId, allEntities, onAdd }: { curren
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const availableEntities = useMemo(() => {
-    return allEntities.filter(entity => entity.id !== currentEntityId);
+    return (allEntities || []).filter(entity => entity.id !== currentEntityId);
   }, [allEntities, currentEntityId]);
 
   const handleAdd = () => {
@@ -265,10 +266,10 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
   
   const handleCancel = () => {
     if (isCreatingNew) {
-      onEditCancel();
+        onEditCancel();
     } else if (entityData) {
-      form.reset({ ...defaultValues, ...entityData });
-      setIsEditing(false);
+        form.reset({ ...defaultValues, ...entityData });
+        setIsEditing(false);
     }
   };
 
@@ -426,7 +427,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                 </div>
                 <Separator/>
                 <div>
-                    <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground">Relationships</h3><AddRelationshipDialog currentEntityId={entityId} allNpcs={allEntities} onAdd={appendRelationship} /></div>
+                    <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground">Relationships</h3><AddRelationshipDialog currentEntityId={entityId} allEntities={allEntities} onAdd={appendRelationship} /></div>
                     <div className="space-y-2">
                         {relationshipFields.map((field, index) => (<div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card-foreground/5"><p className="flex-1"><span className="capitalize">{field.type}</span> <span className="font-semibold text-accent">{entityMap.get(field.targetEntityId) || '...'}</span></p><Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button></div>))}
                         {relationshipFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No relationships defined.</p>}
