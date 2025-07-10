@@ -232,6 +232,22 @@ const HexGrid: React.FC<HexGridProps> = ({
         });
     }
 
+    // Draw points for the currently drawing path
+    if (pathDrawingId) {
+      const activePath = mapData.paths.find(p => p.id === pathDrawingId);
+      if (activePath && activePath.points.length > 0) {
+        activePath.points.forEach(point => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 4 / currentView.zoom, 0, 2 * Math.PI);
+          ctx.fillStyle = activePath.color;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.lineWidth = 1 / currentView.zoom;
+          ctx.stroke();
+        });
+      }
+    }
+
     if (selectedHex) {
         const center = hexToPixel(selectedHex, hexSize);
         ctx.beginPath();
@@ -247,7 +263,7 @@ const HexGrid: React.FC<HexGridProps> = ({
     
     ctx.restore();
 
-  }, [hexSize, themeColors, selectedHex, mapData.paths]);
+  }, [hexSize, themeColors, selectedHex, mapData.paths, pathDrawingId]);
 
   useEffect(() => {
       if (!mapData.tiles.length || !canvasRef.current) return;
@@ -337,7 +353,7 @@ const HexGrid: React.FC<HexGridProps> = ({
 
   useEffect(() => {
     draw();
-  }, [view, draw, mapData.paths]);
+  }, [view, draw, mapData.paths, pathDrawingId]);
 
   const bucketFill = useCallback((startHex: Hex) => {
     const startTile = gridMap.get(`${startHex.q},${startHex.r}`);
@@ -407,7 +423,6 @@ const HexGrid: React.FC<HexGridProps> = ({
     }
 
     if (activeTool === 'path' && pathDrawingId) {
-        setIsPainting(true);
         const worldPos = getWorldCoordinates(x, y);
         onAddPointToPath(worldPos);
         return;
@@ -470,22 +485,17 @@ const HexGrid: React.FC<HexGridProps> = ({
         return;
     }
     
-    if (isPainting) {
-        if (activeTool === 'path') {
-            const worldPos = getWorldCoordinates(x, y);
-            onAddPointToPath(worldPos);
-        } else if (activeTool === 'paint') {
-            const currentHex = getHexFromCanvasCoordinates(x, y);
-            if (currentHex) {
-                if (!lastPaintedHex || (currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r)) {
-                    const currentPaintMode = isShiftPressed ? 'erase' : paintMode;
-                    paintTile(currentHex, currentPaintMode);
-                    setLastPaintedHex(currentHex);
-                }
+    if (isPainting && activeTool === 'paint') {
+        const currentHex = getHexFromCanvasCoordinates(x, y);
+        if (currentHex) {
+            if (!lastPaintedHex || (currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r)) {
+                const currentPaintMode = isShiftPressed ? 'erase' : paintMode;
+                paintTile(currentHex, currentPaintMode);
+                setLastPaintedHex(currentHex);
             }
         }
     }
-  }, [isPanning, getCanvasCoordinates, paintMode, isPainting, paintTile, activeTool, draw, lastPaintedHex, isShiftPressed, onAddPointToPath, getWorldCoordinates, getHexFromCanvasCoordinates]);
+  }, [isPanning, getCanvasCoordinates, paintMode, isPainting, paintTile, activeTool, draw, lastPaintedHex, isShiftPressed, getHexFromCanvasCoordinates]);
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -519,7 +529,6 @@ const HexGrid: React.FC<HexGridProps> = ({
 
     if (touches.length === 1) {
       if (activeTool === 'path' && pathDrawingId) {
-          setIsPainting(true);
           const worldPos = getWorldCoordinates(x, y);
           onAddPointToPath(worldPos);
           return;
@@ -568,18 +577,13 @@ const HexGrid: React.FC<HexGridProps> = ({
         const dx = x - lastPanPointRef.current.x;
         const dy = y - lastPanPointRef.current.y;
         
-        if (isPainting) {
-            if (activeTool === 'path') {
-                const worldPos = getWorldCoordinates(x, y);
-                onAddPointToPath(worldPos);
-            } else {
-                const currentHex = getHexFromCanvasCoordinates(x, y);
-                if (currentHex) {
-                  if (!lastPaintedHex || currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r) {
-                      paintTile(currentHex, paintMode);
-                      setLastPaintedHex(currentHex);
-                  }
-                }
+        if (isPainting && activeTool === 'paint') {
+            const currentHex = getHexFromCanvasCoordinates(x, y);
+            if (currentHex) {
+              if (!lastPaintedHex || currentHex.q !== lastPaintedHex.q || currentHex.r !== lastPaintedHex.r) {
+                  paintTile(currentHex, paintMode);
+                  setLastPaintedHex(currentHex);
+              }
             }
         } else if (isPanning) {
             viewRef.current.x += dx;
@@ -611,7 +615,7 @@ const HexGrid: React.FC<HexGridProps> = ({
         setLastTouchDistance(newDist);
         lastPanPointRef.current = newMidPoint;
     }
-  }, [isPanning, isPinching, isPainting, lastTouchDistance, draw, getCanvasCoordinates, getHexFromCanvasCoordinates, paintTile, paintMode, lastPaintedHex, activeTool, onAddPointToPath, getWorldCoordinates]);
+  }, [isPanning, isPinching, isPainting, lastTouchDistance, draw, getCanvasCoordinates, getHexFromCanvasCoordinates, paintTile, paintMode, lastPaintedHex, activeTool]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
       setIsPanning(false);

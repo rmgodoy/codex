@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints } from "lucide-react";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp } from "lucide-react";
 import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
 import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents } from "@/lib/idb";
@@ -540,7 +540,11 @@ export default function MapsPage() {
                                                 <Label>Paint Mode</Label>
                                                 <ToggleGroup 
                                                     type="single" 
-                                                    value={isShiftPressed ? 'erase' : (isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode)} 
+                                                    value={
+                                                        paintMode === 'bucket' ? 'bucket' :
+                                                        isShiftPressed ? 'erase' : 
+                                                        (isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode)
+                                                    }
                                                     onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} 
                                                     className="w-full"
                                                 >
@@ -763,6 +767,16 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
         const newPaths = (activeMap?.paths || []).filter(p => p.id !== pathId);
         onPathUpdate(newPaths);
     };
+    
+    const handleRemoveLastPoint = (pathId: string) => {
+       const newPaths = (activeMap?.paths || []).map(p => {
+           if (p.id === pathId) {
+               return {...p, points: p.points.slice(0, -1)};
+           }
+           return p;
+       });
+       onPathUpdate(newPaths);
+    };
 
     if (!activeMap) {
         return <p className="text-sm text-muted-foreground text-center pt-4">Select a map to manage paths.</p>;
@@ -804,15 +818,27 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
                                 <Label>Width:</Label>
                                 <Input type="number" value={path.strokeWidth} min="1" max="20" onChange={(e) => handleUpdatePath(path.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })} className="h-8 flex-1"/>
                             </div>
-                            <Button
-                                variant={pathDrawingId === path.id ? "secondary" : "outline"}
-                                size="sm"
-                                className="w-full"
-                                onClick={() => setPathDrawingId(prev => prev === path.id ? null : path.id)}
-                            >
-                                {pathDrawingId === path.id ? <Check className="h-4 w-4 mr-2" /> : <Paintbrush className="h-4 w-4 mr-2" />}
-                                {pathDrawingId === path.id ? "Drawing..." : "Draw Path"}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant={pathDrawingId === path.id ? "secondary" : "outline"}
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => setPathDrawingId(prev => prev === path.id ? null : path.id)}
+                                >
+                                    {pathDrawingId === path.id ? <Check className="h-4 w-4 mr-2" /> : <Paintbrush className="h-4 w-4 mr-2" />}
+                                    {pathDrawingId === path.id ? "Drawing..." : "Draw Path"}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9"
+                                  onClick={() => handleRemoveLastPoint(path.id)}
+                                  disabled={path.points.length === 0}
+                                  aria-label="Remove last point"
+                                >
+                                  <CornerLeftUp className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -820,4 +846,3 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
         </div>
     );
 }
-
