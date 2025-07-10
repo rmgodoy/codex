@@ -1,10 +1,10 @@
+
 import type {NextConfig} from 'next';
 
 const repoName = 'tresspasser-compendium';
 const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
-  output: 'export',
   assetPrefix: isProd ? `/${repoName}/` : '',
   basePath: isProd ? `/${repoName}` : '',
   typescript: {
