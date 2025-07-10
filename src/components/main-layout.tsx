@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar, Map, Sparkles } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar, Map, Sparkles, Gem } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -104,18 +104,18 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
 
   const navLinks = [
     { href: '/alchemy', label: 'Alchemy', group: 'Compendium' },
-    { href: '/deeds', label: 'Deeds', group: 'Compendium' },
     { href: '/bestiary', label: 'Bestiary', group: 'Compendium' },
+    { href: '/deeds', label: 'Deeds', group: 'Compendium' },
+    { href: '/encounters', label: 'Encounters', group: 'Compendium' },
     { href: '/items', label: 'Items', group: 'Compendium' },
     { href: '/npcs', label: 'NPCs', group: 'Compendium' },
     { href: '/factions', label: 'Factions', group: 'Compendium' },
     { href: '/pantheon', label: 'Pantheon', group: 'Compendium' },
     { href: '/rooms', label: 'Rooms', group: 'Compendium' },
-    { href: '/dungeons', label: 'Dungeons', group: 'Compendium' },
+    { href: '/random/treasures', label: 'Treasures', group: 'Compendium' },
     { href: '/random/encounter-tables', label: 'Encounter Tables', group: 'Random' },
-    { href: '/random/treasures', label: 'Treasures', group: 'Random' },
     { href: '/random/commoners', label: 'Commoners', group: 'Random' },
-    { href: '/encounters', label: 'Encounters' },
+    { href: '/dungeons', label: 'Dungeons' },
     { href: '/calendar', label: 'Calendar' },
     { href: '/maps', label: 'Maps' },
   ];
@@ -152,7 +152,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
       </DropdownMenu>
       {otherLinks.map(link => (
         <Link href={link.href} key={link.href} passHref>
-          <Button variant={pathname === link.href ? 'secondary' : 'ghost'}>
+          <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'}>
             {link.label}
           </Button>
         </Link>
@@ -177,20 +177,20 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
             <p className="font-bold text-lg">Compendium</p>
             {compendiumLinks.map(link => (
                 <Link href={link.href} key={link.href} passHref>
-                <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
                 </Link>
             ))}
             <Separator className="my-2" />
             <p className="font-bold text-lg">Random</p>
             {randomLinks.map(link => (
                 <Link href={link.href} key={link.href} passHref>
-                <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
                 </Link>
             ))}
             <Separator className="my-2" />
             {otherLinks.map(link => (
                 <Link href={link.href} key={link.href} passHref>
-                <Button variant={pathname === link.href ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
+                <Button variant={pathname.startsWith(link.href) ? 'secondary' : 'ghost'} className="w-full justify-start">{link.label}</Button>
                 </Link>
             ))}
             </div>
