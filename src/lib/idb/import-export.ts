@@ -10,7 +10,7 @@ export const exportWorldData = async (worldSlug: string): Promise<any> => {
     setWorldDbName(worldSlug);
     const db = await getDb();
     
-    const storeNamesToExport = ALL_STORE_NAMES.filter(name => name !== 'worlds');
+    const storeNamesToExport = ALL_STORE_NAMES;
     const transaction = db.transaction(storeNamesToExport, 'readonly');
     
     const promises = storeNamesToExport.map(name => {
@@ -37,7 +37,7 @@ export const importData = async (data: any): Promise<void> => {
         return Promise.reject(new Error("Invalid import file format. Expected an object with arrays of data."));
     }
     
-    const storeNamesToImport = ALL_STORE_NAMES.filter(name => name !== 'worlds');
+    const storeNamesToImport = ALL_STORE_NAMES;
     const tx = db.transaction(storeNamesToImport, 'readwrite');
     
     const stores: { [key: string]: IDBObjectStore } = {};

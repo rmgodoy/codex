@@ -3,6 +3,12 @@
 import type { Role } from './roles';
 import type { StateEffect } from './states';
 
+export interface WorldMetadata {
+  slug: string;
+  name: string;
+  description: string;
+}
+
 export type CreatureTemplate = 'Normal' | 'Underling' | 'Paragon' | 'Tyrant';
 
 export interface CreatureAttributes {

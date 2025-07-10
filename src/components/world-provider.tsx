@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { setWorldDbName, getDb, WORLDS_METADATA_STORE_NAME } from '@/lib/idb';
+import type { WorldMetadata } from '@/lib/types';
 
 interface WorldContextType {
   worldSlug: string;
@@ -43,8 +44,8 @@ export function WorldProvider({ children }: WorldProviderProps) {
           setWorldName(request.result.name);
         } else {
           const defaultName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          const newMetadata = { name: defaultName, description: 'A new world of adventure awaits...' };
-          store.put(newMetadata, slug);
+          const newMetadata: WorldMetadata = { slug: slug, name: defaultName, description: 'A new world of adventure awaits...' };
+          store.put(newMetadata);
           setWorldName(defaultName);
         }
       };

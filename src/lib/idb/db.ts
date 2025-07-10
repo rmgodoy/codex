@@ -5,7 +5,7 @@ import type { WorldMetadata } from '../types';
 
 export const DB_PREFIX = "TresspasserDB_";
 export let DB_NAME = `${DB_PREFIX}Default`;
-export const DB_VERSION = 1;
+export const DB_VERSION = 2; // Incremented version to ensure onupgradeneeded runs
 
 // Metadata DB for tracking all worlds
 const METADATA_DB_NAME = "TresspasserWorldsMetadata";
@@ -36,7 +36,7 @@ export const ALL_STORE_NAMES = [
   ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME,
   ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME,
   NPCS_STORE_NAME, PANTHEON_STORE_NAME, CALENDARS_STORE_NAME,
-  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME
+  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME, WORLDS_METADATA_STORE_NAME
 ];
 
 let db: IDBDatabase | null = null;
@@ -57,18 +57,17 @@ export const setWorldDbName = (worldSlug: string) => {
 
 export const listWorlds = async (): Promise<string[]> => {
     if (!window.indexedDB) return [];
-    if (indexedDB.databases) {
-      try {
-        const dbs = await indexedDB.databases();
-        return dbs
-          .filter(db => db.name?.startsWith(DB_PREFIX))
-          .map(db => db.name!.replace(DB_PREFIX, ''));
-      } catch (e) {
-        console.error("Could not list databases", e);
-        return [];
-      }
-    }
-    return [];
+    const db = await getDb();
+    const store = db.transaction(WORLDS_METADATA_STORE_NAME, 'readonly').objectStore(WORLDS_METADATA_STORE_NAME);
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+            const worlds = request.result as WorldMetadata[];
+            resolve(worlds.map(w => w.name));
+        };
+        request.onerror = () => reject(request.error);
+    });
 };
 
 export const deleteWorld = (worldSlug: string): Promise<void> => {
