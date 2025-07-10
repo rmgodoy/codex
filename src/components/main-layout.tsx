@@ -15,33 +15,16 @@ import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { importData, exportAllData } from '@/lib/idb';
+import { importData } from '@/lib/idb';
 
 
-export default function MainLayout({ children, showSidebarTrigger = true }: { children: React.ReactNode, showSidebarTrigger?: boolean }) {
+export default function MainLayout({ children, showSidebarTrigger = true, pageTitle, worldSlug, showImportExport = true }: { children: React.ReactNode, showSidebarTrigger?: boolean, pageTitle?: string, worldSlug?: string, showImportExport?: boolean }) {
   const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const handleExport = async () => {
-    try {
-      const dataToExport = await exportAllData();
-      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
-      const link = document.createElement("a");
-      link.href = jsonString;
-      link.download = "tresspasser_bestiary.json";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast({ title: "Export Successful", description: "Your data has been downloaded." });
-    } catch (error) {
-      console.error("Export failed:", error);
-      toast({ variant: "destructive", title: "Export Failed", description: "Could not export the data." });
-    }
-  };
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -76,7 +59,8 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     reader.readAsText(file);
   };
   
-  const pageTitle = useMemo(() => {
+  const finalPageTitle = useMemo(() => {
+    if (pageTitle) return pageTitle;
     if (pathname.startsWith('/random/encounter-tables')) return 'Encounter Tables';
     if (pathname.startsWith('/random/treasures')) return 'Treasures';
     if (pathname.startsWith('/random/commoners')) return 'Commoners';
@@ -90,34 +74,27 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     if (pathname.startsWith('/maps')) return 'Maps';
     if (pathname.startsWith('/pantheon')) return 'Pantheon';
     if (pathname.startsWith('/bestiary')) return 'Bestiary';
-    switch (pathname) {
-      case '/':
-        return 'Compendium';
-      case '/deeds':
-        return 'Deeds';
-      case '/encounters':
-        return 'Encounters';
-      default:
-        return 'Compendium';
-    }
-  }, [pathname]);
+    if (pathname.startsWith('/deeds')) return 'Deeds';
+    if (pathname.startsWith('/encounters')) return 'Encounters';
+    return 'Compendium';
+  }, [pathname, pageTitle]);
 
   const navLinks = [
-    { href: '/alchemy', label: 'Alchemy', group: 'Compendium' },
-    { href: '/bestiary', label: 'Bestiary', group: 'Compendium' },
-    { href: '/deeds', label: 'Deeds', group: 'Compendium' },
-    { href: '/encounters', label: 'Encounters', group: 'Compendium' },
-    { href: '/items', label: 'Items', group: 'Compendium' },
-    { href: '/npcs', label: 'NPCs', group: 'Compendium' },
-    { href: '/factions', label: 'Factions', group: 'Compendium' },
-    { href: '/pantheon', label: 'Pantheon', group: 'Compendium' },
-    { href: '/rooms', label: 'Rooms', group: 'Compendium' },
-    { href: '/random/treasures', label: 'Treasures', group: 'Compendium' },
-    { href: '/random/encounter-tables', label: 'Encounter Tables', group: 'Random' },
-    { href: '/random/commoners', label: 'Commoners', group: 'Random' },
-    { href: '/dungeons', label: 'Dungeons' },
-    { href: '/calendar', label: 'Calendar' },
-    { href: '/maps', label: 'Maps' },
+    { href: `/${worldSlug}/alchemy`, label: 'Alchemy', group: 'Compendium' },
+    { href: `/${worldSlug}/bestiary`, label: 'Bestiary', group: 'Compendium' },
+    { href: `/${worldSlug}/deeds`, label: 'Deeds', group: 'Compendium' },
+    { href: `/${worldSlug}/encounters`, label: 'Encounters', group: 'Compendium' },
+    { href: `/${worldSlug}/items`, label: 'Items', group: 'Compendium' },
+    { href: `/${worldSlug}/npcs`, label: 'NPCs', group: 'Compendium' },
+    { href: `/${worldSlug}/factions`, label: 'Factions', group: 'Compendium' },
+    { href: `/${worldSlug}/pantheon`, label: 'Pantheon', group: 'Compendium' },
+    { href: `/${worldSlug}/rooms`, label: 'Rooms', group: 'Compendium' },
+    { href: `/${worldSlug}/random/treasures`, label: 'Treasures', group: 'Compendium' },
+    { href: `/${worldSlug}/random/encounter-tables`, label: 'Encounter Tables', group: 'Random' },
+    { href: `/${worldSlug}/random/commoners`, label: 'Commoners', group: 'Random' },
+    { href: `/${worldSlug}/dungeons`, label: 'Dungeons' },
+    { href: `/${worldSlug}/calendar`, label: 'Calendar' },
+    { href: `/${worldSlug}/maps`, label: 'Maps' },
   ];
 
   const compendiumLinks = navLinks.filter(link => link.group === 'Compendium');
@@ -198,6 +175,8 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
       </SheetContent>
     </Sheet>
   );
+  
+  const isWorldContext = !!worldSlug;
 
   return (
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
@@ -207,54 +186,60 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">
-                {pageTitle}
+                {finalPageTitle}
             </h1>
           </Link>
-          <Separator orientation="vertical" className="h-6 mx-2 hidden md:block" />
-          <nav className="hidden md:flex items-center gap-1">
-            {desktopNav}
-          </nav>
+          {isWorldContext && (
+            <>
+              <Separator orientation="vertical" className="h-6 mx-2 hidden md:block" />
+              <nav className="hidden md:flex items-center gap-1">
+                {desktopNav}
+              </nav>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-1">
-            <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImport}
-                accept=".json"
-                className="hidden"
-            />
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" title="Import Data">
-                        <Upload className="h-5 w-5" />
-                        <span className="sr-only">Import Data</span>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Import Data?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will overwrite all existing creatures, deeds, and encounters with the data from the selected JSON file. This action cannot be undone.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => fileInputRef.current?.click()}>
-                        Proceed
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <Button variant="ghost" size="icon" onClick={handleExport} title="Export Data">
-                <Download className="h-5 w-5" />
-                <span className="sr-only">Export Data</span>
-            </Button>
-          <div className="md:hidden">
+            {showImportExport && (
+                <>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImport}
+                    accept=".json"
+                    className="hidden"
+                />
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" title="Import Data">
+                            <Upload className="h-5 w-5" />
+                            <span className="sr-only">Import Data</span>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Import Data?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will overwrite all existing data in the current world with data from the selected JSON file. This action cannot be undone.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => fileInputRef.current?.click()}>
+                            Proceed
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                {/* Note: Export is now handled on the main landing page per world */}
+                </>
+            )}
+          {isWorldContext && <div className="md:hidden">
             {mobileNav}
-          </div>
+          </div>}
         </div>
       </header>
       <main className="flex-1 min-h-0">{children}</main>
     </div>
   );
 }
+

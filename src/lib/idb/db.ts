@@ -1,8 +1,19 @@
 
 "use client";
 
-export const DB_NAME = 'TresspasserBestiaryDB';
-export const DB_VERSION = 18;
+import type { WorldMetadata } from '../types';
+
+export const DB_PREFIX = "TresspasserDB_";
+export let DB_NAME = `${DB_PREFIX}Default`;
+export const DB_VERSION = 1;
+
+// Metadata DB for tracking all worlds
+const METADATA_DB_NAME = "TresspasserWorldsMetadata";
+const METADATA_DB_VERSION = 1;
+
+export const WORLDS_METADATA_STORE_NAME = 'worlds';
+
+// Store names for a single world DB
 export const CREATURES_STORE_NAME = 'creatures';
 export const DEEDS_STORE_NAME = 'deeds';
 export const ENCOUNTERS_STORE_NAME = 'encounters';
@@ -20,80 +31,152 @@ export const CALENDAR_EVENTS_STORE_NAME = 'calendarEvents';
 export const CALENDARS_STORE_NAME = 'calendars';
 export const MAPS_STORE_NAME = 'maps';
 
+export const ALL_STORE_NAMES = [
+  CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME,
+  ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME,
+  ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME,
+  NPCS_STORE_NAME, PANTHEON_STORE_NAME, CALENDARS_STORE_NAME,
+  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME, WORLDS_METADATA_STORE_NAME
+];
+
+let db: IDBDatabase | null = null;
+let metadataDb: IDBDatabase | null = null;
+
+export const setWorldDbName = (worldName: string) => {
+  const slug = worldName.trim().toLowerCase().replace(/\s+/g, '-');
+  DB_NAME = `${DB_PREFIX}${slug}`;
+  // Reset the db connection when the name changes
+  if (db) {
+    db.close();
+    db = null;
+  }
+};
+
+const getMetadataDb = (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+        if (metadataDb) {
+            return resolve(metadataDb);
+        }
+        if (typeof window === 'undefined') {
+            return reject('IndexedDB can only be used in a browser environment.');
+        }
+
+        const request = indexedDB.open(METADATA_DB_NAME, METADATA_DB_VERSION);
+
+        request.onupgradeneeded = () => {
+            const mdb = request.result;
+            if (!mdb.objectStoreNames.contains(WORLDS_METADATA_STORE_NAME)) {
+                mdb.createObjectStore(WORLDS_METADATA_STORE_NAME, { keyPath: 'slug' });
+            }
+        };
+
+        request.onsuccess = () => {
+            metadataDb = request.result;
+            resolve(metadataDb);
+        };
+        request.onerror = () => reject(request.error);
+    });
+};
+
+export const listWorlds = async (): Promise<string[]> => {
+    if (indexedDB.databases) {
+      const dbs = await indexedDB.databases();
+      return dbs
+        .filter(db => db.name?.startsWith(DB_PREFIX))
+        .map(db => db.name!.replace(DB_PREFIX, '').replace(/-/g, ' '));
+    }
+    return [];
+};
+
+export const deleteWorld = (worldName: string): Promise<void> => {
+    const slug = worldName.trim().toLowerCase().replace(/\s+/g, '-');
+    const dbName = `${DB_PREFIX}${slug}`;
+    return new Promise((resolve, reject) => {
+        const deleteRequest = indexedDB.deleteDatabase(dbName);
+        deleteRequest.onsuccess = () => resolve();
+        deleteRequest.onerror = () => reject(deleteRequest.error);
+        deleteRequest.onblocked = () => {
+            console.warn(`Deletion of database ${dbName} is blocked.`);
+            reject(new Error(`Deletion of database ${dbName} is blocked.`));
+        };
+    });
+};
+
+export const renameWorld = async (oldName: string, newName: string) => {
+    const oldSlug = oldName.trim().toLowerCase().replace(/\s+/g, '-');
+    const newSlug = newName.trim().toLowerCase().replace(/\s+/g, '-');
+    
+    // 1. Export data from old DB
+    const data = await exportWorldData(oldSlug);
+    
+    // 2. Set new DB name and import data
+    setWorldDbName(newSlug);
+    await importData(data);
+    
+    // 3. Delete old DB
+    await deleteWorld(oldName);
+
+    return;
+};
+
+
 export const getDb = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
+    if (db) {
+      return resolve(db);
+    }
     if (typeof window === 'undefined') {
-      reject('IndexedDB can only be used in a browser environment.');
-      return;
+      return reject('IndexedDB can only be used in a browser environment.');
     }
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = (event) => {
-      const db = request.result;
-      const oldVersion = event.oldVersion;
-
-      if (!db.objectStoreNames.contains(CREATURES_STORE_NAME)) {
-        db.createObjectStore(CREATURES_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(DEEDS_STORE_NAME)) {
-        db.createObjectStore(DEEDS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(ENCOUNTERS_STORE_NAME)) {
-        db.createObjectStore(ENCOUNTERS_STORE_NAME, { keyPath: 'id' });
-      }
+      const currentDb = request.result;
       
-      if (!db.objectStoreNames.contains(TAGS_STORE_NAME)) {
-          const tagsStore = db.createObjectStore(TAGS_STORE_NAME, { keyPath: ['name', 'source'] });
-          tagsStore.createIndex('by_source', 'source', { unique: false });
-      }
-      
-      if (!db.objectStoreNames.contains(ENCOUNTER_TABLES_STORE_NAME)) {
-        db.createObjectStore(ENCOUNTER_TABLES_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(TREASURES_STORE_NAME)) {
-        db.createObjectStore(TREASURES_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(ALCHEMY_ITEMS_STORE_NAME)) {
-        db.createObjectStore(ALCHEMY_ITEMS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(ROOMS_STORE_NAME)) {
-        db.createObjectStore(ROOMS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(DUNGEONS_STORE_NAME)) {
-        db.createObjectStore(DUNGEONS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(ITEMS_STORE_NAME)) {
-        db.createObjectStore(ITEMS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(FACTIONS_STORE_NAME)) {
-        db.createObjectStore(FACTIONS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(NPCS_STORE_NAME)) {
-        db.createObjectStore(NPCS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(PANTHEON_STORE_NAME)) {
-        db.createObjectStore(PANTHEON_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(CALENDARS_STORE_NAME)) {
-        db.createObjectStore(CALENDARS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(CALENDAR_EVENTS_STORE_NAME)) {
-        const eventsStore = db.createObjectStore(CALENDAR_EVENTS_STORE_NAME, { keyPath: 'id' });
-        eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
-      } else if (oldVersion < 16) {
-        const eventsStore = request.transaction!.objectStore(CALENDAR_EVENTS_STORE_NAME);
-        if (!eventsStore.indexNames.contains('by_calendar')) {
-          eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
+      const createStore = (name: string, keyPath = 'id') => {
+        if (!currentDb.objectStoreNames.contains(name)) {
+          currentDb.createObjectStore(name, { keyPath });
         }
+      };
+
+      createStore(CREATURES_STORE_NAME);
+      createStore(DEEDS_STORE_NAME);
+      createStore(ENCOUNTERS_STORE_NAME);
+      createStore(ENCOUNTER_TABLES_STORE_NAME);
+      createStore(TREASURES_STORE_NAME);
+      createStore(ALCHEMY_ITEMS_STORE_NAME);
+      createStore(ROOMS_STORE_NAME);
+      createStore(DUNGEONS_STORE_NAME);
+      createStore(ITEMS_STORE_NAME);
+      createStore(FACTIONS_STORE_NAME);
+      createStore(NPCS_STORE_NAME);
+      createStore(PANTHEON_STORE_NAME);
+      createStore(CALENDARS_STORE_NAME);
+      createStore(MAPS_STORE_NAME);
+      
+      const tagsStore = currentDb.objectStoreNames.contains(TAGS_STORE_NAME)
+        ? request.transaction!.objectStore(TAGS_STORE_NAME)
+        : currentDb.createObjectStore(TAGS_STORE_NAME, { keyPath: ['name', 'source'] });
+      if (!tagsStore.indexNames.contains('by_source')) {
+        tagsStore.createIndex('by_source', 'source', { unique: false });
       }
-      if (!db.objectStoreNames.contains(MAPS_STORE_NAME)) {
-          db.createObjectStore(MAPS_STORE_NAME, { keyPath: 'id' });
+
+      const eventsStore = currentDb.objectStoreNames.contains(CALENDAR_EVENTS_STORE_NAME)
+        ? request.transaction!.objectStore(CALENDAR_EVENTS_STORE_NAME)
+        : currentDb.createObjectStore(CALENDAR_EVENTS_STORE_NAME, { keyPath: 'id' });
+      if (!eventsStore.indexNames.contains('by_calendar')) {
+        eventsStore.createIndex('by_calendar', 'calendarId', { unique: false });
       }
+      
+      const worldMetadataStore = currentDb.objectStoreNames.contains(WORLDS_METADATA_STORE_NAME)
+        ? request.transaction!.objectStore(WORLDS_METADATA_STORE_NAME)
+        : currentDb.createObjectStore(WORLDS_METADATA_STORE_NAME, { keyPath: 'name' });
     };
 
     request.onsuccess = () => {
-      resolve(request.result);
+      db = request.result;
+      resolve(db);
     };
 
     request.onerror = () => {
@@ -104,3 +187,4 @@ export const getDb = (): Promise<IDBDatabase> => {
 };
 
 export const generateId = () => crypto.randomUUID();
+

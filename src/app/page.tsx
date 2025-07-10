@@ -1,120 +1,204 @@
 
 "use client";
 
-import MainLayout from "@/components/main-layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookCopy, Calendar, Dices, FlaskConical, Map, Shield, Skull, Sword, User, Users, Warehouse } from "lucide-react";
-import Link from "next/link";
-
-const features = [
-  {
-    title: "Bestiary",
-    description: "Create, edit, and manage all the creatures for your game. Define their stats, roles, abilities, and deeds.",
-    icon: Skull,
-    href: "/bestiary"
-  },
-  {
-    title: "Deeds Library",
-    description: "A library of actions. Create and manage reusable 'deeds' that creatures can perform, from simple attacks to complex spells.",
-    icon: BookCopy,
-    href: "/deeds"
-  },
-  {
-    title: "Items & Alchemy",
-    description: "Catalog weapons, armor, and alchemical concoctions. Define their properties, prices, and magical enchantments.",
-    icon: FlaskConical,
-    href: "/items"
-  },
-  {
-    title: "NPCs & Factions",
-    description: "Create detailed Non-Player Characters and manage the various factions in your world, defining their goals and relationships.",
-    icon: Users,
-    href: "/npcs"
-  },
-  {
-    title: "Encounter Builder",
-    description: "Design and run combat encounters with an initiative tracker and a dashboard to manage combatant stats and states.",
-    icon: Sword,
-    href: "/encounters"
-  },
-  {
-    title: "World Map",
-    description: "A powerful hex-grid map creator. Paint terrain, add landmarks, and link map tiles to your world's content.",
-    icon: Map,
-    href: "/maps"
-  },
-    {
-    title: "Pantheon",
-    description: "Manage the godlike entities of your world, their domains, relationships, and the artifacts they control.",
-    icon: Shield,
-    href: "/pantheon"
-  },
-  {
-    title: "Calendar",
-    description: "A fully-featured in-game calendar. Create multiple calendars, add events, and link them to factions, creatures, and locations.",
-    icon: Calendar,
-    href: "/calendar"
-  },
-    {
-    title: "Random Generators",
-    description: "Instantly generate commoners, encounter tables, and treasures to bring your world to life on the fly.",
-    icon: Dices,
-    href: "/random/commoners"
-  },
-];
-
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import MainLayout from '@/components/main-layout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { listWorlds, deleteWorld, renameWorld } from '@/lib/idb';
+import { Download, Edit, Trash2 } from 'lucide-react';
+import { exportWorldData } from '@/lib/idb/import-export';
 
 export default function LandingPage() {
-  return (
-    <MainLayout>
-        <div className="h-full overflow-y-auto bg-background/50">
-            <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
-                <div className="text-center">
-                    <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
-                        Your TTRPG World, Organized
-                    </h1>
-                    <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">
-                        A comprehensive application for managing and organizing your TTRPG world. Create creatures, design encounters, build dungeons, and bring your stories to life.
-                    </p>
-                    <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-                        <div className="rounded-md shadow">
-                            <Link href="/bestiary">
-                                <Button size="lg">
-                                    Get Started
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+  const [worlds, setWorlds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isNewWorldDialogOpen, setIsNewWorldDialogOpen] = useState(false);
+  const [newWorldName, setNewWorldName] = useState('');
+  const [editingWorld, setEditingWorld] = useState<{ oldName: string, newName: string } | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
 
-                <div className="mt-20">
-                    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                        {features.map((feature) => (
-                        <Card key={feature.title} className="flex flex-col">
-                            <CardHeader className="flex-shrink-0">
-                                <div className="flex items-center gap-4">
-                                    <feature.icon className="h-8 w-8 text-accent" />
-                                    <CardTitle>{feature.title}</CardTitle>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex-grow">
-                                <p className="text-muted-foreground">{feature.description}</p>
-                            </CardContent>
-                            <CardContent>
-                                <Link href={feature.href}>
-                                    <Button variant="outline" className="w-full">
-                                        Go to {feature.title}
-                                    </Button>
-                                </Link>
-                            </CardContent>
-                        </Card>
-                        ))}
-                    </div>
-                </div>
-            </div>
+  const fetchWorlds = async () => {
+    setLoading(true);
+    const worldNames = await listWorlds();
+    setWorlds(worldNames);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchWorlds();
+  }, []);
+
+  const handleCreateWorld = () => {
+    if (!newWorldName.trim()) {
+      toast({ variant: 'destructive', title: 'Invalid Name', description: 'World name cannot be empty.' });
+      return;
+    }
+    const slug = newWorldName.trim().toLowerCase().replace(/\s+/g, '-');
+    if (worlds.map(w => w.toLowerCase().replace(/\s+/g, '-')).includes(slug)) {
+      toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
+      return;
+    }
+    router.push(`/${slug}`);
+  };
+
+  const handleDeleteWorld = async (worldName: string) => {
+    await deleteWorld(worldName);
+    toast({ title: 'World Deleted', description: `"${worldName}" has been permanently deleted.` });
+    fetchWorlds();
+  };
+  
+  const handleRenameWorld = async () => {
+    if (!editingWorld || !editingWorld.newName.trim()) {
+      toast({ variant: 'destructive', title: 'Invalid Name', description: 'New world name cannot be empty.' });
+      return;
+    }
+    const { oldName, newName } = editingWorld;
+    const slug = newName.trim().toLowerCase().replace(/\s+/g, '-');
+    if (worlds.map(w => w.toLowerCase().replace(/\s+/g, '-')).includes(slug)) {
+        toast({ variant: 'destructive', title: 'Name Exists', description: 'A world with this name already exists.' });
+        return;
+    }
+    try {
+        await renameWorld(oldName, newName);
+        toast({ title: 'World Renamed', description: `"${oldName}" is now "${newName}".` });
+        setEditingWorld(null);
+        fetchWorlds();
+    } catch(e) {
+         toast({ variant: 'destructive', title: 'Error', description: 'Could not rename world.' });
+    }
+  };
+  
+  const handleExport = async (worldName: string) => {
+     try {
+      const dataToExport = await exportWorldData(worldName);
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
+      const link = document.createElement("a");
+      link.href = jsonString;
+      link.download = `tresspasser_world_${worldName}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "Export Successful", description: `"${worldName}" data has been downloaded.` });
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not export the data." });
+    }
+  }
+
+  const GetStartedButton = () => (
+    <Dialog open={isNewWorldDialogOpen} onOpenChange={setIsNewWorldDialogOpen}>
+      <DialogTrigger asChild>
+        <Button size="lg">Get Started</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a New World</DialogTitle>
+          <DialogDescription>Give your new world a name to begin your journey.</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <Label htmlFor="world-name">World Name</Label>
+          <Input 
+            id="world-name"
+            value={newWorldName}
+            onChange={(e) => setNewWorldName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWorld() }}
+            placeholder="e.g., Aethelgard"
+          />
         </div>
+        <DialogFooter>
+          <Button onClick={handleCreateWorld}>Create World</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return (
+    <MainLayout showImportExport={false}>
+      <div className="h-full overflow-y-auto bg-background/50">
+        <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
+              Tresspasser Compendium
+            </h1>
+            <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">
+              A comprehensive application for managing and organizing your TTRPG worlds. Create creatures, design encounters, build dungeons, and bring your stories to life.
+            </p>
+            <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+              <div className="rounded-md shadow">
+                <GetStartedButton />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-20">
+            <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
+            {loading ? (
+              <p className="text-center text-muted-foreground">Loading worlds...</p>
+            ) : worlds.length > 0 ? (
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {worlds.map((world) => (
+                  <Card key={world} className="flex flex-col">
+                    <CardHeader>
+                      <CardTitle>{world}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <Button asChild className="w-full">
+                        <a href={`/${world.toLowerCase().replace(/\s+/g, '-')}`}>Enter World</a>
+                      </Button>
+                    </CardContent>
+                    <CardFooter className="gap-2">
+                       <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world, newName: world })}><Edit/></Button>
+                       <Button variant="ghost" size="icon" onClick={() => handleExport(world)}><Download/></Button>
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2/></Button></AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete "{world}"?</AlertDialogTitle>
+                              <AlertDialogDescription>This action cannot be undone. All data for this world will be permanently deleted.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteWorld(world)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">No worlds found. Create one to get started!</p>
+            )}
+          </div>
+        </div>
+      </div>
+       {editingWorld && (
+        <Dialog open={!!editingWorld} onOpenChange={() => setEditingWorld(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename "{editingWorld.oldName}"</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="world-name-edit">New World Name</Label>
+              <Input
+                id="world-name-edit"
+                value={editingWorld.newName}
+                onChange={(e) => setEditingWorld({...editingWorld, newName: e.target.value})}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameWorld() }}
+              />
+            </div>
+            <DialogFooter>
+              <Button onClick={handleRenameWorld}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </MainLayout>
   );
 }
-

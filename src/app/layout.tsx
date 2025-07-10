@@ -1,11 +1,12 @@
+
 import type {Metadata} from 'next';
 import 'react-calendar/dist/Calendar.css';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Tresspasser Bestiary',
-  description: 'Manage creatures for the Tresspasser RPG.',
+  title: 'Tresspasser Compendium',
+  description: 'Manage worlds for the Tresspasser RPG.',
 };
 
 export default function RootLayout({
@@ -48,3 +49,4 @@ export default function RootLayout({
     </html>
   );
 }
+
