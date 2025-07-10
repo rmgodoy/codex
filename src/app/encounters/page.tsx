@@ -11,13 +11,11 @@ import type { Encounter } from '@/lib/types';
 import { getEncounterById } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useWorld } from '@/components/world-provider';
 
 type EncounterViewMode = 'preparation' | 'live';
 type SortByType = 'name' | 'TR';
 
 export default function EncountersPage() {
-  const { worldSlug } = useWorld();
   const [mode, setMode] = useState<EncounterViewMode>('preparation');
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null);
   const [liveEncounter, setLiveEncounter] = useState<Encounter | null>(null);

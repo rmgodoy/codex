@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import MainLayout from '@/components/main-layout';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import type { AlchemicalItem } from '@/lib/types';
 import AlchemyListPanel from '@/components/alchemy-list-panel';
 import AlchemyEditorPanel from '@/components/alchemy-editor-panel';
 import { populateDefaultAlchemyData } from '@/lib/default-alchemy-data';

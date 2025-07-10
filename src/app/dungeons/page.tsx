@@ -11,13 +11,11 @@ import type { Dungeon } from '@/lib/types';
 import { getDungeonById } from '@/lib/idb';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useWorld } from '@/components/world-provider';
 
 type DungeonViewMode = 'preparation' | 'live';
 type SortByType = 'name' | 'threatRating';
 
 export default function DungeonsPage() {
-  const { worldSlug } = useWorld();
   const [mode, setMode] = useState<DungeonViewMode>('preparation');
   const [selectedDungeonId, setSelectedDungeonId] = useState<string | null>(null);
   const [liveDungeon, setLiveDungeon] = useState<Dungeon | null>(null);

@@ -8,12 +8,10 @@ import MainLayout from '@/components/main-layout';
 import type { Deed } from '@/lib/types';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useWorld } from '@/components/world-provider';
 
 type SortByType = 'name' | 'tier';
 
 export default function DeedsPage() {
-  const { worldSlug } = useWorld();
   const [selectedDeedId, setSelectedDeedId] = useState<string | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
