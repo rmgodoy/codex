@@ -274,7 +274,7 @@ const HexGrid: React.FC<HexGridProps> = ({
       const offscreenCtx = offscreenCanvas.getContext('2d');
 
       if (!offscreenCanvasSimpleRef.current) offscreenCanvasSimpleRef.current = document.createElement('canvas');
-      const offscreenSimpleCanvas = offscreenSimpleRef.current;
+      const offscreenSimpleCanvas = offscreenCanvasSimpleRef.current;
       offscreenSimpleCanvas.width = worldPixelWidth;
       offscreenSimpleCanvas.height = worldPixelHeight;
       const offscreenSimpleCtx = offscreenSimpleCanvas.getContext('2d');
