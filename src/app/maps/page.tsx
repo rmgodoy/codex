@@ -541,8 +541,7 @@ export default function MapsPage() {
                                                 <ToggleGroup 
                                                     type="single" 
                                                     value={
-                                                        paintMode === 'bucket' ? 'bucket' :
-                                                        isShiftPressed ? 'erase' : 
+                                                        isShiftPressed && paintMode === 'brush' ? 'erase' :
                                                         (isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode)
                                                     }
                                                     onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} 
@@ -750,7 +749,7 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
             strokeWidth: 3,
             points: [],
         };
-        const newPaths = [...(activeMap?.paths || []), newPath];
+        const newPaths = [newPath, ...(activeMap?.paths || [])];
         onPathUpdate(newPaths);
         setPathDrawingId(newPath.id);
     };
@@ -846,3 +845,4 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
         </div>
     );
 }
+
