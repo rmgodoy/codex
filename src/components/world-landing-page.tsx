@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import MainLayout from "@/components/main-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookCopy, Calendar, Dices, FlaskConical, Map, Shield, Skull, Sword, User, Users, Warehouse, Gem } from "lucide-react";
+import { BookCopy, Calendar, Dices, FlaskConical, Map, Shield, Skull, Sword, Swords, User, Users, Warehouse, Gem } from "lucide-react";
 import Link from "next/link";
 import { getDb, WORLDS_METADATA_STORE_NAME } from '@/lib/idb';
 import { Textarea } from '@/components/ui/textarea';
