@@ -114,14 +114,14 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     }
 
     if (isMobile) {
-        return pageName || worldName || "Tome of Transgressions";
+        return pageName || worldName || "Codex";
     }
 
     if (worldName && pageName) {
         return `${worldName} | ${pageName}`;
     }
     
-    return worldName || "Tome of Transgressions";
+    return worldName || "Codex";
   }, [hash, worldName, worldSlug, isMobile]);
 
   const navLinks = [

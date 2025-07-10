@@ -1,4 +1,5 @@
-# Tome of Transgressions
+
+# Codex
 
 This is a comprehensive application for managing and organizing your TTRPG world, specifically designed for the Tresspasser system. It allows you to create creatures, design encounters, build dungeons, track events on a calendar, and visualize your world on a hex map.
 

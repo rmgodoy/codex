@@ -7,7 +7,7 @@ import { WorldProvider } from '@/components/world-provider';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
-  title: 'Tome of Transgressions',
+  title: 'Codex',
   description: 'Manage worlds for the Tresspasser RPG.',
 };
 
