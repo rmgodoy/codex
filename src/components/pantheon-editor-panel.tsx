@@ -413,15 +413,9 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                                 <Button type="button" variant="ghost" size="icon" onClick={() => setValue('artifactId', undefined)}><X className="h-4 w-4"/></Button>
                             </div>
                         ) : (
-                            <div className="flex-1 grid grid-cols-2 gap-2">
-                                <ArtifactSelectionDialog onSelect={(id) => setValue('artifactId', id)} allArtifacts={allArtifacts}>
-                                    <Button type="button" variant="outline"><Library className="h-4 w-4 mr-2"/>Select Artifact</Button>
-                                </ArtifactSelectionDialog>
-                                <Dialog open={isNewArtifactDialogOpen} onOpenChange={setIsNewArtifactDialogOpen}>
-                                    <DialogTrigger asChild><Button type="button" variant="outline"><Plus className="h-4 w-4 mr-2"/>New Artifact</Button></DialogTrigger>
-                                    <DialogContent className="max-w-4xl p-0"><div className="p-8"><ItemEditorPanel isCreatingNew={true} onSaveSuccess={(id) => {setValue('artifactId', id); setIsNewArtifactDialogOpen(false);}} itemId={null} template={{magicTier: 'artifact'}} onDeleteSuccess={()=>{}} onUseAsTemplate={()=>{}} onEditCancel={() => setIsNewArtifactDialogOpen(false)} /></div></DialogContent>
-                                </Dialog>
-                            </div>
+                            <ArtifactSelectionDialog onSelect={(id) => setValue('artifactId', id)} allArtifacts={allArtifacts}>
+                                <Button type="button" variant="outline" className="w-full"><Library className="h-4 w-4 mr-2"/>Select Artifact</Button>
+                            </ArtifactSelectionDialog>
                         )}
                     </div>
                 </div>
@@ -446,3 +440,4 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
     </div>
   );
 }
+
