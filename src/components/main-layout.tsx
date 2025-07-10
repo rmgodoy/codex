@@ -87,23 +87,34 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
   }
   
   const finalPageTitle = useMemo(() => {
-    if (!worldSlug) return "Tresspasser Compendium";
-    const pageKey = hash.split('/').slice(2).join('/');
-    if (pageKey.startsWith('random/encounter-tables')) return 'Encounter Tables';
-    if (pageKey.startsWith('random/treasures')) return 'Treasures';
-    if (pageKey.startsWith('random/commoners')) return 'Commoners';
-    if (pageKey.startsWith('alchemy')) return 'Alchemy';
-    if (pageKey.startsWith('rooms')) return 'Rooms';
-    if (pageKey.startsWith('dungeons')) return 'Dungeons';
-    if (pageKey.startsWith('items')) return 'Items';
-    if (pageKey.startsWith('npcs')) return 'NPCs';
-    if (pageKey.startsWith('factions')) return 'Factions';
-    if (pageKey.startsWith('calendar')) return 'Calendar';
-    if (pageKey.startsWith('maps')) return 'Maps';
-    if (pageKey.startsWith('pantheon')) return 'Pantheon';
-    if (pageKey.startsWith('bestiary')) return 'Bestiary';
-    if (pageKey.startsWith('deeds')) return 'Deeds';
-    if (pageKey.startsWith('encounters')) return 'Encounters';
+    if (!worldSlug) return "Compendium";
+    
+    const pathParts = hash.split('/').filter(Boolean);
+    const pageKey = pathParts.length > 1 ? pathParts.slice(1).join('/') : '';
+    let pageName = '';
+    
+    if (pageKey) {
+        if (pageKey.startsWith('random/encounter-tables')) pageName = 'Encounter Tables';
+        else if (pageKey.startsWith('random/treasures')) pageName = 'Treasures';
+        else if (pageKey.startsWith('random/commoners')) pageName = 'Commoners';
+        else if (pageKey.startsWith('alchemy')) pageName = 'Alchemy';
+        else if (pageKey.startsWith('rooms')) pageName = 'Rooms';
+        else if (pageKey.startsWith('dungeons')) pageName = 'Dungeons';
+        else if (pageKey.startsWith('items')) pageName = 'Items';
+        else if (pageKey.startsWith('npcs')) pageName = 'NPCs';
+        else if (pageKey.startsWith('factions')) pageName = 'Factions';
+        else if (pageKey.startsWith('calendar')) pageName = 'Calendar';
+        else if (pageKey.startsWith('maps')) pageName = 'Maps';
+        else if (pageKey.startsWith('pantheon')) pageName = 'Pantheon';
+        else if (pageKey.startsWith('bestiary')) pageName = 'Bestiary';
+        else if (pageKey.startsWith('deeds')) pageName = 'Deeds';
+        else if (pageKey.startsWith('encounters')) pageName = 'Encounters';
+    }
+
+    if (pageName) {
+        return `${worldName} | ${pageName}`;
+    }
+    
     return worldName || 'Compendium';
   }, [hash, worldName, worldSlug]);
 

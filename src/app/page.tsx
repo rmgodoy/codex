@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import AppRouter from '@/components/app-router';
 import MainLayout from '@/components/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -129,7 +129,7 @@ function LandingPage() {
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
-              Tresspasser Compendium
+              Compendium
             </h1>
             <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">
               A comprehensive application for managing and organizing your TTRPG worlds. Create creatures, design encounters, build dungeons, and bring your stories to life.
@@ -169,7 +169,7 @@ function LandingPage() {
           </div>
 
           <div className="mt-20">
-            {loading ? (
+            {loading || worlds.length === 0 ? (
               <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {landingFeatures.map((feature) => (
                   <Card key={feature.title}>
@@ -218,21 +218,7 @@ function LandingPage() {
                     ))}
                 </div>
               </>
-            ) : (
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {landingFeatures.map((feature) => (
-                        <Card key={feature.title}>
-                            <CardHeader className="flex flex-row items-center gap-4">
-                                <feature.icon className="h-8 w-8 text-accent shrink-0" />
-                                <CardTitle>{feature.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">{feature.description}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
