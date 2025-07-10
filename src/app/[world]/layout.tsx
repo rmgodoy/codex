@@ -1,6 +1,7 @@
+
 "use client";
 
-import WorldProvider from '@/components/world-provider';
+import { WorldProvider } from '@/components/world-provider';
 import { useParams } from 'next/navigation';
 
 export default function WorldLayout({
@@ -11,5 +12,5 @@ export default function WorldLayout({
   const params = useParams();
   const worldSlug = Array.isArray(params.world) ? params.world[0] : params.world;
   
-  return <WorldProvider worldSlug={worldSlug}>{children}</WorldProvider>;
+  return <WorldProvider>{children}</WorldProvider>;
 }
