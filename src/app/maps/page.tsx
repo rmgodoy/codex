@@ -214,6 +214,8 @@ export default function MapsPage() {
     const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
     
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+    const [isAltPressed, setIsAltPressed] = useState(false);
+    const [isShiftPressed, setIsShiftPressed] = useState(false);
     const [isEyedropperActive, setIsEyedropperActive] = useState(false);
 
     const { toast } = useToast();
@@ -227,9 +229,16 @@ export default function MapsPage() {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Control') setIsCtrlPressed(true);
+            if (e.key === 'Alt') {
+                e.preventDefault();
+                setIsAltPressed(true);
+            }
+            if (e.key === 'Shift') setIsShiftPressed(true);
         };
         const handleKeyUp = (e: KeyboardEvent) => {
             if (e.key === 'Control') setIsCtrlPressed(false);
+            if (e.key === 'Alt') setIsAltPressed(false);
+            if (e.key === 'Shift') setIsShiftPressed(false);
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -411,7 +420,8 @@ export default function MapsPage() {
                     <HexGrid 
                         grid={activeMap.tiles} 
                         hexSize={25} 
-                        className={cn("w-full h-full", isEyedropperActive && 'cursor-crosshair')} 
+                        className={cn("w-full h-full", (isEyedropperActive || (isAltPressed && activeTool === 'paint' && paintMode === 'brush')) && 'cursor-crosshair')} 
+                        style={{ touchAction: 'none' }}
                         onGridUpdate={handleGridUpdate}
                         onHexClick={setSelectedHex}
                         activeTool={activeTool}
@@ -421,6 +431,8 @@ export default function MapsPage() {
                         paintIconColor={finalIconColor}
                         selectedHex={selectedHex}
                         isCtrlPressed={isCtrlPressed}
+                        isAltPressed={isAltPressed}
+                        isShiftPressed={isShiftPressed}
                         isEyedropperActive={isEyedropperActive}
                         onEyedropperClick={handleEyedropperClick}
                     />
@@ -506,7 +518,12 @@ export default function MapsPage() {
                                         <div className="space-y-4">
                                             <div className="space-y-2">
                                                 <Label>Paint Mode</Label>
-                                                <ToggleGroup type="single" value={isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode} onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} className="w-full">
+                                                <ToggleGroup 
+                                                    type="single" 
+                                                    value={isShiftPressed ? 'erase' : (isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode)} 
+                                                    onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} 
+                                                    className="w-full"
+                                                >
                                                     <ToggleGroupItem value="brush" aria-label="Brush" className="w-1/3">
                                                         <Brush className="h-4 w-4 mr-2" /> Brush
                                                     </ToggleGroupItem>
@@ -536,7 +553,7 @@ export default function MapsPage() {
                                                                     </Button>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    <p>Pick Tile Properties</p>
+                                                                    <p>Pick Tile Properties (or hold Alt)</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
@@ -695,5 +712,3 @@ export default function MapsPage() {
         </MainLayout>
     );
 }
-
-    
