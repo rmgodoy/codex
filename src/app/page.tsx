@@ -11,8 +11,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
-import { Download, Edit, Trash2 } from 'lucide-react';
+import { Download, Edit, Trash2, Skull, BookCopy, Sword, FlaskConical, User, Users, Shield, Swords as SwordsIcon, Warehouse, Dices, Map as MapIcon, Calendar, Gem } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+const landingFeatures = [
+    { title: "Bestiary", description: "Create, edit, and manage all the creatures for your game.", icon: Skull },
+    { title: "Deeds Library", description: "A library of actions that creatures can perform.", icon: BookCopy },
+    { title: "Items & Alchemy", description: "Catalog weapons, armor, potions, and other items.", icon: Sword },
+    { title: "NPCs & Factions", description: "Create detailed characters and manage the factions in your world.", icon: Users },
+    { title: "Encounters", description: "Design and run combat encounters.", icon: SwordsIcon },
+    { title: "Maps & Dungeons", description: "Build your world on a hex grid and assemble complex dungeons.", icon: MapIcon },
+];
 
 function LandingPage() {
   const [worlds, setWorlds] = useState<string[]>([]);
@@ -110,7 +119,7 @@ function LandingPage() {
             <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
               <Dialog open={isNewWorldDialogOpen} onOpenChange={setIsNewWorldDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="lg">Get Started</Button>
+                   <Button size="lg">{worlds.length > 0 ? "New World" : "Get Started"}</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -136,43 +145,57 @@ function LandingPage() {
           </div>
 
           <div className="mt-20">
-            <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
             {loading ? (
               <p className="text-center text-muted-foreground">Loading worlds...</p>
             ) : worlds.length > 0 ? (
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {worlds.map((world) => (
-                  <Card key={world} className="flex flex-col">
-                    <CardHeader>
-                      <CardTitle>{world}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                      <Button asChild className="w-full">
-                        <a href={`#/${world.toLowerCase().replace(/\s+/g, '-')}`}>Enter World</a>
-                      </Button>
-                    </CardContent>
-                    <CardFooter className="gap-2">
-                       <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world, newName: world })}><Edit/></Button>
-                       <Button variant="ghost" size="icon" onClick={() => handleExport(world)}><Download/></Button>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2/></Button></AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete "{world}"?</AlertDialogTitle>
-                              <AlertDialogDescription>This action cannot be undone. All data for this world will be permanently deleted.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteWorld(world)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
+                <>
+                <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
+                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {worlds.map((world) => (
+                    <Card key={world} className="flex flex-col">
+                        <CardHeader>
+                        <CardTitle>{world}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-grow">
+                        <Button asChild className="w-full">
+                            <a href={`#/${world.toLowerCase().replace(/\s+/g, '-')}`}>Enter World</a>
+                        </Button>
+                        </CardContent>
+                        <CardFooter className="gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world, newName: world })}><Edit/></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleExport(world)}><Download/></Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2/></Button></AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete "{world}"?</AlertDialogTitle>
+                                    <AlertDialogDescription>This action cannot be undone. All data for this world will be permanently deleted.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteWorld(world)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </CardFooter>
+                    </Card>
+                    ))}
+                </div>
+              </>
             ) : (
-              <p className="text-center text-muted-foreground">No worlds found. Create one to get started!</p>
+                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {landingFeatures.map((feature) => (
+                        <Card key={feature.title}>
+                            <CardHeader className="flex flex-row items-center gap-4">
+                                <feature.icon className="h-8 w-8 text-accent shrink-0" />
+                                <CardTitle>{feature.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground">{feature.description}</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             )}
           </div>
         </div>
