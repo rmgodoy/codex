@@ -132,7 +132,7 @@ function LandingPage() {
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
-              Compendium
+              Tome of Transgressions
             </h1>
             <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">
               A comprehensive application for managing and organizing your TTRPG worlds. Create creatures, design encounters, build dungeons, and bring your stories to life.
@@ -172,7 +172,7 @@ function LandingPage() {
           </div>
 
           <div className="mt-20">
-            {loading || worlds.length === 0 ? (
+            {(loading || worlds.length === 0) ? (
               <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {landingFeatures.map((feature) => (
                   <Card key={feature.title}>
@@ -186,7 +186,7 @@ function LandingPage() {
                   </Card>
                 ))}
               </div>
-            ) : worlds.length > 0 ? (
+            ) : (
                 <>
                 <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
                 <div className="max-w-3xl mx-auto space-y-4">
@@ -221,7 +221,7 @@ function LandingPage() {
                     ))}
                 </div>
               </>
-            ) : null}
+            )}
           </div>
         </div>
       </div>

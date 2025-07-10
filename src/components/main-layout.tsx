@@ -89,8 +89,6 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
   }
   
   const finalPageTitle = useMemo(() => {
-    if (!worldSlug) return "Compendium";
-    
     const pathParts = hash.split('/').filter(p => p && p !== '#');
     const pageKey = pathParts.slice(1).join('/');
     
@@ -116,14 +114,14 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     }
 
     if (isMobile) {
-        return pageName || worldName || "Compendium";
+        return pageName || worldName || "Tome of Transgressions";
     }
 
-    if (pageName) {
+    if (worldName && pageName) {
         return `${worldName} | ${pageName}`;
     }
     
-    return worldName || "Compendium";
+    return worldName || "Tome of Transgressions";
   }, [hash, worldName, worldSlug, isMobile]);
 
   const navLinks = [
