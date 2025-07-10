@@ -5,15 +5,16 @@ import React, { useState, useEffect } from 'react';
 import AppRouter from '@/components/app-router';
 import MainLayout from '@/components/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
 import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { WorldMetadata } from '@/lib/types';
+import { Separator } from '@/components/ui/separator';
 
 const landingFeatures = [
     { title: "Bestiary", description: "Create, edit, and manage all the creatures for your game.", icon: Skull },
@@ -111,7 +112,7 @@ function LandingPage() {
   }
 
   return (
-    <MainLayout showSidebarTrigger={false} showImportExport={false}>
+    <MainLayout showSidebarTrigger={false}>
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -155,18 +156,18 @@ function LandingPage() {
             ) : worlds.length > 0 ? (
                 <>
                 <h2 className="text-2xl font-bold text-center mb-8">Your Worlds</h2>
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <div className="max-w-3xl mx-auto space-y-4">
                     {worlds.map((world) => (
-                    <Card key={world.slug} className="flex flex-col">
-                        <CardHeader>
-                        <CardTitle>{world.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                        <Button asChild className="w-full">
-                            <a href={`#/${world.slug}`}>Enter World</a>
-                        </Button>
-                        </CardContent>
-                        <CardFooter className="gap-2">
+                      <div key={world.slug} className="border rounded-lg p-4 flex items-center justify-between gap-4 bg-card">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-primary-foreground">{world.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate">{world.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Button asChild>
+                                <a href={`#/${world.slug}`}>Enter World</a>
+                           </Button>
+                           <Separator orientation="vertical" className="h-6" />
                            <Button variant="ghost" size="icon" onClick={() => setEditingWorld({ oldName: world.name, newName: world.name, slug: world.slug })}><Edit/></Button>
                            <Button variant="ghost" size="icon" onClick={() => handleExport(world.slug)}><Download/></Button>
                            <AlertDialog>
@@ -182,8 +183,8 @@ function LandingPage() {
                                </AlertDialogFooter>
                                </AlertDialogContent>
                            </AlertDialog>
-                        </CardFooter>
-                    </Card>
+                        </div>
+                      </div>
                     ))}
                 </div>
               </>
