@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
 import { Download, Edit, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 function LandingPage() {
   const [worlds, setWorlds] = useState<string[]>([]);
@@ -96,7 +97,7 @@ function LandingPage() {
   }
 
   return (
-    <MainLayout showImportExport={true}>
+    <MainLayout showSidebarTrigger={false} showImportExport={false}>
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
           <div className="text-center">
