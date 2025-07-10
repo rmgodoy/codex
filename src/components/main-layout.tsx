@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar, Map } from 'lucide-react';
+import { Skull, Menu, Upload, Download, BookCopy, Dices, FlaskConical, Square, Warehouse, Sword, Users, Shield, User, Calendar, Map, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -88,6 +88,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     if (pathname.startsWith('/factions')) return 'Factions';
     if (pathname.startsWith('/calendar')) return 'Calendar';
     if (pathname.startsWith('/maps')) return 'Maps';
+    if (pathname.startsWith('/pantheon')) return 'Pantheon';
     switch (pathname) {
       case '/':
         return 'Bestiary';
@@ -107,6 +108,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     { href: '/items', label: 'Items', group: 'Compendium' },
     { href: '/npcs', label: 'NPCs', group: 'Compendium' },
     { href: '/factions', label: 'Factions', group: 'Compendium' },
+    { href: '/pantheon', label: 'Pantheon', group: 'Compendium' },
     { href: '/rooms', label: 'Rooms', group: 'Compendium' },
     { href: '/dungeons', label: 'Dungeons', group: 'Compendium' },
     { href: '/random/encounter-tables', label: 'Encounter Tables', group: 'Random' },
@@ -200,7 +202,7 @@ export default function MainLayout({ children, showSidebarTrigger = true }: { ch
     <div className="flex flex-col h-screen" style={{'width': '100%'}}>
       <header className="py-4 px-6 md:px-8 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {(pathname === '/' || pathname.startsWith('/deeds') || pathname.startsWith('/encounters') || pathname.startsWith('/random') || pathname.startsWith('/alchemy') || pathname.startsWith('/rooms') || pathname.startsWith('/items') || pathname.startsWith('/dungeons') || pathname.startsWith('/npcs') || pathname.startsWith('/factions') || pathname.startsWith('/calendar') || pathname.startsWith('/maps')) && showSidebarTrigger && <SidebarTrigger />}
+          {(pathname === '/' || pathname.startsWith('/deeds') || pathname.startsWith('/encounters') || pathname.startsWith('/random') || pathname.startsWith('/alchemy') || pathname.startsWith('/rooms') || pathname.startsWith('/items') || pathname.startsWith('/dungeons') || pathname.startsWith('/npcs') || pathname.startsWith('/factions') || pathname.startsWith('/calendar') || pathname.startsWith('/maps') || pathname.startsWith('/pantheon')) && showSidebarTrigger && <SidebarTrigger />}
           <Link href="/" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">

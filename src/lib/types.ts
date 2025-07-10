@@ -1,4 +1,5 @@
 
+
 import type { Role } from './roles';
 import type { StateEffect } from './states';
 
@@ -41,7 +42,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty' | 'tyrant' | 'special';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction' | 'calendar';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction' | 'calendar' | 'pantheon';
 
 export interface Tag {
   name: string;
@@ -376,6 +377,29 @@ export interface Npc {
 }
 
 export type NewNpc = Omit<Npc, 'id'>;
+
+// Pantheon Types
+export interface PantheonRelationship {
+  id: string;
+  targetEntityId: string;
+  type: string;
+}
+
+export interface PantheonEntity {
+  id: string;
+  name: string;
+  entityType: string;
+  domain: string;
+  symbols: string;
+  followers: string;
+  artifactId?: string;
+  relationships: PantheonRelationship[];
+  goal: string;
+  lore: string;
+  tags: string[];
+}
+
+export type NewPantheonEntity = Omit<PantheonEntity, 'id'>;
 
 // Hex Grid Types (before Calendar)
 export interface Hex {
