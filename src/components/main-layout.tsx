@@ -16,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { importData } from '@/lib/idb';
+import { importData, exportWorldData } from '@/lib/idb';
 import { useWorld } from './world-provider';
 
 
@@ -67,6 +67,24 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
     };
     reader.readAsText(file);
   };
+  
+  const handleExport = async () => {
+    if (!worldSlug) return;
+    try {
+      const dataToExport = await exportWorldData(worldSlug);
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(dataToExport, null, 2))}`;
+      const link = document.createElement("a");
+      link.href = jsonString;
+      link.download = `tresspasser_world_${worldName || worldSlug}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "Export Successful", description: `"${worldName || worldSlug}" data has been downloaded.` });
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast({ variant: "destructive", title: "Export Failed", description: "Could not export the data." });
+    }
+  }
   
   const finalPageTitle = useMemo(() => {
     if (!worldSlug) return "Tresspasser Compendium";
@@ -240,6 +258,10 @@ export default function MainLayout({ children, showSidebarTrigger = true, showIm
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+                <Button variant="ghost" size="icon" title="Export Data" onClick={handleExport}>
+                    <Download className="h-5 w-5" />
+                    <span className="sr-only">Export Data</span>
+                </Button>
                 </>
             )}
           {isWorldContext && <div className="md:hidden">
