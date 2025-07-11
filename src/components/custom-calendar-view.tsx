@@ -104,23 +104,30 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
     });
 
     return (
-        <div 
-          style={{'--cols': numCols} as React.CSSProperties} 
-          className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-auto border-t border-l border-border flex-1"
-        >
-            {calendar.weekdays.map((day, index) => (
-                <div key={day} className={cn("text-center font-bold text-muted-foreground p-2 text-sm bg-card border-b border-r border-border", index === 0 && "border-l-0")}>
-                    {day}
-                </div>
-            ))}
-            {dayGrid.map((day, index) => (
-                <div 
-                  key={index} 
-                  className={cn("p-2 bg-card border-b border-r border-border", (index) % numCols === 0 && "border-l-0")}
-                >
-                    {day && <span className="text-sm">{day}</span>}
-                </div>
-            ))}
+        <div className="flex flex-col flex-1">
+            <div 
+              style={{'--cols': numCols} as React.CSSProperties} 
+              className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))]"
+            >
+                {calendar.weekdays.map((day) => (
+                    <div key={day} className="text-center font-bold text-muted-foreground p-2 text-sm border-b border-r border-border">
+                        {day}
+                    </div>
+                ))}
+            </div>
+            <div 
+              style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
+              className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(0,_1fr))] flex-1"
+            >
+                {dayGrid.map((day, index) => (
+                    <div 
+                      key={index} 
+                      className="p-2 border-b border-r border-border"
+                    >
+                        {day && <span className="text-sm">{day}</span>}
+                    </div>
+                ))}
+            </div>
         </div>
     );
   };
