@@ -15,6 +15,7 @@ interface CustomCalendarViewProps {
   initialDate?: Date;
   selectedDate?: Date;
   isDatePicker?: boolean;
+  eventDays?: Date[];
   onEdit?: () => void;
   onDateSelect?: (date: Date) => void;
 }
@@ -26,12 +27,13 @@ export function CustomCalendarView({
     disableEditing = false, 
     initialDate, 
     selectedDate, 
-    isDatePicker = false, 
+    isDatePicker = false,
+    eventDays = [],
     onEdit, 
     onDateSelect 
 }: CustomCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => {
-    const d = initialDate || new Date();
+    const d = initialDate || (calendar.minDate ? new Date(calendar.minDate) : new Date('0001-01-01T00:00:00Z'));
     let monthIndex = d.getUTCMonth();
     if (monthIndex >= calendar.months.length) {
       monthIndex = 0;
@@ -159,18 +161,22 @@ export function CustomCalendarView({
                    selectedDate.getUTCMonth() === currentDate.monthIndex &&
                    selectedDate.getUTCDate() === day
                  ) : false;
+                 const dayDate = new Date(Date.UTC(0,0,1));
+                 dayDate.setUTCFullYear(currentDate.year, currentDate.monthIndex, day);
+                 const hasEvent = eventDays.some(eventDay => eventDay.getTime() === dayDate.getTime());
 
                  return (
                  <div
                     key={index}
                     className={cn(
                         "flex items-start justify-start p-2 rounded-lg transition-colors",
-                        "cursor-pointer hover:bg-muted",
+                        "cursor-pointer hover:bg-muted relative",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => day && handleDaySelect(day)}
                 >
                     {day && <span className="text-sm">{day}</span>}
+                    {hasEvent && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent"></div>}
                 </div>
                  )
             })}
@@ -211,6 +217,11 @@ export function CustomCalendarView({
 
   return (
     <Card className="h-full flex flex-col p-4">
+        {!disableEditing && (
+            <div className="flex justify-end mb-2">
+                <Button variant="outline" size="sm" onClick={onEdit}>Edit Model</Button>
+            </div>
+        )}
         <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-5 w-5"/></Button>
             {isYearInputOpen ? (

@@ -1,5 +1,4 @@
 
-
 import type { Role } from './roles';
 import type { StateEffect } from './states';
 
@@ -428,6 +427,8 @@ export interface CustomCalendar {
   name: string;
   months: CustomMonth[];
   weekdays: string[];
+  minDate?: string; // YYYY-MM-DD
+  maxDate?: string; // YYYY-MM-DD
 }
 
 export type NewCustomCalendar = Omit<CustomCalendar, 'id'>;

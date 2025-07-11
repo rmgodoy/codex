@@ -124,7 +124,10 @@ export default function CalendarModelsPage() {
             return <CustomCalendarEditor onSave={handleSave} onCancel={handleCancel} />;
         }
         if (selectedCalendar) {
-            return <CustomCalendarView key={selectedCalendar.id} calendar={selectedCalendar} onEdit={() => setIsCreatingNew(true)} />;
+            return <CustomCalendarView key={selectedCalendar.id} calendar={selectedCalendar} onEdit={() => {
+                setSelectedCalendar(selectedCalendar);
+                setIsCreatingNew(true);
+            }} />;
         }
         return (
             <div className="flex items-center justify-center h-full text-muted-foreground">

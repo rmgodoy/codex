@@ -199,6 +199,13 @@ export default function CalendarPage() {
   
   const isCustomCalendar = !!activeCalendarModel;
 
+  const getDefaultDateForModel = (model: CustomCalendarType | null) => {
+    if (model?.minDate) {
+        return new Date(model.minDate);
+    }
+    return getYearOne();
+  }
+
   const fetchCalendarsAndEvents = async (calendarId: string | null) => {
     try {
       const [allCalendars, allCustomCalendars] = await Promise.all([
@@ -221,10 +228,19 @@ export default function CalendarPage() {
        setCalendars(allCalendars);
        
        let finalCalendarId = calendarId;
+       let currentModel = null;
        if (!allCalendars.find(c => c.id === calendarId)) {
            finalCalendarId = allCalendars[0]?.id;
-           setSelectedCalendarId(finalCalendarId);
        }
+       
+       if (finalCalendarId) {
+            const currentCalendar = allCalendars.find(c => c.id === finalCalendarId);
+            if (currentCalendar?.modelId) {
+              currentModel = allCustomCalendars.find(cm => cm.id === currentCalendar.modelId) || null;
+            }
+       }
+       setSelectedCalendarId(finalCalendarId);
+
 
        if (!finalCalendarId) {
             setEvents([]);
@@ -240,9 +256,9 @@ export default function CalendarPage() {
         setSelectedDate(firstEventDate);
         setMonth(firstEventDate);
       } else {
-        const yearOne = getYearOne();
-        setSelectedDate(yearOne);
-        setMonth(yearOne);
+        const defaultDate = getDefaultDateForModel(currentModel);
+        setSelectedDate(defaultDate);
+        setMonth(defaultDate);
       }
 
     } catch (error) {
@@ -411,7 +427,8 @@ export default function CalendarPage() {
                           disableEditing
                           initialDate={selectedDate}
                           selectedDate={selectedDate}
-                          onDateSelect={(date) => setSelectedDate(date)}
+                          onDateSelect={setSelectedDate}
+                          eventDays={eventDays}
                         />
                     ) : (
                         <Calendar
