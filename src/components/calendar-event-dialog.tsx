@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from 'date-fns';
 
 import { useToast } from "@/hooks/use-toast";
 import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags, getAllMaps, getAllNpcs } from "@/lib/idb";
@@ -219,7 +218,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                     initialDate={field.value}
                                 >
                                     <Button type="button" variant="outline" className="w-full pl-3 text-left font-normal">
-                                        <span>{field.value ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
+                                        <span>{field.value && calendarModel.months[field.value.monthIndex] ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                 </CustomDatePickerDialog>
@@ -227,7 +226,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
                                         <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? format(customDateToDate(field.value), "PPP") : <span>Pick a date</span>}
+                                            {field.value ? customDateToDate(field.value).toLocaleDateString() : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </FormControl>
@@ -250,7 +249,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                     initialDate={field.value}
                                 >
                                     <Button type="button" variant="outline" className="w-full pl-3 text-left font-normal">
-                                        <span>{field.value ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
+                                        <span>{field.value && calendarModel.months[field.value.monthIndex] ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                 </CustomDatePickerDialog>
@@ -258,7 +257,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
                                         <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? format(customDateToDate(field.value), "PPP") : <span>Pick a date</span>}
+                                            {field.value ? customDateToDate(field.value).toLocaleDateString() : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </FormControl>
