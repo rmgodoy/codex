@@ -449,8 +449,10 @@ export interface CalendarEvent {
     calendarId: string;
     title: string;
     description: string;
-    startDate: string; // ISO string
-    endDate: string; // ISO string
+    // For traditional calendars, this will be an ISO string.
+    // For custom calendars, this will be a { year, monthIndex, day } object.
+    startDate: any;
+    endDate: any;
     tags: string[];
     party?: {
         type: CalendarPartyType;

@@ -33,8 +33,9 @@ interface CustomDate {
 }
 
 const getYearOne = () => {
-    const date = new Date('2000-01-01T00:00:00Z');
+    const date = new Date(0);
     date.setUTCFullYear(1, 0, 1);
+    date.setUTCHours(0,0,0,0);
     return date;
 };
 
@@ -45,7 +46,10 @@ const dateToCustomDate = (date: Date): CustomDate => ({
 });
 
 const customDateToDate = (customDate: CustomDate): Date => {
-    return new Date(Date.UTC(customDate.year, customDate.monthIndex, customDate.day));
+    const d = new Date(0);
+    d.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
+    d.setUTCHours(0,0,0,0);
+    return d;
 };
 
 
@@ -64,7 +68,11 @@ const eventSchema = z.object({
         })
     }).optional(),
 }).superRefine((data, ctx) => {
-    const isCustom = typeof data.startDate === 'object' && data.startDate !== null;
+    if (!data.startDate) {
+        ctx.addIssue({ path: ['startDate'], message: 'A start date is required.' });
+        return;
+    }
+    const isCustom = typeof data.startDate === 'object' && data.startDate !== null && !Array.isArray(data.startDate);
     
     if (isCustom) {
         if(data.endDate) {
@@ -126,8 +134,8 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                 title: event.title,
                 description: event.description,
                 tags: event.tags || [],
-                startDate: isCustom ? dateToCustomDate(new Date(event.startDate)) : event.startDate,
-                endDate: isCustom ? dateToCustomDate(new Date(event.endDate)) : event.endDate,
+                startDate: event.startDate,
+                endDate: event.endDate,
                 location: event.location,
             });
             setSelectedParty(event.party || null);
@@ -142,7 +150,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                 title: "",
                 description: "",
                 tags: [],
-                startDate: isCustom ? initialDate.custom : initialDate.traditional?.toISOString(),
+                startDate: isCustom ? initialDate.custom : initialDate.traditional,
                 endDate: undefined,
                 location: undefined,
             });
@@ -167,17 +175,13 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         toast({ variant: 'destructive', title: 'Error', description: 'No calendar selected to add the event to.' });
         return;
     }
-    
-    const isCustom = !!calendarModel;
-    const startDate = isCustom ? customDateToDate(data.startDate).toISOString() : data.startDate;
-    const endDate = data.endDate ? (isCustom ? customDateToDate(data.endDate).toISOString() : data.endDate) : startDate;
 
     const eventToSave: NewCalendarEvent = {
         title: data.title,
         calendarId: calendar.id,
         description: data.description || '',
-        startDate: startDate,
-        endDate: endDate,
+        startDate: data.startDate,
+        endDate: data.endDate || data.startDate,
         tags: data.tags || [],
         party: partyToSave,
         location: selectedLocation ? { mapId: selectedLocation.mapId, hex: selectedLocation.hex } : undefined,
@@ -205,7 +209,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         <DialogHeader className="p-6 pb-4">
           <DialogTitle>{event ? "Edit Event" : "Add New Event"}</DialogTitle>
           <DialogDescription>
-             {event ? `Editing event on ${format(new Date(event.startDate), 'PPP')}` : "Create a new event."}
+             {event ? `Editing event.` : "Create a new event."}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-1 px-6">
