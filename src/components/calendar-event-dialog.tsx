@@ -64,8 +64,9 @@ const eventSchema = z.object({
         })
     }).optional(),
 }).superRefine((data, ctx) => {
-    const isCustom = typeof data.startDate !== 'string';
-    if(isCustom) {
+    const isCustom = typeof data.startDate === 'object' && data.startDate !== null;
+    
+    if (isCustom) {
         if(data.endDate) {
             const start = customDateToDate(data.startDate);
             const end = customDateToDate(data.endDate);
@@ -226,7 +227,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                     onDateSelect={(date) => field.onChange(date)}
                                     initialDate={field.value}
                                 >
-                                    <Button variant="outline" className="w-full pl-3 text-left font-normal">
+                                    <Button type="button" variant="outline" className="w-full pl-3 text-left font-normal">
                                         <span>{field.value ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
@@ -234,7 +235,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                             ) : (
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
-                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                                             {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
@@ -257,7 +258,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                     onDateSelect={(date) => field.onChange(date)}
                                     initialDate={field.value}
                                 >
-                                    <Button variant="outline" className="w-full pl-3 text-left font-normal">
+                                    <Button type="button" variant="outline" className="w-full pl-3 text-left font-normal">
                                         <span>{field.value ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
@@ -265,7 +266,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                             ) : (
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
-                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                                             {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>

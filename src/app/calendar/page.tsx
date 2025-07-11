@@ -178,8 +178,9 @@ function CalendarManagementDialog({ calendars, customCalendars, onCalendarsUpdat
 }
 
 const getYearOne = () => {
-    const date = new Date('2000-01-01T00:00:00Z');
+    const date = new Date();
     date.setUTCFullYear(1, 0, 1);
+    date.setUTCHours(0, 0, 0, 0);
     return date;
 };
 
@@ -268,7 +269,9 @@ export default function CalendarPage() {
       const allEvents = await getAllCalendarEvents(finalCalendarId);
       setEvents(allEvents);
       
-      if (isCustomCalendar) {
+      const calendarIsCustom = !!allCalendars.find(c => c.id === finalCalendarId)?.modelId;
+      
+      if (calendarIsCustom) {
           let newDate: CustomDate;
           if (allEvents.length > 0) {
               const sortedEvents = [...allEvents].sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
@@ -304,7 +307,7 @@ export default function CalendarPage() {
   useEffect(() => {
     fetchCalendarsAndEvents(selectedCalendarId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCalendarId, isCustomCalendar]);
+  }, [selectedCalendarId]);
 
   const handleSaveSuccess = () => {
     refreshData();
