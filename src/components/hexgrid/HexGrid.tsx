@@ -283,7 +283,7 @@ const HexGrid: React.FC<HexGridProps> = ({
       const rRange = maxR - minR + 1;
       
       if (mapData.shape === 'rectangular') {
-          worldPixelWidth = (qRange * 1.5 + 1) * hexSize;
+          worldPixelWidth = (qRange * 1.5 + 2) * hexSize;
           worldPixelHeight = (rRange + qRange / 2) * Math.sqrt(3) * hexSize;
       } else { // radial
           worldPixelWidth = (qRange * 1.5 + 0.5) * hexSize;
