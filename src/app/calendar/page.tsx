@@ -15,17 +15,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Edit, Cog, Plus, Check, X, MapPin } from "lucide-react";
 import { getAllCalendarEvents, deleteCalendarEvent } from "@/lib/idb/calendarEvents";
-import { getAllCalendars, addCalendar, updateCalendar, deleteCalendarAndEvents } from "@/lib/idb/calendars";
-import type { CalendarEvent, Calendar as CalendarType, NewCalendar } from "@/lib/types";
+import { getAllCalendars, addCalendar, updateCalendar, deleteCalendarAndEvents, getAllCustomCalendars } from "@/lib/idb";
+import type { CalendarEvent, Calendar as CalendarType, NewCalendar, CustomCalendar as CustomCalendarType } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { CustomCalendarView } from "@/components/custom-calendar-view";
 
-function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars: CalendarType[], onCalendarsUpdate: (newCalendarId?: string) => void }) {
+function CalendarManagementDialog({ calendars, customCalendars, onCalendarsUpdate }: { calendars: CalendarType[], customCalendars: CustomCalendarType[], onCalendarsUpdate: (newCalendarId?: string) => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newCalendarName, setNewCalendarName] = useState("");
+    const [newCalendarModelId, setNewCalendarModelId] = useState("traditional");
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
     const { toast } = useToast();
@@ -33,9 +35,14 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
     const handleAddCalendar = async () => {
         if (!newCalendarName.trim()) return;
         try {
-            const newId = await addCalendar({ name: newCalendarName.trim() });
+            const calendarData: NewCalendar = { 
+                name: newCalendarName.trim(),
+                modelId: newCalendarModelId === 'traditional' ? undefined : newCalendarModelId
+            };
+            const newId = await addCalendar(calendarData);
             toast({ title: 'Calendar Created', description: `"${newCalendarName}" has been added.` });
             setNewCalendarName("");
+            setNewCalendarModelId("traditional");
             onCalendarsUpdate(newId);
             setIsDialogOpen(false);
         } catch (error) {
@@ -55,8 +62,10 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
 
     const handleRenameCalendar = async () => {
         if (!editingId || !editingName.trim()) return;
+        const calendarToUpdate = calendars.find(c => c.id === editingId);
+        if (!calendarToUpdate) return;
         try {
-            await updateCalendar({ id: editingId, name: editingName.trim() });
+            await updateCalendar({ ...calendarToUpdate, name: editingName.trim() });
             toast({ title: 'Calendar Renamed' });
             onCalendarsUpdate();
             handleCancelEdit();
@@ -87,14 +96,26 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
                     <DialogDescription>Add, rename, or delete your calendars.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-2 p-3 border rounded-md">
                         <Input 
                             placeholder="New calendar name..." 
                             value={newCalendarName}
                             onChange={(e) => setNewCalendarName(e.target.value)}
                         />
+                        <Select value={newCalendarModelId} onValueChange={setNewCalendarModelId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="traditional">Traditional Calendar</SelectItem>
+                                {customCalendars.map(cal => (
+                                    <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <Button onClick={handleAddCalendar} disabled={!newCalendarName.trim()}><Plus className="h-4 w-4" /> Add</Button>
                     </div>
+                    <Separator />
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                         {calendars.map(cal => (
                             <div key={cal.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 gap-2">
@@ -153,6 +174,7 @@ function CalendarManagementDialog({ calendars, onCalendarsUpdate }: { calendars:
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
+  const [customCalendars, setCustomCalendars] = useState<CustomCalendarType[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
@@ -160,11 +182,28 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { toast } = useToast();
 
+  const activeCalendar = useMemo(() => {
+    return calendars.find(c => c.id === selectedCalendarId);
+  }, [calendars, selectedCalendarId]);
+
+  const activeCalendarModel = useMemo(() => {
+    if (!activeCalendar || !activeCalendar.modelId) return null;
+    return customCalendars.find(cm => cm.id === activeCalendar.modelId) || null;
+  }, [activeCalendar, customCalendars]);
+  
+  const isCustomCalendar = !!activeCalendarModel;
+
+
   const fetchCalendarsAndEvents = async (calendarId: string) => {
     try {
-      const allCalendars = await getAllCalendars();
+      const [allCalendars, allCustomCalendars] = await Promise.all([
+        getAllCalendars(),
+        getAllCustomCalendars(),
+      ]);
+       setCustomCalendars(allCustomCalendars);
+
        if (allCalendars.length === 0) {
-            const defaultCalendarId = await addCalendar({ name: "Default" });
+            const defaultCalendarId = await addCalendar({ name: "Default", modelId: undefined });
             const defaultCalendars = [{ id: defaultCalendarId, name: "Default" }];
             setCalendars(defaultCalendars);
             setSelectedCalendarId(defaultCalendarId);
@@ -267,7 +306,7 @@ export default function CalendarPage() {
                                     {calendars.map(cal => <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <CalendarManagementDialog calendars={calendars} onCalendarsUpdate={refreshData} />
+                            <CalendarManagementDialog calendars={calendars} customCalendars={customCalendars} onCalendarsUpdate={refreshData} />
                         </div>
                         <Button onClick={() => { setEditingEvent(null); setIsDialogOpen(true); }}>Add Event</Button>
                         <Separator />
@@ -332,30 +371,34 @@ export default function CalendarPage() {
                         </Card>
                     </div>
                 </Sidebar>
-                <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-background/50">
-                    <Calendar
-                        onChange={(value) => {
-                            if (value instanceof Date) {
-                                setSelectedDate(value);
-                            }
-                        }}
-                        value={selectedDate}
-                        activeStartDate={month}
-                        onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setMonth(activeStartDate)}
-                        minDate={new Date('0001-01-01T00:00:00')}
-                        maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
-                        tileContent={({ date, view }) => {
-                            if (view === 'month') {
-                                const hasEvent = eventDays.some(eventDay => isSameDay(eventDay, date));
-                                return hasEvent ? <div className="event-dot"></div> : null;
-                            }
-                            return null;
-                        }}
-                        className="w-full h-full"
-                        weekStartsOn={1}
-                        next2Label={null}
-                        prev2Label={null}
-                    />
+                <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-background/50 p-4">
+                     {isCustomCalendar && activeCalendarModel ? (
+                        <CustomCalendarView calendar={activeCalendarModel} onEdit={() => {}} disableEditing />
+                    ) : (
+                        <Calendar
+                            onChange={(value) => {
+                                if (value instanceof Date) {
+                                    setSelectedDate(value);
+                                }
+                            }}
+                            value={selectedDate}
+                            activeStartDate={month}
+                            onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setMonth(activeStartDate)}
+                            minDate={new Date('0001-01-01T00:00:00')}
+                            maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
+                            tileContent={({ date, view }) => {
+                                if (view === 'month') {
+                                    const hasEvent = eventDays.some(eventDay => isSameDay(eventDay, date));
+                                    return hasEvent ? <div className="event-dot"></div> : null;
+                                }
+                                return null;
+                            }}
+                            className="w-full h-full"
+                            weekStartsOn={1}
+                            next2Label={null}
+                            prev2Label={null}
+                        />
+                    )}
                 </SidebarInset>
             </div>
         </MainLayout>

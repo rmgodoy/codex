@@ -1,8 +1,8 @@
 
 "use client";
 
-import type { Calendar, NewCalendar } from '@/lib/types';
-import { getDb, generateId, CALENDARS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME } from './db';
+import type { Calendar, NewCalendar, CustomCalendar } from '@/lib/types';
+import { getDb, generateId, CALENDARS_STORE_NAME, CALENDAR_EVENTS_STORE_NAME, CUSTOM_CALENDARS_STORE_NAME } from './db';
 
 export const getAllCalendars = async (): Promise<Calendar[]> => {
     const db = await getDb();
@@ -62,5 +62,15 @@ export const deleteCalendarAndEvents = async (calendarId: string): Promise<void>
 
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
+    });
+};
+
+export const getAllCustomCalendars = async (): Promise<CustomCalendar[]> => {
+    const db = await getDb();
+    const store = db.transaction(CUSTOM_CALENDARS_STORE_NAME, 'readonly').objectStore(CUSTOM_CALENDARS_STORE_NAME);
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
     });
 };

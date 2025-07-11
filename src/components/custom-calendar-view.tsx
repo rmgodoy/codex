@@ -11,11 +11,12 @@ import { cn } from '@/lib/utils';
 interface CustomCalendarViewProps {
   calendar: CustomCalendar;
   onEdit: () => void;
+  disableEditing?: boolean;
 }
 
 type ViewMode = 'day' | 'month' | 'year';
 
-export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps) {
+export function CustomCalendarView({ calendar, onEdit, disableEditing = false }: CustomCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState({ year: 1, monthIndex: 0 });
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
@@ -76,23 +77,6 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
     setViewMode('month');
   }
 
-  const calendarGrid = useMemo(() => {
-    const daysInMonth = currentMonth.days;
-    // For simplicity, we're not calculating the real start day of the week.
-    // In a real scenario, we'd need to know the weekday of Year 1, Day 1.
-    const firstDayOffset = 0;
-    
-    const days = [];
-    for (let i = 0; i < firstDayOffset; i++) {
-        days.push({ day: null, isCurrentMonth: false });
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-        days.push({ day: i, isCurrentMonth: true });
-    }
-    
-    return days;
-  }, [currentDate, calendar]);
-
   const renderDayView = () => {
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
@@ -117,7 +101,7 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
             </div>
             <div 
               style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
-              className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(0,_1fr))] flex-1"
+              className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(auto,_1fr))] flex-1"
             >
                 {dayGrid.map((day, index) => (
                     <div 
@@ -165,7 +149,9 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
     <Card className="h-full flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
             <h2 className="text-2xl font-bold">{calendar.name}</h2>
-            <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Structure</Button>
+            {!disableEditing && (
+                <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Model</Button>
+            )}
         </div>
         <div className="flex items-center justify-between p-4 border-b">
             <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft /></Button>

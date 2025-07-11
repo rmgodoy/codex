@@ -416,6 +416,22 @@ export interface Hex {
     s: number; // s = -q - r
 }
 
+// Custom Calendar Types
+export interface CustomMonth {
+  id: string;
+  name: string;
+  days: number;
+}
+
+export interface CustomCalendar {
+  id: string;
+  name: string;
+  months: CustomMonth[];
+  weekdays: string[];
+}
+
+export type NewCustomCalendar = Omit<CustomCalendar, 'id'>;
+
 // Calendar Types
 export const CALENDAR_PARTY_TYPES = ['faction', 'creature', 'npc'] as const;
 export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
@@ -423,6 +439,7 @@ export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
 export interface Calendar {
   id: string;
   name: string;
+  modelId?: string; // Links to a CustomCalendar id, or undefined for traditional
 }
 export type NewCalendar = Omit<Calendar, 'id'>;
 
@@ -482,19 +499,3 @@ export interface Map {
 }
 
 export type NewMap = Omit<Map, 'id'>;
-
-// Custom Calendar Types
-export interface CustomMonth {
-  id: string;
-  name: string;
-  days: number;
-}
-
-export interface CustomCalendar {
-  id: string;
-  name: string;
-  months: CustomMonth[];
-  weekdays: string[];
-}
-
-export type NewCustomCalendar = Omit<CustomCalendar, 'id'>;

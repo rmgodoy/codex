@@ -164,8 +164,8 @@ export default function MainLayout({
       else if (pageKeyLower.startsWith("items")) pageName = "Items";
       else if (pageKeyLower.startsWith("npcs")) pageName = "NPCs";
       else if (pageKeyLower.startsWith("factions")) pageName = "Factions";
+      else if (pageKeyLower.startsWith("calendar-models")) pageName = "Calendar Models";
       else if (pageKeyLower.startsWith("calendar")) pageName = "Calendar";
-      else if (pageKeyLower.startsWith("custom-calendar")) pageName = "Custom Calendar";
       else if (pageKeyLower.startsWith("maps")) pageName = "Maps";
       else if (pageKeyLower.startsWith("pantheon")) pageName = "Pantheon";
       else if (pageKeyLower.startsWith("bestiary")) pageName = "Bestiary";
@@ -247,7 +247,7 @@ export default function MainLayout({
     },
     { href: `#/${worldSlug}/dungeons`, label: "Dungeons" },
     { href: `#/${worldSlug}/calendar`, label: "Calendar" },
-    { href: `#/${worldSlug}/custom-calendar`, label: "Custom Calendar" },
+    { href: `#/${worldSlug}/calendar-models`, label: "Calendar Models" },
     { href: `#/${worldSlug}/maps`, label: "Maps" },
   ].sort((a, b) => a.label.localeCompare(b.label));
 

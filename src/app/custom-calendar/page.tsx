@@ -14,49 +14,47 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
-function CalendarManager({ calendars, onSelect, onNew, onDelete, selectedCalendarId }: { calendars: CustomCalendarType[], onSelect: (id: string) => void, onNew: () => void, onDelete: (id: string) => void, selectedCalendarId: string | null }) {
+function CalendarModelManager({ calendars, onSelect, onNew, onDelete, selectedCalendarId }: { calendars: CustomCalendarType[], onSelect: (id: string) => void, onNew: () => void, onDelete: (id: string) => void, selectedCalendarId: string | null }) {
     return (
-        <div className="p-4 space-y-4">
-            <Button onClick={onNew} className="w-full"><PlusCircle /> New Calendar</Button>
-            {calendars.length > 0 && (
-                <div className="space-y-2">
-                    <Select value={selectedCalendarId ?? ''} onValueChange={onSelect}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a calendar..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {calendars.map(cal => (
-                                <SelectItem key={cal.id} value={cal.id}>
-                                    {cal.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {selectedCalendarId && (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="sm" className="w-full"><Trash2 className="h-4 w-4 mr-2" />Delete Selected</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>This will permanently delete the selected calendar. This action cannot be undone.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => onDelete(selectedCalendarId)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    )}
+        <div className="p-4 space-y-4 h-full flex flex-col">
+            <Button onClick={onNew} className="w-full"><PlusCircle /> New Model</Button>
+            <ScrollArea className="flex-1">
+                <div className="space-y-2 pr-2">
+                    {calendars.map(cal => (
+                        <div key={cal.id} className="flex group items-center justify-between rounded-md hover:bg-muted/50 transition-colors">
+                             <Button 
+                                variant="ghost" 
+                                className={`flex-1 justify-start text-left h-auto py-2 ${selectedCalendarId === cal.id ? 'font-bold text-accent' : ''}`}
+                                onClick={() => onSelect(cal.id)}
+                            >
+                                {cal.name}
+                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>This will permanently delete the selected calendar model. This action cannot be undone.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => onDelete(cal.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    ))}
                 </div>
-            )}
+            </ScrollArea>
         </div>
     );
 }
 
-export default function CustomCalendarPage() {
+export default function CalendarModelsPage() {
     const [calendars, setCalendars] = useState<CustomCalendarType[]>([]);
     const [selectedCalendar, setSelectedCalendar] = useState<CustomCalendarType | null>(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -66,12 +64,12 @@ export default function CustomCalendarPage() {
     const fetchCalendars = useCallback(async () => {
         const cals = await getAllCustomCalendars();
         setCalendars(cals);
-        if (!selectedCalendar && cals.length > 0) {
+        if (cals.length > 0 && !selectedCalendar && !isCreatingNew) {
             setSelectedCalendar(cals[0]);
         } else if (cals.length === 0) {
             setSelectedCalendar(null);
         }
-    }, [selectedCalendar]);
+    }, [selectedCalendar, isCreatingNew]);
 
     useEffect(() => {
         fetchCalendars();
@@ -93,10 +91,11 @@ export default function CustomCalendarPage() {
     const handleSave = async (calendarData: Omit<CustomCalendarType, 'id'> | CustomCalendarType) => {
         if ('id' in calendarData) {
             await updateCustomCalendar(calendarData);
-            toast({ title: 'Calendar Updated' });
+            toast({ title: 'Calendar Model Updated' });
+            setSelectedCalendar(calendarData);
         } else {
             const newId = await addCustomCalendar(calendarData);
-            toast({ title: 'Calendar Created' });
+            toast({ title: 'Calendar Model Created' });
             const newCal = { ...calendarData, id: newId };
             setSelectedCalendar(newCal);
         }
@@ -106,7 +105,7 @@ export default function CustomCalendarPage() {
 
     const handleDelete = async (id: string) => {
         await deleteCustomCalendar(id);
-        toast({ title: 'Calendar Deleted' });
+        toast({ title: 'Calendar Model Deleted' });
         setSelectedCalendar(null);
         fetchCalendars();
     };
@@ -129,7 +128,7 @@ export default function CustomCalendarPage() {
         }
         return (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p>Select a calendar or create a new one to begin.</p>
+                <p>Select a calendar model or create a new one to begin.</p>
             </div>
         );
     };
@@ -139,7 +138,7 @@ export default function CustomCalendarPage() {
             <MainLayout>
                 <div className="flex w-full h-full overflow-hidden">
                     <Sidebar style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
-                        <CalendarManager
+                        <CalendarModelManager
                             calendars={calendars}
                             onSelect={handleSelectCalendar}
                             onNew={handleNewCalendar}
