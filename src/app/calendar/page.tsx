@@ -178,7 +178,7 @@ function CalendarManagementDialog({ calendars, customCalendars, onCalendarsUpdat
 }
 
 const getYearOne = () => {
-    const date = new Date();
+    const date = new Date(0);
     date.setUTCFullYear(1, 0, 1);
     date.setUTCHours(0, 0, 0, 0);
     return date;
@@ -210,7 +210,12 @@ export default function CalendarPage() {
   const isCustomCalendar = !!activeCalendarModel;
 
   const getDefaultDate = (model: CustomCalendarType | null) => {
-    if (model?.minDate) return new Date(model.minDate);
+    if (model?.minDate) {
+        const d = new Date(0);
+        d.setUTCFullYear(parseInt(model.minDate.substring(0,4)), parseInt(model.minDate.substring(5,7)) - 1, parseInt(model.minDate.substring(8,10)));
+        d.setUTCHours(0,0,0,0);
+        return d;
+    }
     return getYearOne();
   }
   
@@ -223,7 +228,7 @@ export default function CalendarPage() {
     return { year: 1, monthIndex: 0, day: 1 };
   };
 
-  const fetchCalendarsAndEvents = async (calendarId: string | null) => {
+  const fetchCalendarsAndEvents = async (calendarId: string | null, preserveDate: boolean = false) => {
     try {
       const [allCalendars, allCustomCalendars] = await Promise.all([
         getAllCalendars(),
@@ -270,6 +275,8 @@ export default function CalendarPage() {
       const allEvents = await getAllCalendarEvents(finalCalendarId);
       setEvents(allEvents);
       
+      if (preserveDate) return; // Keep current date selection
+
       const calendarIsCustom = !!allCalendars.find(c => c.id === finalCalendarId)?.modelId;
       
       if (calendarIsCustom) {
@@ -302,7 +309,14 @@ export default function CalendarPage() {
   };
   
   const refreshData = (newCalendarId?: string) => {
-      fetchCalendarsAndEvents(newCalendarId ?? selectedCalendarId);
+    if (newCalendarId) {
+      fetchCalendarsAndEvents(newCalendarId);
+    } else {
+      // Just refresh events, keep date
+      if (selectedCalendarId) {
+        getAllCalendarEvents(selectedCalendarId).then(setEvents);
+      }
+    }
   };
   
   useEffect(() => {
