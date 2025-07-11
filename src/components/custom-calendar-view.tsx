@@ -22,7 +22,12 @@ type ViewMode = 'day' | 'month' | 'year';
 export function CustomCalendarView({ calendar, disableEditing = false, initialDate, isDatePicker = false, onEdit, onDateSelect }: CustomCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     const d = initialDate || new Date();
-    return { year: d.getFullYear(), monthIndex: d.getMonth(), day: d.getDate() };
+    let monthIndex = d.getMonth();
+    // Ensure the initial month index is valid for the given calendar model.
+    if (monthIndex >= calendar.months.length) {
+      monthIndex = 0;
+    }
+    return { year: d.getFullYear(), monthIndex, day: d.getDate() };
   });
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
@@ -102,32 +107,32 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     });
 
     return (
-        <div className="flex flex-col flex-1">
-            <div 
-              style={{'--cols': numCols} as React.CSSProperties} 
-              className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))]"
-            >
-                {calendar.weekdays.map((day) => (
-                    <div key={day} className="text-center font-bold text-muted-foreground p-2 text-sm border-b border-r border-border">
-                        {day}
-                    </div>
-                ))}
-            </div>
-            <div 
-              style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
-              className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(auto,_1fr))] flex-1"
-            >
-                {dayGrid.map((day, index) => (
-                    <div 
-                      key={index} 
-                      className={cn("p-2 border-b border-r border-border", isDatePicker && day && "cursor-pointer hover:bg-accent")}
-                      onClick={() => day && handleDaySelect(day)}
-                    >
-                        {day && <span className="text-sm">{day}</span>}
-                    </div>
-                ))}
-            </div>
+      <div className="flex flex-col flex-1">
+        <div 
+            style={{'--cols': numCols} as React.CSSProperties} 
+            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] shrink-0"
+        >
+            {calendar.weekdays.map((day) => (
+                <div key={day} className="text-center font-bold text-muted-foreground p-2 text-sm border-b border-r border-border">
+                    {day}
+                </div>
+            ))}
         </div>
+        <div 
+            style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
+            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(auto,_1fr))] flex-1"
+        >
+            {dayGrid.map((day, index) => (
+                <div 
+                    key={index} 
+                    className={cn("p-2 border-b border-r border-border", isDatePicker && day && "cursor-pointer hover:bg-accent")}
+                    onClick={() => day && handleDaySelect(day)}
+                >
+                    {day && <span className="text-sm">{day}</span>}
+                </div>
+            ))}
+        </div>
+    </div>
     );
   };
   
@@ -181,5 +186,3 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     </Card>
   );
 }
-
-    
