@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,18 +26,35 @@ import { LocationPickerDialog } from "./location-picker-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { CustomDatePickerDialog } from "./custom-date-picker-dialog";
 
+interface CustomDate {
+    year: number;
+    monthIndex: number;
+    day: number;
+}
+
 const getYearOne = () => {
     const date = new Date('2000-01-01T00:00:00Z');
     date.setUTCFullYear(1, 0, 1);
     return date;
 };
 
+const dateToCustomDate = (date: Date): CustomDate => ({
+    year: date.getUTCFullYear(),
+    monthIndex: date.getUTCMonth(),
+    day: date.getUTCDate()
+});
+
+const customDateToDate = (customDate: CustomDate): Date => {
+    return new Date(Date.UTC(customDate.year, customDate.monthIndex, customDate.day));
+};
+
+
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    startDate: z.string({ required_error: "A start date is required." }),
-    endDate: z.string().optional(),
+    startDate: z.any({ required_error: "A start date is required." }),
+    endDate: z.any().optional(),
     location: z.object({
         mapId: z.string(),
         hex: z.object({
@@ -47,11 +64,19 @@ const eventSchema = z.object({
         })
     }).optional(),
 }).superRefine((data, ctx) => {
-    if (data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
-        ctx.addIssue({
-          path: ['endDate'],
-          message: 'End date cannot be before start date.',
-        });
+    const isCustom = typeof data.startDate !== 'string';
+    if(isCustom) {
+        if(data.endDate) {
+            const start = customDateToDate(data.startDate);
+            const end = customDateToDate(data.endDate);
+            if(start > end) {
+                ctx.addIssue({ path: ['endDate'], message: 'End date cannot be before start date.' });
+            }
+        }
+    } else {
+        if (data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
+            ctx.addIssue({ path: ['endDate'], message: 'End date cannot be before start date.' });
+        }
     }
 });
 
@@ -64,7 +89,7 @@ interface CalendarEventDialogProps {
   event?: CalendarEvent | null;
   calendar: CalendarType | undefined;
   calendarModel: CustomCalendar | null;
-  initialDate: Date;
+  initialDate: { traditional?: Date, custom?: CustomDate };
 }
 
 export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendar, calendarModel, initialDate }: CalendarEventDialogProps) {
@@ -75,7 +100,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
   const [allMaps, setAllMaps] = useState<WorldMap[]>([]);
   const [selectedParty, setSelectedParty] = useState<{ id: string; name: string; type: CalendarPartyType } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ mapId: string; mapName: string; hex: Hex } | null>(null);
-
 
   useEffect(() => {
     Promise.all([getAllCreatures(), getAllFactions(), getAllMaps(), getAllNpcs()]).then(([creatures, factions, maps, npcs]) => {
@@ -88,53 +112,44 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      tags: [],
-      startDate: new Date().toISOString(),
-      endDate: undefined,
-      location: undefined,
-    }
   });
   
   const { watch, setValue } = form;
   const watchedStartDate = watch('startDate');
 
   useEffect(() => {
-    if (event && isOpen) {
-      form.reset({
-        title: event.title,
-        description: event.description,
-        tags: event.tags || [],
-        startDate: event.startDate,
-        endDate: event.endDate,
-        location: event.location,
-      });
-      if (event.party) {
-        setSelectedParty(event.party);
-      } else {
-        setSelectedParty(null);
-      }
-      if (event.location && allMaps.length > 0) {
-        const mapName = allMaps.find(m => m.id === event.location!.mapId)?.name || 'Unknown Map';
-        setSelectedLocation({ ...event.location, mapName });
-      } else {
-        setSelectedLocation(null);
-      }
-    } else if (!event && isOpen) {
-      form.reset({
-        title: "",
-        description: "",
-        tags: [],
-        startDate: initialDate.toISOString(),
-        endDate: undefined,
-        location: undefined,
-      });
-      setSelectedParty(null);
-      setSelectedLocation(null);
+    if (isOpen) {
+        const isCustom = !!calendarModel;
+        if (event) {
+            form.reset({
+                title: event.title,
+                description: event.description,
+                tags: event.tags || [],
+                startDate: isCustom ? dateToCustomDate(new Date(event.startDate)) : event.startDate,
+                endDate: isCustom ? dateToCustomDate(new Date(event.endDate)) : event.endDate,
+                location: event.location,
+            });
+            setSelectedParty(event.party || null);
+            if (event.location && allMaps.length > 0) {
+                const mapName = allMaps.find(m => m.id === event.location!.mapId)?.name || 'Unknown Map';
+                setSelectedLocation({ ...event.location, mapName });
+            } else {
+                setSelectedLocation(null);
+            }
+        } else {
+            form.reset({
+                title: "",
+                description: "",
+                tags: [],
+                startDate: isCustom ? initialDate.custom : initialDate.traditional?.toISOString(),
+                endDate: undefined,
+                location: undefined,
+            });
+            setSelectedParty(null);
+            setSelectedLocation(null);
+        }
     }
-  }, [event, isOpen, form, initialDate, allMaps]);
+  }, [event, isOpen, form, initialDate, allMaps, calendarModel]);
   
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent['party'] | undefined = undefined;
@@ -152,12 +167,16 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
         return;
     }
     
+    const isCustom = !!calendarModel;
+    const startDate = isCustom ? customDateToDate(data.startDate).toISOString() : data.startDate;
+    const endDate = data.endDate ? (isCustom ? customDateToDate(data.endDate).toISOString() : data.endDate) : startDate;
+
     const eventToSave: NewCalendarEvent = {
         title: data.title,
         calendarId: calendar.id,
         description: data.description || '',
-        startDate: data.startDate,
-        endDate: (data.endDate || data.startDate),
+        startDate: startDate,
+        endDate: endDate,
         tags: data.tags || [],
         party: partyToSave,
         location: selectedLocation ? { mapId: selectedLocation.mapId, hex: selectedLocation.hex } : undefined,
@@ -204,11 +223,11 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                             {calendarModel ? (
                                 <CustomDatePickerDialog
                                     calendarModel={calendarModel}
-                                    onDateSelect={(dateStr) => field.onChange(dateStr)}
+                                    onDateSelect={(date) => field.onChange(date)}
                                     initialDate={field.value}
                                 >
                                     <Button variant="outline" className="w-full pl-3 text-left font-normal">
-                                        <span>{field.value ? new Date(field.value).toLocaleDateString() : "Pick a date"}</span>
+                                        <span>{field.value ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                 </CustomDatePickerDialog>
@@ -235,11 +254,11 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                              {calendarModel ? (
                                 <CustomDatePickerDialog
                                     calendarModel={calendarModel}
-                                    onDateSelect={(dateStr) => field.onChange(dateStr)}
+                                    onDateSelect={(date) => field.onChange(date)}
                                     initialDate={field.value}
                                 >
                                     <Button variant="outline" className="w-full pl-3 text-left font-normal">
-                                        <span>{field.value ? new Date(field.value).toLocaleDateString() : "Pick a date"}</span>
+                                        <span>{field.value ? `${calendarModel.months[field.value.monthIndex].name} ${field.value.day}, ${field.value.year}` : "Pick a date"}</span>
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                 </CustomDatePickerDialog>

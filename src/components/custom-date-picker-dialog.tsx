@@ -7,10 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from './ui/button';
 import { CustomCalendarView } from './custom-calendar-view';
 
+interface CustomDate {
+    year: number;
+    monthIndex: number;
+    day: number;
+}
+
 interface CustomDatePickerDialogProps {
   calendarModel: CustomCalendar;
-  initialDate?: string | null;
-  onDateSelect: (date: string) => void;
+  initialDate?: CustomDate | null;
+  onDateSelect: (date: CustomDate) => void;
   children: React.ReactNode;
 }
 
@@ -26,18 +32,15 @@ export function CustomDatePickerDialog({ calendarModel, initialDate, onDateSelec
         </DialogHeader>
         <CustomCalendarView
           calendar={calendarModel}
-          onDateSelect={(date: Date) => {
-            onDateSelect(date.toISOString());
+          onDateSelect={(date) => {
+            onDateSelect(date);
             setIsOpen(false);
           }}
           disableEditing
-          initialDate={initialDate ? new Date(initialDate) : new Date()}
-          isDatePicker
+          initialDate={initialDate ? new Date(Date.UTC(initialDate.year, initialDate.monthIndex, initialDate.day)) : undefined}
+          selectedDate={initialDate}
         />
       </DialogContent>
     </Dialog>
   );
 }
-
-
-    
