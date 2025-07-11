@@ -2,30 +2,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import type { CustomCalendar, CalendarEvent } from '@/lib/types';
+import type { CustomCalendar, CalendarEvent, CustomDate } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from './ui/card';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
-
-interface CustomDate {
-    year: number;
-    monthIndex: number;
-    day: number;
-}
-
-interface CustomCalendarViewProps {
-  calendar: CustomCalendar;
-  disableEditing?: boolean;
-  initialDate?: CustomDate;
-  selectedDate?: CustomDate | null;
-  events?: CalendarEvent[];
-  onEdit?: () => void;
-  onDateSelect?: (date: CustomDate) => void;
-}
-
-type ViewMode = 'day' | 'month' | 'year';
 
 const dateToCustomDate = (date: Date): CustomDate => ({
     year: date.getUTCFullYear(),
@@ -33,16 +15,32 @@ const dateToCustomDate = (date: Date): CustomDate => ({
     day: date.getUTCDate()
 });
 
-const isSameCustomDay = (d1: CustomDate, d2: CustomDate) => {
+const isSameCustomDay = (d1?: CustomDate | null, d2?: CustomDate | null) => {
+    if (!d1 || !d2) return false;
     return d1.year === d2.year && d1.monthIndex === d2.monthIndex && d1.day === d2.day;
 }
 
 const isDateInRange = (date: CustomDate, start: CustomDate, end: CustomDate) => {
-    const dateTime = new Date(date.year, date.monthIndex, date.day).getTime();
-    const startTime = new Date(start.year, start.monthIndex, start.day).getTime();
-    const endTime = new Date(end.year, end.monthIndex, end.day).getTime();
-    return dateTime >= startTime && dateTime <= endTime;
+    // This is a simplified comparison that works for year/month/day objects
+    const dateNum = date.year * 10000 + date.monthIndex * 100 + date.day;
+    const startNum = start.year * 10000 + start.monthIndex * 100 + start.day;
+    const endNum = end.year * 10000 + end.monthIndex * 100 + end.day;
+    return dateNum >= startNum && dateNum <= endNum;
 }
+
+const customDateToKey = (date: CustomDate) => `${date.year}-${date.monthIndex}-${date.day}`;
+
+interface CustomCalendarViewProps {
+  calendar: CustomCalendar;
+  disableEditing?: boolean;
+  initialDate?: CustomDate | null;
+  selectedDate?: CustomDate | null;
+  events?: CalendarEvent[];
+  onEdit?: () => void;
+  onDateSelect?: (date: CustomDate) => void;
+}
+
+type ViewMode = 'day' | 'month' | 'year';
 
 
 export function CustomCalendarView({ 
@@ -64,17 +62,26 @@ export function CustomCalendarView({
       return { year: initialDate.year, monthIndex, day: initialDate.day };
     }
     if(calendar.minDate) {
-        const d = new Date(calendar.minDate);
+        const d = new Date(0);
+        d.setUTCFullYear(parseInt(calendar.minDate.substring(0,4)), parseInt(calendar.minDate.substring(5,7)) - 1, parseInt(calendar.minDate.substring(8,10)));
+        d.setUTCHours(0,0,0,0);
         return dateToCustomDate(d);
     }
     return { year: 1, monthIndex: 0, day: 1 };
   };
     
-  const [currentDate, setCurrentDate] = useState<CustomDate>(getInitialCustomDate);
+  const [currentDate, setCurrentDate] = useState<CustomDate>(getInitialCustomDate());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
-  const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
+  const [decadeStart, setDecadeStart] = useState(0);
   const [isYearInputOpen, setIsYearInputOpen] = useState(false);
-  const [yearInputValue, setYearInputValue] = useState(currentDate.year.toString());
+  const [yearInputValue, setYearInputValue] = useState('');
+
+  useEffect(() => {
+    if (currentDate) {
+      setDecadeStart(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
+      setYearInputValue(currentDate.year.toString());
+    }
+  }, [currentDate]);
 
   useEffect(() => {
     if (selectedDate) {
@@ -82,19 +89,39 @@ export function CustomCalendarView({
     }
   }, [selectedDate]);
 
-  const currentMonth = useMemo(() => calendar.months[currentDate.monthIndex], [calendar.months, currentDate.monthIndex]);
+  const currentMonth = useMemo(() => {
+    if (!calendar || !currentDate) return null;
+    return calendar.months[currentDate.monthIndex]
+  }, [calendar, currentDate]);
 
   const eventDaysSet = useMemo(() => {
     const daySet = new Set<string>();
     events.forEach(event => {
-        const start = dateToCustomDate(new Date(event.startDate));
-        const end = dateToCustomDate(new Date(event.endDate));
-        const month = calendar.months[start.monthIndex];
-        if (month) {
-            for (let day = start.day; day <= end.day; day++) {
-                 // Simplified logic assuming events are within the same month for now
-                 const key = `${start.year}-${start.monthIndex}-${day}`;
-                 daySet.add(key);
+        const start = event.startDate;
+        const end = event.endDate;
+        const totalMonths = calendar.months.length;
+        
+        let currentYear = start.year;
+        let currentMonthIndex = start.monthIndex;
+        let currentDay = start.day;
+
+        while(true) {
+            const dateKey = customDateToKey({year: currentYear, monthIndex: currentMonthIndex, day: currentDay});
+            daySet.add(dateKey);
+
+            if(currentYear === end.year && currentMonthIndex === end.monthIndex && currentDay === end.day) {
+                break;
+            }
+
+            currentDay++;
+            const daysInMonth = calendar.months[currentMonthIndex]?.days || 30;
+            if (currentDay > daysInMonth) {
+                currentDay = 1;
+                currentMonthIndex++;
+                if (currentMonthIndex >= totalMonths) {
+                    currentMonthIndex = 0;
+                    currentYear++;
+                }
             }
         }
     });
@@ -181,10 +208,20 @@ export function CustomCalendarView({
     
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
-    const firstDayDate = new Date(0);
-    firstDayDate.setUTCFullYear(currentDate.year, currentDate.monthIndex, 1);
+    const firstDayOfMonth = { year: currentDate.year, monthIndex: currentDate.monthIndex, day: 1 };
+    
+    // Simplified weekday calculation - assumes a continuous cycle
+    // A more complex implementation would need a reference epoch date
+    const epochYear = calendar.minDate ? parseInt(calendar.minDate.substring(0,4)) : 1;
+    let totalDaysSinceEpoch = 0;
+    for(let y = epochYear; y < firstDayOfMonth.year; y++) {
+        totalDaysSinceEpoch += calendar.months.reduce((sum, m) => sum + m.days, 0);
+    }
+    for(let m = 0; m < firstDayOfMonth.monthIndex; m++) {
+        totalDaysSinceEpoch += calendar.months[m].days;
+    }
 
-    const firstDayOfWeek = (firstDayDate.getUTCDay() % numCols); 
+    const firstDayOfWeek = (totalDaysSinceEpoch % numCols); 
     
     const cells = Array(firstDayOfWeek + totalDays).fill(null);
      
@@ -206,33 +243,33 @@ export function CustomCalendarView({
         </div>
         <div 
             style={{'--cols': numCols} as React.CSSProperties} 
-            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-auto flex-1"
+            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-auto flex-1 gap-2"
         >
             {cells.map((day, index) => {
                  if (!day) {
                     return <div key={index}></div>;
                  }
+                 const dayDate = { year: currentDate.year, monthIndex: currentDate.monthIndex, day: day };
 
-                 const isSelected = selectedDate ? (
-                   isSameCustomDay(selectedDate, {year: currentDate.year, monthIndex: currentDate.monthIndex, day: day})
-                 ) : false;
+                 const isSelected = isSameCustomDay(selectedDate, dayDate);
                  
-                 const eventKey = `${currentDate.year}-${currentDate.monthIndex}-${day}`;
+                 const eventKey = customDateToKey(dayDate);
                  const hasEvent = eventDaysSet.has(eventKey);
 
                  return (
-                 <div
+                 <button
                     key={index}
                     className={cn(
-                        "flex items-start justify-start p-2 rounded-lg transition-colors relative cursor-pointer",
+                        "flex items-start justify-start p-2 rounded-lg transition-colors relative",
                         "hover:bg-muted",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => handleDaySelect(day)}
+                    disabled={!onDateSelect}
                 >
                     <span className="text-sm">{day}</span>
                     {hasEvent && <div className={cn("absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full", isSelected ? 'bg-primary-foreground' : 'bg-accent')}></div>}
-                </div>
+                </button>
                  )
             })}
         </div>
@@ -264,7 +301,7 @@ export function CustomCalendarView({
   };
 
   const getTitle = () => {
-    if (!currentMonth) return '...';
+    if (!currentMonth || !currentDate) return '...';
     if (viewMode === 'day') return `${currentMonth.name}, ${currentDate.year}`;
     if (viewMode === 'month') return `${currentDate.year}`;
     return `${decadeStart} - ${decadeStart + 9}`;
