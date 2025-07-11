@@ -95,22 +95,30 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
 
   const renderDayView = () => {
     const numCols = calendar.weekdays.length;
+    const totalDays = currentMonth.days;
+    const numRows = Math.ceil(totalDays / numCols);
+
+    const dayGrid = Array.from({ length: numRows * numCols }, (_, i) => {
+        const day = i + 1;
+        return day <= totalDays ? day : null;
+    });
+
     return (
         <div 
           style={{'--cols': numCols} as React.CSSProperties} 
-          className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] border-t border-l border-border flex-1"
+          className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-auto border-t border-l border-border flex-1"
         >
             {calendar.weekdays.map((day, index) => (
                 <div key={day} className={cn("text-center font-bold text-muted-foreground p-2 text-sm bg-card border-b border-r border-border", index === 0 && "border-l-0")}>
                     {day}
                 </div>
             ))}
-            {calendarGrid.map((dayInfo, index) => (
+            {dayGrid.map((day, index) => (
                 <div 
                   key={index} 
-                  className={cn("p-2 bg-card h-28 border-b border-r border-border", (index + numCols) % numCols === 0 && "border-l-0")}
+                  className={cn("p-2 bg-card border-b border-r border-border", (index) % numCols === 0 && "border-l-0")}
                 >
-                    {dayInfo.isCurrentMonth && <span className="text-sm">{dayInfo.day}</span>}
+                    {day && <span className="text-sm">{day}</span>}
                 </div>
             ))}
         </div>
