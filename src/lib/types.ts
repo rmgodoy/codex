@@ -379,6 +379,7 @@ export interface Npc {
   race: string;
   factionIds?: string[];
   beliefIds?: string[];
+  deeds?: string[];
   tags: string[];
   relationships?: NpcRelationship[];
 }
@@ -472,7 +473,10 @@ export interface HexTile {
 export interface Map {
   id: string;
   name: string;
-  radius: number;
+  shape: 'radial' | 'rectangular';
+  radius?: number;
+  width?: number;
+  height?: number;
   tiles: HexTile[];
   paths: Path[];
 }

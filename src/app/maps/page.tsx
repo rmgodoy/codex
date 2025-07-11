@@ -7,7 +7,7 @@ import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp } from "lucide-react";
 import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path } from "@/lib/types";
-import { generateHexGrid, resizeHexGrid } from "@/lib/hex-utils";
+import { generateHexGrid, resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
 import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -53,23 +54,46 @@ const TERRAIN_COLORS = [
 function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsUpdate: (newMapId?: string) => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newMapName, setNewMapName] = useState("");
+    const [newMapShape, setNewMapShape] = useState<'radial' | 'rectangular'>('radial');
     const [newMapRadius, setNewMapRadius] = useState(20);
+    const [newMapWidth, setNewMapWidth] = useState(30);
+    const [newMapHeight, setNewMapHeight] = useState(20);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
     const { toast } = useToast();
 
     const handleAddMap = async () => {
-        if (!newMapName.trim() || !newMapRadius || newMapRadius <= 0) {
-            toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid name and radius.' });
+        if (!newMapName.trim()){
+            toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid name.' });
             return;
         }
+
+        let newGrid: HexTile[];
+        let newMap: NewMap;
+
+        if (newMapShape === 'radial') {
+            if (!newMapRadius || newMapRadius <= 0) {
+                 toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid radius.' });
+                 return;
+            }
+            newGrid = generateHexGrid(newMapRadius);
+            newMap = { name: newMapName.trim(), shape: 'radial', radius: newMapRadius, tiles: newGrid, paths: [] };
+        } else {
+             if (!newMapWidth || newMapWidth <= 0 || !newMapHeight || newMapHeight <= 0) {
+                 toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide valid width and height.' });
+                 return;
+            }
+            newGrid = generateRectangularHexGrid(newMapWidth, newMapHeight);
+            newMap = { name: newMapName.trim(), shape: 'rectangular', width: newMapWidth, height: newMapHeight, tiles: newGrid, paths: [] };
+        }
+
         try {
-            const newGrid = generateHexGrid(newMapRadius);
-            const newMap: NewMap = { name: newMapName.trim(), radius: newMapRadius, tiles: newGrid, paths: [] };
             const newId = await addMap(newMap);
             toast({ title: 'Map Created', description: `'${newMapName}' has been added.` });
             setNewMapName("");
             setNewMapRadius(20);
+            setNewMapWidth(30);
+            setNewMapHeight(20);
             onMapsUpdate(newId);
             setIsDialogOpen(false);
         } catch (error) {
@@ -122,55 +146,47 @@ function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsU
                     <DialogDescription>Add, rename, or delete your maps.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    <div className="flex items-end gap-2 p-3 border rounded-md">
-                        <div className="grid gap-2 flex-1">
-                          <Label>New Map</Label>
-                          <Input 
-                              placeholder="New map name..." 
-                              value={newMapName}
-                              onChange={(e) => setNewMapName(e.target.value)}
-                          />
-                          <Input 
-                              placeholder="Radius" 
-                              type="number"
-                              value={newMapRadius}
-                              onChange={(e) => setNewMapRadius(parseInt(e.target.value, 10) || 0)}
-                          />
-                        </div>
-                        <Button onClick={handleAddMap} disabled={!newMapName.trim() || !newMapRadius || newMapRadius <=0}><Plus className="h-4 w-4" /> Add</Button>
+                    <div className="space-y-4 p-3 border rounded-md">
+                        <Label>New Map</Label>
+                        <Input 
+                            placeholder="New map name..." 
+                            value={newMapName}
+                            onChange={(e) => setNewMapName(e.target.value)}
+                        />
+                        <RadioGroup value={newMapShape} onValueChange={(v) => setNewMapShape(v as any)} className="flex gap-4">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="radial" id="radial" /><Label htmlFor="radial">Radial</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="rectangular" id="rectangular" /><Label htmlFor="rectangular">Rectangular</Label></div>
+                        </RadioGroup>
+                        
+                        {newMapShape === 'radial' ? (
+                            <Input placeholder="Radius" type="number" value={newMapRadius} onChange={(e) => setNewMapRadius(parseInt(e.target.value, 10) || 0)} />
+                        ) : (
+                            <div className="flex gap-2">
+                                <Input placeholder="Width" type="number" value={newMapWidth} onChange={(e) => setNewMapWidth(parseInt(e.target.value, 10) || 0)} />
+                                <Input placeholder="Height" type="number" value={newMapHeight} onChange={(e) => setNewMapHeight(parseInt(e.target.value, 10) || 0)} />
+                            </div>
+                        )}
+
+                        <Button onClick={handleAddMap} className="w-full"><Plus className="h-4 w-4" /> Add Map</Button>
                     </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                         {maps.map(map => (
                             <div key={map.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 gap-2">
                                 {editingId === map.id ? (
                                     <>
-                                        <Input
-                                            value={editingName}
-                                            onChange={(e) => setEditingName(e.target.value)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') handleRenameMap() }}
-                                            className="h-8"
-                                            autoFocus
-                                        />
+                                        <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleRenameMap() }} className="h-8" autoFocus />
                                         <div className="flex items-center gap-1">
-                                            <Button size="icon" className="h-7 w-7" onClick={handleRenameMap} aria-label="Save">
-                                                <Check className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit} aria-label="Cancel">
-                                                <X className="h-4 w-4" />
-                                            </Button>
+                                            <Button size="icon" className="h-7 w-7" onClick={handleRenameMap} aria-label="Save"><Check className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit} aria-label="Cancel"><X className="h-4 w-4" /></Button>
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <span className="flex-1 truncate" title={map.name}>{map.name}</span>
                                         <div className="flex items-center shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartEdit(map)} aria-label="Edit">
-                                                <Edit className="h-4 w-4"/>
-                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartEdit(map)} aria-label="Edit"><Edit className="h-4 w-4"/></Button>
                                             <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Delete"><Trash2 className="h-4 w-4 text-destructive"/></Button>
-                                                </AlertDialogTrigger>
+                                                <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Delete"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -198,7 +214,7 @@ export default function MapsPage() {
     const [maps, setMaps] = useState<WorldMap[]>([]);
     const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
     const [activeMap, setActiveMap] = useState<WorldMap | null>(null);
-    const [mapSettings, setMapSettings] = useState<{name: string, radius: string} | null>(null);
+    const [mapSettings, setMapSettings] = useState<{name: string, shape: 'radial' | 'rectangular', radius: number, width: number, height: number} | null>(null);
 
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'path' | 'data'>('settings');
@@ -297,7 +313,13 @@ export default function MapsPage() {
     
      useEffect(() => {
         if (activeMap) {
-            setMapSettings({ name: activeMap.name, radius: String(activeMap.radius) });
+            setMapSettings({ 
+                name: activeMap.name, 
+                shape: activeMap.shape || 'radial', 
+                radius: activeMap.radius || 20, 
+                width: activeMap.width || 30,
+                height: activeMap.height || 20
+            });
         } else {
             setMapSettings(null);
         }
@@ -386,23 +408,29 @@ export default function MapsPage() {
     const handleSaveMapSettings = async () => {
         if (!activeMap || !mapSettings) return;
 
-        const newRadius = Number(mapSettings.radius);
         if (!mapSettings.name.trim()) {
             toast({ variant: 'destructive', title: 'Validation Error', description: 'Map name cannot be empty.' });
             return;
         }
-        if (isNaN(newRadius) || newRadius <= 0 || newRadius > 100) {
-            toast({ variant: 'destructive', title: 'Validation Error', description: 'Radius must be a number between 1 and 100.' });
-            return;
-        }
 
-        const newGrid = resizeHexGrid(activeMap.tiles, newRadius);
-        const updatedMap: WorldMap = { 
-            ...activeMap, 
-            name: mapSettings.name, 
-            radius: newRadius, 
-            tiles: newGrid 
-        };
+        let newGrid: HexTile[];
+        let updatedMap: WorldMap;
+
+        if (mapSettings.shape === 'radial') {
+             if (isNaN(mapSettings.radius) || mapSettings.radius <= 0 || mapSettings.radius > 100) {
+                toast({ variant: 'destructive', title: 'Validation Error', description: 'Radius must be a number between 1 and 100.' });
+                return;
+            }
+            newGrid = resizeHexGrid(activeMap.tiles, mapSettings.radius);
+            updatedMap = { ...activeMap, name: mapSettings.name, shape: 'radial', radius: mapSettings.radius, width: undefined, height: undefined, tiles: newGrid };
+        } else { // rectangular
+             if (isNaN(mapSettings.width) || mapSettings.width <= 0 || mapSettings.width > 200 || isNaN(mapSettings.height) || mapSettings.height <= 0 || mapSettings.height > 200) {
+                toast({ variant: 'destructive', title: 'Validation Error', description: 'Width and Height must be between 1 and 200.' });
+                return;
+            }
+            newGrid = generateRectangularHexGrid(mapSettings.width, mapSettings.height, activeMap.tiles);
+            updatedMap = { ...activeMap, name: mapSettings.name, shape: 'rectangular', width: mapSettings.width, height: mapSettings.height, radius: undefined, tiles: newGrid };
+        }
         
         try {
             await updateMap(updatedMap);
@@ -511,23 +539,33 @@ export default function MapsPage() {
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
                                                     <Label htmlFor="map-name">Map Name</Label>
-                                                    <Input
-                                                        id="map-name"
-                                                        value={mapSettings.name}
-                                                        onChange={(e) => setMapSettings(s => s ? {...s, name: e.target.value} : null)}
-                                                    />
+                                                    <Input id="map-name" value={mapSettings.name} onChange={(e) => setMapSettings(s => s ? {...s, name: e.target.value} : null)} />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="map-radius">Map Radius</Label>
-                                                    <Input
-                                                        id="map-radius"
-                                                        type="number"
-                                                        value={mapSettings.radius}
-                                                        onChange={(e) => setMapSettings(s => s ? {...s, radius: e.target.value} : null)}
-                                                        min="1"
-                                                        max="100"
-                                                    />
+                                                 <div className="space-y-2">
+                                                    <Label>Shape</Label>
+                                                    <RadioGroup value={mapSettings.shape} onValueChange={(v) => setMapSettings(s => s ? { ...s, shape: v as any } : null)} className="flex gap-4">
+                                                        <div className="flex items-center space-x-2"><RadioGroupItem value="radial" id="edit-radial" /><Label htmlFor="edit-radial">Radial</Label></div>
+                                                        <div className="flex items-center space-x-2"><RadioGroupItem value="rectangular" id="edit-rectangular" /><Label htmlFor="edit-rectangular">Rectangular</Label></div>
+                                                    </RadioGroup>
                                                 </div>
+                                                {mapSettings.shape === 'radial' ? (
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="map-radius">Map Radius</Label>
+                                                        <Input id="map-radius" type="number" value={mapSettings.radius} onChange={(e) => setMapSettings(s => s ? {...s, radius: parseInt(e.target.value) || 0} : null)} min="1" max="100" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                         <div className="space-y-2">
+                                                            <Label htmlFor="map-width">Width</Label>
+                                                            <Input id="map-width" type="number" value={mapSettings.width} onChange={(e) => setMapSettings(s => s ? {...s, width: parseInt(e.target.value) || 0} : null)} min="1" max="200" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="map-height">Height</Label>
+                                                            <Input id="map-height" type="number" value={mapSettings.height} onChange={(e) => setMapSettings(s => s ? {...s, height: parseInt(e.target.value) || 0} : null)} min="1" max="200" />
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <Button onClick={handleSaveMapSettings} className="w-full">Save Settings</Button>
                                             </div>
                                         ) : (

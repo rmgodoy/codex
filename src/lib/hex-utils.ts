@@ -20,6 +20,24 @@ export const generateHexGrid = (radius: number): HexTile[] => {
     }));
 };
 
+export const generateRectangularHexGrid = (width: number, height: number, existingTiles: HexTile[] = []): HexTile[] => {
+    const hexes: Hex[] = [];
+    const existingMap = new Map(existingTiles.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile]));
+    
+    for (let r = 0; r < height; r++) {
+        const r_offset = Math.floor(r / 2); // or r>>1
+        for (let q = -r_offset; q < width - r_offset; q++) {
+            const hex = { q, r, s: -q - r };
+            hexes.push(hex);
+        }
+    }
+    
+    return hexes.map(hex => {
+        const key = `${hex.q},${hex.r}`;
+        return existingMap.get(key) || { hex, data: {} };
+    });
+};
+
 export const resizeHexGrid = (currentGrid: HexTile[], newRadius: number): HexTile[] => {
     const newHexes: Hex[] = [];
     for (let q = -newRadius; q <= newRadius; q++) {
