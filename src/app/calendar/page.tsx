@@ -216,7 +216,8 @@ export default function CalendarPage() {
   
   const getDefaultCustomDate = (model: CustomCalendarType | null): CustomDate => {
     if (model?.minDate) {
-      const d = new Date(model.minDate);
+      const d = new Date(0);
+      d.setUTCFullYear(parseInt(model.minDate.substring(0,4)), parseInt(model.minDate.substring(5,7)) - 1, parseInt(model.minDate.substring(8,10)));
       return { year: d.getUTCFullYear(), monthIndex: d.getUTCMonth(), day: d.getUTCDate() };
     }
     return { year: 1, monthIndex: 0, day: 1 };
@@ -356,17 +357,6 @@ export default function CalendarPage() {
     );
   }, [events]);
 
-  const eventDaysCustom = useMemo(() => {
-    return events.map(event => {
-      const start = new Date(event.startDate);
-      const end = new Date(event.endDate);
-      return {
-        start: { year: start.getUTCFullYear(), monthIndex: start.getUTCMonth(), day: start.getUTCDate() },
-        end: { year: end.getUTCFullYear(), monthIndex: end.getUTCMonth(), day: end.getUTCDate() },
-      }
-    });
-  }, [events]);
-  
   const formattedSelectedDate = useMemo(() => {
     if (isCustomCalendar) {
         if (!selectedCustomDate || !activeCalendarModel) return '...';
@@ -473,10 +463,10 @@ export default function CalendarPage() {
                         <CustomCalendarView
                           calendar={activeCalendarModel}
                           disableEditing
-                          initialDate={selectedDate || new Date()}
+                          initialDate={selectedCustomDate}
                           selectedDate={selectedCustomDate}
                           onDateSelect={setSelectedCustomDate}
-                          eventDays={eventDays.map(d => ({year: d.getUTCFullYear(), monthIndex: d.getUTCMonth(), day: d.getUTCDate()}))}
+                          events={events}
                         />
                     ) : (
                         <Calendar
