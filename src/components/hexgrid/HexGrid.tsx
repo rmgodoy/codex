@@ -269,23 +269,22 @@ const HexGrid: React.FC<HexGridProps> = ({
       if (!mapData.tiles.length || !canvasRef.current) return;
       
       let worldPixelWidth, worldPixelHeight;
-
-      if (mapData.shape === 'rectangular' && mapData.width && mapData.height) {
-        worldPixelWidth = (mapData.width + 0.5) * hexSize * 1.5;
-        worldPixelHeight = mapData.height * hexSize * Math.sqrt(3);
-      } else {
-        let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
-        mapData.tiles.forEach(({ hex }) => {
-          minQ = Math.min(minQ, hex.q);
-          maxQ = Math.max(maxQ, hex.q);
-          minR = Math.min(minR, hex.r);
-          maxR = Math.max(maxR, hex.r);
-        });
-        if (!isFinite(minQ)) return;
-        worldPixelWidth = (maxQ - minQ + 1) * hexSize * 1.5 + hexSize * 0.5;
-        worldPixelHeight = (maxR - minR + 1) * hexSize * Math.sqrt(3) + hexSize * Math.sqrt(3)/2;
-      }
+      let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
       
+      mapData.tiles.forEach(({ hex }) => {
+        minQ = Math.min(minQ, hex.q);
+        maxQ = Math.max(maxQ, hex.q);
+        minR = Math.min(minR, hex.r);
+        maxR = Math.max(maxR, hex.r);
+      });
+      if (!isFinite(minQ)) return;
+
+      const qRange = maxQ - minQ + 1;
+      const rRange = maxR - minR + 1;
+      
+      worldPixelWidth = (qRange * 1.5 + 0.5) * hexSize;
+      worldPixelHeight = (rRange + qRange/2 + 0.5) * hexSize * Math.sqrt(3);
+
       if (worldPixelWidth <= 0 || worldPixelHeight <= 0) return;
 
       if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');

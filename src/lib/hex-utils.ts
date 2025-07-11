@@ -1,3 +1,4 @@
+
 'use client';
 
 import { type Hex, type HexTile } from '@/lib/types';
@@ -22,12 +23,16 @@ export const generateHexGrid = (radius: number): HexTile[] => {
 export const generateRectangularHexGrid = (width: number, height: number, existingTiles: HexTile[] = []): HexTile[] => {
     const hexes: Hex[] = [];
     const existingMap = new Map(existingTiles.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile]));
-    
-    for (let col = 0; col < width; col++) {
-        const col_offset = Math.floor(col / 2);
-        for (let row = -col_offset; row < height - col_offset; row++) {
-            const q = col;
-            const r = row;
+
+    const start_q = -Math.floor(width / 2);
+    const end_q = start_q + width -1;
+
+    for (let q = start_q; q <= end_q; q++) {
+        const r_offset = -Math.floor(q / 2);
+        const start_r = -Math.floor(height / 2) + r_offset;
+        const end_r = start_r + height - 1;
+        
+        for (let r = start_r; r <= end_r; r++) {
             const s = -q - r;
             hexes.push({ q, r, s });
         }
