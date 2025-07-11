@@ -407,10 +407,13 @@ export default function CalendarPage() {
             onOpenChange={setIsDialogOpen}
             onSaveSuccess={handleSaveSuccess}
             event={editingEvent}
-            defaultCalendarId={selectedCalendarId === 'all' ? (calendars[0]?.id || '') : selectedCalendarId}
+            calendar={activeCalendar}
+            calendarModel={activeCalendarModel}
             initialDate={selectedDate || new Date()}
         />
     </SidebarProvider>
     </>
   );
 }
+
+    

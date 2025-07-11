@@ -10,14 +10,20 @@ import { cn } from '@/lib/utils';
 
 interface CustomCalendarViewProps {
   calendar: CustomCalendar;
-  onEdit: () => void;
   disableEditing?: boolean;
+  initialDate?: Date;
+  isDatePicker?: boolean;
+  onEdit?: () => void;
+  onDateSelect?: (date: Date) => void;
 }
 
 type ViewMode = 'day' | 'month' | 'year';
 
-export function CustomCalendarView({ calendar, onEdit, disableEditing = false }: CustomCalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState({ year: 1, monthIndex: 0 });
+export function CustomCalendarView({ calendar, disableEditing = false, initialDate, isDatePicker = false, onEdit, onDateSelect }: CustomCalendarViewProps) {
+  const [currentDate, setCurrentDate] = useState(() => {
+    const d = initialDate || new Date();
+    return { year: d.getFullYear(), monthIndex: d.getMonth(), day: d.getDate() };
+  });
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
 
@@ -32,7 +38,7 @@ export function CustomCalendarView({ calendar, onEdit, disableEditing = false }:
           newMonthIndex = calendar.months.length - 1;
           newYear -= 1;
         }
-        return { year: newYear, monthIndex: newMonthIndex };
+        return { ...prev, year: newYear, monthIndex: newMonthIndex };
       });
     } else if (viewMode === 'month') {
         setCurrentDate(prev => ({ ...prev, year: prev.year - 1}));
@@ -50,7 +56,7 @@ export function CustomCalendarView({ calendar, onEdit, disableEditing = false }:
                 newMonthIndex = 0;
                 newYear += 1;
             }
-            return { year: newYear, monthIndex: newMonthIndex };
+            return { ...prev, year: newYear, monthIndex: newMonthIndex };
         });
     } else if (viewMode === 'month') {
         setCurrentDate(prev => ({ ...prev, year: prev.year + 1}));
@@ -76,6 +82,14 @@ export function CustomCalendarView({ calendar, onEdit, disableEditing = false }:
     setCurrentDate(prev => ({ ...prev, year }));
     setViewMode('month');
   }
+  
+  const handleDaySelect = (day: number) => {
+    if (isDatePicker && onDateSelect) {
+      const selectedDate = new Date(currentDate.year, currentDate.monthIndex, day);
+      onDateSelect(selectedDate);
+    }
+  };
+
 
   const renderDayView = () => {
     const numCols = calendar.weekdays.length;
@@ -106,7 +120,8 @@ export function CustomCalendarView({ calendar, onEdit, disableEditing = false }:
                 {dayGrid.map((day, index) => (
                     <div 
                       key={index} 
-                      className="p-2 border-b border-r border-border"
+                      className={cn("p-2 border-b border-r border-border", isDatePicker && day && "cursor-pointer hover:bg-accent")}
+                      onClick={() => day && handleDaySelect(day)}
                     >
                         {day && <span className="text-sm">{day}</span>}
                     </div>
@@ -147,12 +162,14 @@ export function CustomCalendarView({ calendar, onEdit, disableEditing = false }:
 
   return (
     <Card className="h-full flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-2xl font-bold">{calendar.name}</h2>
-            {!disableEditing && (
-                <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Model</Button>
-            )}
-        </div>
+        {!isDatePicker && (
+            <div className="flex items-center justify-between p-4 border-b">
+                <h2 className="text-2xl font-bold">{calendar.name}</h2>
+                {!disableEditing && onEdit && (
+                    <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Model</Button>
+                )}
+            </div>
+        )}
         <div className="flex items-center justify-between p-4 border-b">
             <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft /></Button>
             <Button variant="ghost" className="text-xl font-bold" onClick={handleTitleClick}>{getTitle()}</Button>
@@ -164,3 +181,5 @@ export function CustomCalendarView({ calendar, onEdit, disableEditing = false }:
     </Card>
   );
 }
+
+    
