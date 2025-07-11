@@ -169,14 +169,14 @@ export function CustomCalendarView({
                  <div
                     key={index}
                     className={cn(
-                        "flex items-start justify-start p-2 rounded-lg transition-colors",
-                        "cursor-pointer hover:bg-muted relative",
+                        "flex items-start justify-start p-2 rounded-lg transition-colors relative",
+                        onDateSelect && "cursor-pointer hover:bg-muted",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
-                    onClick={() => day && handleDaySelect(day)}
+                    onClick={() => day && onDateSelect && handleDaySelect(day)}
                 >
                     {day && <span className="text-sm">{day}</span>}
-                    {hasEvent && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent"></div>}
+                    {hasEvent && <div className={cn("absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full", isSelected ? 'bg-primary-foreground' : 'bg-accent')}></div>}
                 </div>
                  )
             })}
@@ -248,3 +248,5 @@ export function CustomCalendarView({
     </Card>
   );
 }
+
+    

@@ -182,8 +182,8 @@ export default function CalendarPage() {
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [customCalendars, setCustomCalendars] = useState<CustomCalendarType[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [month, setMonth] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [activeMonth, setActiveMonth] = useState<Date | undefined>(undefined);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { toast } = useToast();
@@ -222,15 +222,16 @@ export default function CalendarPage() {
             setEvents([]);
             const yearOne = getYearOne();
             setSelectedDate(yearOne);
-            setMonth(yearOne);
+            setActiveMonth(yearOne);
             return;
        } 
        setCalendars(allCalendars);
        
        let finalCalendarId = calendarId;
-       let currentModel = null;
-       if (!allCalendars.find(c => c.id === calendarId)) {
-           finalCalendarId = allCalendars[0]?.id;
+       let currentModel: CustomCalendarType | null = null;
+       
+       if (calendarId === null || !allCalendars.some(c => c.id === calendarId)) {
+           finalCalendarId = allCalendars[0]?.id || null;
        }
        
        if (finalCalendarId) {
@@ -241,25 +242,25 @@ export default function CalendarPage() {
        }
        setSelectedCalendarId(finalCalendarId);
 
-
        if (!finalCalendarId) {
             setEvents([]);
+            setSelectedDate(undefined);
+            setActiveMonth(undefined);
             return;
        }
 
       const allEvents = await getAllCalendarEvents(finalCalendarId);
       setEvents(allEvents);
       
+      let newDate: Date;
       if (allEvents.length > 0) {
         const sortedEvents = [...allEvents].sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-        const firstEventDate = startOfDay(new Date(sortedEvents[0].startDate));
-        setSelectedDate(firstEventDate);
-        setMonth(firstEventDate);
+        newDate = startOfDay(new Date(sortedEvents[0].startDate));
       } else {
-        const defaultDate = getDefaultDateForModel(currentModel);
-        setSelectedDate(defaultDate);
-        setMonth(defaultDate);
+        newDate = getDefaultDateForModel(currentModel);
       }
+      setSelectedDate(newDate);
+      setActiveMonth(newDate);
 
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to load calendar data.' });
@@ -267,21 +268,12 @@ export default function CalendarPage() {
   };
   
   const refreshData = (newCalendarId?: string) => {
-      if (newCalendarId) {
-        setSelectedCalendarId(newCalendarId);
-      } else {
-        fetchCalendarsAndEvents(selectedCalendarId);
-      }
+      fetchCalendarsAndEvents(newCalendarId ?? selectedCalendarId);
   };
   
   useEffect(() => {
-    if (!selectedCalendarId && calendars.length > 0) {
-      setSelectedCalendarId(calendars[0].id);
-    }
-  }, [calendars, selectedCalendarId]);
-
-  useEffect(() => {
     fetchCalendarsAndEvents(selectedCalendarId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCalendarId]);
 
   const handleSaveSuccess = () => {
@@ -438,8 +430,8 @@ export default function CalendarPage() {
                                 }
                             }}
                             value={selectedDate}
-                            activeStartDate={month}
-                            onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setMonth(activeStartDate)}
+                            activeStartDate={activeMonth}
+                            onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setActiveMonth(activeStartDate)}
                             minDate={getYearOne()}
                             maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
                             tileContent={({ date, view }) => {
@@ -465,9 +457,11 @@ export default function CalendarPage() {
             event={editingEvent}
             calendar={activeCalendar}
             calendarModel={activeCalendarModel}
-            initialDate={selectedDate || new Date()}
+            initialDate={selectedDate || getYearOne()}
         />
     </SidebarProvider>
     </>
   );
 }
+
+    
