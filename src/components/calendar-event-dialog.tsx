@@ -26,10 +26,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { CustomDatePickerDialog } from "./custom-date-picker-dialog";
 
 const getYearOne = () => {
-    const date = new Date(0);
-    date.setUTCFullYear(1, 0, 1);
-    date.setUTCHours(0,0,0,0);
-    return date;
+    return new Date(Date.UTC(1, 0, 1));
 };
 
 const dateToCustomDate = (date: Date): CustomDate => ({
@@ -39,10 +36,7 @@ const dateToCustomDate = (date: Date): CustomDate => ({
 });
 
 const customDateToDate = (customDate: CustomDate): Date => {
-    const d = new Date(0);
-    d.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
-    d.setUTCHours(0,0,0,0);
-    return d;
+    return new Date(Date.UTC(customDate.year, customDate.monthIndex, customDate.day));
 };
 
 const customDateSchema = z.object({
@@ -84,7 +78,7 @@ interface CalendarEventDialogProps {
   event?: CalendarEvent | null;
   calendar: CalendarType | undefined;
   calendarModel: CustomCalendar | null;
-  initialDate: { traditional?: Date, custom?: CustomDate };
+  initialDate: CustomDate;
 }
 
 export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event, calendar, calendarModel, initialDate }: CalendarEventDialogProps) {
@@ -114,7 +108,6 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
 
   useEffect(() => {
     if (isOpen) {
-        const isCustom = !!calendarModel;
         if (event) {
             form.reset({
                 title: event.title,
@@ -136,7 +129,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                 title: "",
                 description: "",
                 tags: [],
-                startDate: isCustom ? initialDate.custom : dateToCustomDate(initialDate.traditional || getYearOne()),
+                startDate: initialDate,
                 endDate: undefined,
                 location: undefined,
             });
@@ -144,7 +137,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
             setSelectedLocation(null);
         }
     }
-  }, [event, isOpen, form, initialDate, allMaps, calendarModel]);
+  }, [event, isOpen, form, initialDate, allMaps]);
   
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent['party'] | undefined = undefined;
@@ -226,7 +219,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
                                         <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? customDateToDate(field.value).toLocaleDateString() : <span>Pick a date</span>}
+                                            {field.value ? customDateToDate(field.value).toUTCString().slice(5, 16) : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </FormControl>
@@ -257,7 +250,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
                                         <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? customDateToDate(field.value).toLocaleDateString() : <span>Pick a date</span>}
+                                            {field.value ? customDateToDate(field.value).toUTCString().slice(5, 16) : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </FormControl>

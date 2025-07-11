@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Edit, Cog, Plus, Check, X, MapPin } from "lucide-react";
 import { getAllCalendarEvents, deleteCalendarEvent } from "@/lib/idb/calendarEvents";
 import { getAllCalendars, addCalendar, updateCalendar, deleteCalendarAndEvents, getAllCustomCalendars } from "@/lib/idb";
-import type { CalendarEvent, Calendar as CalendarType, NewCalendar, CustomCalendar as CustomCalendarType } from "@/lib/types";
+import type { CalendarEvent, Calendar as CalendarType, NewCalendar, CustomCalendar as CustomCalendarType, CustomDate } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
@@ -177,19 +177,15 @@ function CalendarManagementDialog({ calendars, customCalendars, onCalendarsUpdat
     );
 }
 
-const getYearOne = () => {
-    const date = new Date(0);
-    date.setUTCFullYear(1, 0, 1);
-    date.setUTCHours(0, 0, 0, 0);
-    return date;
+const customDateToDate = (customDate: CustomDate): Date => {
+    return new Date(Date.UTC(customDate.year, customDate.monthIndex, customDate.day));
 };
 
-const customDateToDate = (customDate: CustomDate): Date => {
-    const d = new Date(0);
-    d.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
-    d.setUTCHours(0,0,0,0);
-    return d;
-};
+const dateToCustomDate = (date: Date): CustomDate => ({
+    year: date.getUTCFullYear(),
+    monthIndex: date.getUTCMonth(),
+    day: date.getUTCDate()
+});
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -197,7 +193,6 @@ export default function CalendarPage() {
   const [customCalendars, setCustomCalendars] = useState<CustomCalendarType[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(null);
   
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedCustomDate, setSelectedCustomDate] = useState<CustomDate | null>(null);
 
   const [activeMonth, setActiveMonth] = useState<Date | undefined>(undefined);
@@ -215,22 +210,10 @@ export default function CalendarPage() {
   }, [activeCalendar, customCalendars]);
   
   const isCustomCalendar = !!activeCalendarModel;
-
-  const getDefaultDate = (model: CustomCalendarType | null) => {
-    if (model?.minDate) {
-        const d = new Date(0);
-        d.setUTCFullYear(parseInt(model.minDate.substring(0,4)), parseInt(model.minDate.substring(5,7)) - 1, parseInt(model.minDate.substring(8,10)));
-        d.setUTCHours(0,0,0,0);
-        return d;
-    }
-    return getYearOne();
-  }
   
   const getDefaultCustomDate = (model: CustomCalendarType | null): CustomDate => {
     if (model?.minDate) {
-      const d = new Date(0);
-      d.setUTCFullYear(parseInt(model.minDate.substring(0,4)), parseInt(model.minDate.substring(5,7)) - 1, parseInt(model.minDate.substring(8,10)));
-      return { year: d.getUTCFullYear(), monthIndex: d.getUTCMonth(), day: d.getUTCDate() };
+        return dateToCustomDate(new Date(model.minDate));
     }
     return { year: 1, monthIndex: 0, day: 1 };
   };
@@ -249,9 +232,7 @@ export default function CalendarPage() {
             setCalendars(defaultCalendars);
             setSelectedCalendarId(defaultCalendarId);
             setEvents([]);
-            const yearOne = getYearOne();
-            setSelectedDate(yearOne);
-            setActiveMonth(yearOne);
+            setSelectedCustomDate(dateToCustomDate(new Date(Date.UTC(1, 0, 1))));
             return;
        } 
        
@@ -277,7 +258,6 @@ export default function CalendarPage() {
 
   const handleCalendarSelection = (newId: string) => {
     setSelectedCalendarId(newId);
-    setSelectedDate(undefined);
     setSelectedCustomDate(null);
   }
 
@@ -293,40 +273,31 @@ export default function CalendarPage() {
 
         const currentModel = customCalendars.find(cm => cm.id === calendars.find(c => c.id === selectedCalendarId)?.modelId) || null;
         
-        if (isCustomCalendar) {
-            if (selectedCustomDate) return;
-            let newDate: CustomDate;
-            if (allEvents.length > 0) {
-                const sortedEvents = [...allEvents].sort((a,b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
-                newDate = sortedEvents[0].startDate;
-            } else {
-                newDate = getDefaultCustomDate(currentModel);
-            }
-            setSelectedCustomDate(newDate);
-            setSelectedDate(undefined);
+        if (selectedCustomDate) return;
+        
+        let newDate: CustomDate;
+        if (allEvents.length > 0) {
+            const sortedEvents = [...allEvents].sort((a,b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
+            newDate = sortedEvents[0].startDate;
         } else {
-            if (selectedDate) return;
-            let newDate: Date;
-            if (allEvents.length > 0) {
-                const sortedEvents = [...allEvents].sort((a, b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
-                newDate = startOfDay(customDateToDate(sortedEvents[0].startDate));
-            } else {
-                newDate = getDefaultDate(null);
-            }
-            setSelectedDate(newDate);
-            setActiveMonth(newDate);
-            setSelectedCustomDate(null);
+            newDate = getDefaultCustomDate(currentModel);
         }
+        setSelectedCustomDate(newDate);
     }
     loadEventsAndSetDate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCalendarId, isCustomCalendar]);
+  }, [selectedCalendarId]);
+
+  useEffect(() => {
+    if (!isCustomCalendar && selectedCustomDate) {
+        setActiveMonth(customDateToDate(selectedCustomDate));
+    }
+  }, [selectedCustomDate, isCustomCalendar]);
 
   const refreshData = async (newCalendarId?: string) => {
     if (newCalendarId) {
-      fetchCalendarsAndEvents(newCalendarId);
+      await fetchCalendarsAndEvents(newCalendarId);
     } else {
-      // Just refresh events, keep date
       if (selectedCalendarId) {
         const events = await getAllCalendarEvents(selectedCalendarId);
         setEvents(events);
@@ -336,7 +307,6 @@ export default function CalendarPage() {
   
   const handleSaveSuccess = () => {
     if (selectedCalendarId) {
-      // Refresh events without changing the current view
       getAllCalendarEvents(selectedCalendarId).then(setEvents);
     }
     setIsDialogOpen(false);
@@ -361,53 +331,43 @@ export default function CalendarPage() {
   }
 
   const eventsForSelectedDay = useMemo(() => {
-    if (isCustomCalendar) {
-      if (!selectedCustomDate) return [];
-      return events.filter(event => {
-        const start = event.startDate;
-        const end = event.endDate;
-        const selected = new Date(Date.UTC(selectedCustomDate.year, selectedCustomDate.monthIndex, selectedCustomDate.day));
-        const startDate = new Date(Date.UTC(start.year, start.monthIndex, start.day));
-        const endDate = new Date(Date.UTC(end.year, end.monthIndex, end.day));
-        
-        return isWithinInterval(selected, { start: startDate, end: endDate });
-      }).sort((a,b) => a.startDate.day - b.startDate.day);
-    } else {
-      if (!selectedDate) return [];
-      return events.filter(event =>
-        isWithinInterval(selectedDate, { start: startOfDay(customDateToDate(event.startDate)), end: startOfDay(customDateToDate(event.endDate)) })
-      ).sort((a,b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
-    }
-  }, [events, selectedDate, selectedCustomDate, isCustomCalendar]);
+    if (!selectedCustomDate) return [];
+    return events.filter(event => {
+      const start = event.startDate;
+      const end = event.endDate;
+      const selected = customDateToDate(selectedCustomDate);
+      const startDate = customDateToDate(start);
+      const endDate = customDateToDate(end);
+      return isWithinInterval(selected, { start: startDate, end: endDate });
+    }).sort((a,b) => a.startDate.day - b.startDate.day);
+  }, [events, selectedCustomDate]);
   
   const eventDays = useMemo(() => {
     return events.flatMap(event => {
+      const startDate = customDateToDate(event.startDate);
+      const endDate = customDateToDate(event.endDate);
       return eachDayOfInterval({
-        start: startOfDay(customDateToDate(event.startDate)), 
-        end: startOfDay(customDateToDate(event.endDate))
+        start: startOfDay(startDate), 
+        end: startOfDay(endDate)
       });
     });
   }, [events]);
 
   const formattedSelectedDate = useMemo(() => {
-    if (isCustomCalendar) {
-        if (!selectedCustomDate || !activeCalendarModel) return '...';
+    if (!selectedCustomDate) return '...';
+    const dateForDisplay = customDateToDate(selectedCustomDate);
+    if (isCustomCalendar && activeCalendarModel) {
         const { year, monthIndex, day } = selectedCustomDate;
         if (monthIndex >= activeCalendarModel.months.length) return `...`;
         const monthName = activeCalendarModel.months[monthIndex]?.name || `Month ${monthIndex + 1}`;
         return `${monthName} ${day}, ${year}`;
     }
-    if (!selectedDate) return '...';
-    return format(selectedDate, 'PPP');
-  }, [selectedDate, selectedCustomDate, activeCalendarModel, isCustomCalendar]);
+    return format(dateForDisplay, 'PPP');
+  }, [selectedCustomDate, activeCalendarModel, isCustomCalendar]);
 
   const initialDialogDate = useMemo(() => {
-    if (isCustomCalendar && selectedCustomDate) {
-        return { custom: selectedCustomDate };
-    }
-    return { traditional: selectedDate || getYearOne() };
-  }, [isCustomCalendar, selectedCustomDate, selectedDate]);
-
+    return selectedCustomDate || getDefaultCustomDate(activeCalendarModel);
+  }, [selectedCustomDate, activeCalendarModel]);
 
   return (
     <>
@@ -504,14 +464,14 @@ export default function CalendarPage() {
                         <Calendar
                             onChange={(value) => {
                                 if (value instanceof Date) {
-                                    setSelectedDate(value);
+                                    setSelectedCustomDate(dateToCustomDate(value));
                                 }
                             }}
-                            value={selectedDate}
+                            value={selectedCustomDate ? customDateToDate(selectedCustomDate) : undefined}
                             activeStartDate={activeMonth}
                             onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setActiveMonth(activeStartDate)}
-                            minDate={getYearOne()}
-                            maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
+                            minDate={new Date(Date.UTC(1,0,1))}
+                            maxDate={new Date(Date.UTC(9999, 11, 31))}
                             tileContent={({ date, view }) => {
                                 if (view === 'month') {
                                     const hasEvent = eventDays.some(eventDay => isSameDay(eventDay, date));
