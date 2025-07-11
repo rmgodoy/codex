@@ -78,7 +78,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
   };
   
   const handleMonthSelect = (monthIndex: number) => {
-    setCurrentDate(prev => ({ ...prev, monthIndex }));
+    setCurrentDate(prev => ({ ...prev, monthIndex, day: 1 }));
     setViewMode('day');
   };
 
@@ -88,6 +88,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
   }
   
   const handleDaySelect = (day: number) => {
+    setCurrentDate(prev => ({...prev, day}));
     if (isDatePicker && onDateSelect) {
       const selectedDate = new Date(currentDate.year, currentDate.monthIndex, day);
       onDateSelect(selectedDate);
@@ -108,8 +109,8 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     });
 
     return (
-      <div className="flex flex-col flex-1 h-full">
-         <div 
+      <div className="grid flex-1" style={{gridTemplateRows: 'auto 1fr'}}>
+        <div 
             style={{'--cols': numCols} as React.CSSProperties} 
             className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] shrink-0"
         >
@@ -120,16 +121,16 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
             ))}
         </div>
         <div 
-            style={{'--cols': numCols} as React.CSSProperties} 
-            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(auto-fit,_minmax(0,_1fr))] flex-1"
+            style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
+            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(0,_1fr))] flex-1"
         >
             {dayGrid.map((day, index) => (
-                <div 
-                    key={index} 
+                 <div
+                    key={index}
                     className={cn(
-                        "p-2 border-t border-border", 
-                        isDatePicker && day && "cursor-pointer hover:bg-accent",
-                        (index % numCols !== 0) && "border-l"
+                        "p-2 rounded-lg transition-colors",
+                        isDatePicker && day && "cursor-pointer hover:bg-muted",
+                        day && currentDate.day === day && isDatePicker && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => day && handleDaySelect(day)}
                 >
@@ -137,7 +138,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
                 </div>
             ))}
         </div>
-    </div>
+      </div>
     );
   };
   
@@ -183,7 +184,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
             <Button variant="ghost" className="text-xl font-bold" onClick={handleTitleClick}>{getTitle()}</Button>
             <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-5 w-5"/></Button>
         </div>
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
             {viewMode === 'day' && renderDayView()}
             {viewMode === 'month' && renderMonthView()}
             {viewMode === 'year' && renderYearView()}
