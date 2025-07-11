@@ -268,18 +268,23 @@ const HexGrid: React.FC<HexGridProps> = ({
   useEffect(() => {
       if (!mapData.tiles.length || !canvasRef.current) return;
       
-      let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
-      mapData.tiles.forEach(({ hex }) => {
-        minQ = Math.min(minQ, hex.q);
-        maxQ = Math.max(maxQ, hex.q);
-        minR = Math.min(minR, hex.r);
-        maxR = Math.max(maxR, hex.r);
-      });
+      let worldPixelWidth, worldPixelHeight;
 
-      if (!isFinite(minQ)) return;
-      
-      const worldPixelWidth = (maxQ - minQ + 1) * hexSize * 1.5 + hexSize * 0.5;
-      const worldPixelHeight = (maxR - minR + 1) * hexSize * Math.sqrt(3) + hexSize * Math.sqrt(3)/2;
+      if (mapData.shape === 'rectangular' && mapData.width && mapData.height) {
+        worldPixelWidth = (mapData.width + 0.5) * hexSize * 1.5;
+        worldPixelHeight = mapData.height * hexSize * Math.sqrt(3);
+      } else {
+        let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
+        mapData.tiles.forEach(({ hex }) => {
+          minQ = Math.min(minQ, hex.q);
+          maxQ = Math.max(maxQ, hex.q);
+          minR = Math.min(minR, hex.r);
+          maxR = Math.max(maxR, hex.r);
+        });
+        if (!isFinite(minQ)) return;
+        worldPixelWidth = (maxQ - minQ + 1) * hexSize * 1.5 + hexSize * 0.5;
+        worldPixelHeight = (maxR - minR + 1) * hexSize * Math.sqrt(3) + hexSize * Math.sqrt(3)/2;
+      }
       
       if (worldPixelWidth <= 0 || worldPixelHeight <= 0) return;
 
@@ -349,7 +354,7 @@ const HexGrid: React.FC<HexGridProps> = ({
       });
 
       draw();
-  }, [mapData.tiles, hexSize, themeColors, draw]);
+  }, [mapData.tiles, mapData.shape, mapData.width, mapData.height, hexSize, themeColors, draw]);
 
   useEffect(() => {
     draw();

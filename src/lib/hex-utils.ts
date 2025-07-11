@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { type Hex, type HexTile } from '@/lib/types';
@@ -25,11 +24,12 @@ export const generateRectangularHexGrid = (width: number, height: number, existi
     const hexes: Hex[] = [];
     const existingMap = new Map(existingTiles.map(tile => [`${tile.hex.q},${tile.hex.r}`, tile]));
     
-    for (let r = 0; r < height; r++) {
-        const rOffset = Math.floor(r / 2);
-        for (let q = -rOffset; q < width - rOffset; q++) {
-            const hex = { q, r, s: -q - r };
-            hexes.push(hex);
+    for (let row = 0; row < height; row++) {
+        for (let col = 0; col < width; col++) {
+            const q = col - Math.floor(row / 2);
+            const r = row;
+            const s = -q - r;
+            hexes.push({ q, r, s });
         }
     }
     
@@ -128,4 +128,3 @@ export const getHexNeighbors = (hex: Hex): Hex[] => {
         s: hex.s + dir.s
     }));
 };
-
