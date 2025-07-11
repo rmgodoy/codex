@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from './ui/card';
 import { cn } from '@/lib/utils';
+import { Input } from './ui/input';
 
 interface CustomCalendarViewProps {
   calendar: CustomCalendar;
@@ -39,6 +40,8 @@ export function CustomCalendarView({
   });
   const [viewMode, setViewMode] = useState<ViewMode>(isDatePicker ? 'day' : 'day');
   const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
+  const [isYearInputOpen, setIsYearInputOpen] = useState(false);
+  const [yearInputValue, setYearInputValue] = useState(currentDate.year.toString());
 
   const currentMonth = useMemo(() => calendar.months[currentDate.monthIndex], [calendar.months, currentDate.monthIndex]);
 
@@ -83,6 +86,19 @@ export function CustomCalendarView({
     else if (viewMode === 'month') {
         setDecadeStart(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
         setViewMode('year');
+    } else if (viewMode === 'year') {
+        setYearInputValue(currentDate.year.toString());
+        setIsYearInputOpen(true);
+    }
+  };
+
+  const handleYearSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newYear = parseInt(yearInputValue, 10);
+    if (!isNaN(newYear)) {
+      setCurrentDate(prev => ({ ...prev, year: newYear }));
+      setViewMode('month');
+      setIsYearInputOpen(false);
     }
   };
   
@@ -149,8 +165,7 @@ export function CustomCalendarView({
                     key={index}
                     className={cn(
                         "flex items-start justify-start p-2 rounded-lg transition-colors",
-                        day && "cursor-pointer",
-                        day && "hover:bg-muted",
+                        "cursor-pointer hover:bg-muted",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => day && handleDaySelect(day)}
@@ -198,7 +213,20 @@ export function CustomCalendarView({
     <Card className="h-full flex flex-col p-4">
         <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-5 w-5"/></Button>
-            <Button variant="ghost" className="text-xl font-bold" onClick={handleTitleClick}>{getTitle()}</Button>
+            {isYearInputOpen ? (
+                <form onSubmit={handleYearSubmit} className="flex-1 px-4">
+                    <Input
+                        type="number"
+                        value={yearInputValue}
+                        onChange={(e) => setYearInputValue(e.target.value)}
+                        onBlur={() => setIsYearInputOpen(false)}
+                        className="text-center text-xl font-bold h-10"
+                        autoFocus
+                    />
+                </form>
+            ) : (
+                <Button variant="ghost" className="text-xl font-bold" onClick={handleTitleClick}>{getTitle()}</Button>
+            )}
             <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-5 w-5"/></Button>
         </div>
         <div className="flex-1 flex flex-col min-h-0">
