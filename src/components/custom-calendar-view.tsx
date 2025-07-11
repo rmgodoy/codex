@@ -6,6 +6,7 @@ import type { CustomCalendar } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Edit } from 'lucide-react';
 import { Card } from './ui/card';
+import { cn } from '@/lib/utils';
 
 interface CustomCalendarViewProps {
   calendar: CustomCalendar;
@@ -77,7 +78,6 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
 
   const calendarGrid = useMemo(() => {
     const daysInMonth = currentMonth.days;
-    const daysInWeek = calendar.weekdays.length;
     // For simplicity, we're not calculating the real start day of the week.
     // In a real scenario, we'd need to know the weekday of Year 1, Day 1.
     const firstDayOffset = 0;
@@ -93,18 +93,29 @@ export function CustomCalendarView({ calendar, onEdit }: CustomCalendarViewProps
     return days;
   }, [currentDate, calendar]);
 
-  const renderDayView = () => (
-    <div style={{'--cols': calendar.weekdays.length} as React.CSSProperties} className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] gap-px bg-border flex-1">
-        {calendar.weekdays.map(day => (
-            <div key={day} className="text-center font-bold text-muted-foreground p-2 text-sm bg-card">{day}</div>
-        ))}
-        {calendarGrid.map((dayInfo, index) => (
-            <div key={index} className="p-2 bg-card h-28">
-                {dayInfo.isCurrentMonth && <span className="text-sm">{dayInfo.day}</span>}
-            </div>
-        ))}
-    </div>
-  );
+  const renderDayView = () => {
+    const numCols = calendar.weekdays.length;
+    return (
+        <div 
+          style={{'--cols': numCols} as React.CSSProperties} 
+          className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] border-t border-l border-border flex-1"
+        >
+            {calendar.weekdays.map((day, index) => (
+                <div key={day} className={cn("text-center font-bold text-muted-foreground p-2 text-sm bg-card border-b border-r border-border", index === 0 && "border-l-0")}>
+                    {day}
+                </div>
+            ))}
+            {calendarGrid.map((dayInfo, index) => (
+                <div 
+                  key={index} 
+                  className={cn("p-2 bg-card h-28 border-b border-r border-border", (index + numCols) % numCols === 0 && "border-l-0")}
+                >
+                    {dayInfo.isCurrentMonth && <span className="text-sm">{dayInfo.day}</span>}
+                </div>
+            ))}
+        </div>
+    );
+  };
   
   const renderMonthView = () => (
     <div className="grid grid-cols-3 md:grid-cols-4 gap-4 p-4 flex-1">
