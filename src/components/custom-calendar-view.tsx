@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { CustomCalendar } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Edit } from 'lucide-react';
@@ -23,7 +23,6 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
   const [currentDate, setCurrentDate] = useState(() => {
     const d = initialDate || new Date();
     let monthIndex = d.getMonth();
-    // Ensure the initial month index is valid for the given calendar model.
     if (monthIndex >= calendar.months.length) {
       monthIndex = 0;
     }
@@ -97,6 +96,8 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
 
 
   const renderDayView = () => {
+    if (!currentMonth) return null;
+    
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
     const numRows = Math.ceil(totalDays / numCols);
@@ -107,25 +108,29 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     });
 
     return (
-      <div className="flex flex-col flex-1">
-        <div 
+      <div className="flex flex-col flex-1 h-full">
+         <div 
             style={{'--cols': numCols} as React.CSSProperties} 
             className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] shrink-0"
         >
             {calendar.weekdays.map((day) => (
-                <div key={day} className="text-center font-bold text-muted-foreground p-2 text-sm border-b border-r border-border">
+                <div key={day} className="text-center font-semibold text-muted-foreground p-2 text-sm">
                     {day}
                 </div>
             ))}
         </div>
         <div 
-            style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
-            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(auto,_1fr))] flex-1"
+            style={{'--cols': numCols} as React.CSSProperties} 
+            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(auto-fit,_minmax(0,_1fr))] flex-1"
         >
             {dayGrid.map((day, index) => (
                 <div 
                     key={index} 
-                    className={cn("p-2 border-b border-r border-border", isDatePicker && day && "cursor-pointer hover:bg-accent")}
+                    className={cn(
+                        "p-2 border-t border-border", 
+                        isDatePicker && day && "cursor-pointer hover:bg-accent",
+                        (index % numCols !== 0) && "border-l"
+                    )}
                     onClick={() => day && handleDaySelect(day)}
                 >
                     {day && <span className="text-sm">{day}</span>}
@@ -160,29 +165,29 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
   };
 
   const getTitle = () => {
+    if (!currentMonth) return '...';
     if (viewMode === 'day') return `${currentMonth.name}, ${currentDate.year}`;
     if (viewMode === 'month') return `${currentDate.year}`;
     return `${decadeStart} - ${decadeStart + 9}`;
   }
 
   return (
-    <Card className="h-full flex flex-col">
-        {!isDatePicker && (
-            <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="text-2xl font-bold">{calendar.name}</h2>
-                {!disableEditing && onEdit && (
-                    <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Model</Button>
-                )}
+    <Card className="h-full flex flex-col p-4">
+        {!isDatePicker && !disableEditing && onEdit && (
+            <div className="flex items-center justify-end p-0 mb-4 border-b pb-4">
+                <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Model</Button>
             </div>
         )}
-        <div className="flex items-center justify-between p-4 border-b">
-            <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft /></Button>
+        <div className="flex items-center justify-between mb-4">
+            <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-5 w-5"/></Button>
             <Button variant="ghost" className="text-xl font-bold" onClick={handleTitleClick}>{getTitle()}</Button>
-            <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight /></Button>
+            <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-5 w-5"/></Button>
         </div>
-        {viewMode === 'day' && renderDayView()}
-        {viewMode === 'month' && renderMonthView()}
-        {viewMode === 'year' && renderYearView()}
+        <div className="flex-1 flex flex-col">
+            {viewMode === 'day' && renderDayView()}
+            {viewMode === 'month' && renderMonthView()}
+            {viewMode === 'year' && renderYearView()}
+        </div>
     </Card>
   );
 }
