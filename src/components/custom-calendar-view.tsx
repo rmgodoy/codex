@@ -12,6 +12,7 @@ interface CustomCalendarViewProps {
   calendar: CustomCalendar;
   disableEditing?: boolean;
   initialDate?: Date;
+  selectedDate?: Date;
   isDatePicker?: boolean;
   onEdit?: () => void;
   onDateSelect?: (date: Date) => void;
@@ -19,7 +20,15 @@ interface CustomCalendarViewProps {
 
 type ViewMode = 'day' | 'month' | 'year';
 
-export function CustomCalendarView({ calendar, disableEditing = false, initialDate, isDatePicker = false, onEdit, onDateSelect }: CustomCalendarViewProps) {
+export function CustomCalendarView({ 
+    calendar, 
+    disableEditing = false, 
+    initialDate, 
+    selectedDate, 
+    isDatePicker = false, 
+    onEdit, 
+    onDateSelect 
+}: CustomCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     const d = initialDate || new Date();
     let monthIndex = d.getMonth();
@@ -88,10 +97,9 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
   }
   
   const handleDaySelect = (day: number) => {
-    setCurrentDate(prev => ({...prev, day}));
-    if (isDatePicker && onDateSelect) {
-      const selectedDate = new Date(currentDate.year, currentDate.monthIndex, day);
-      onDateSelect(selectedDate);
+    const newSelectedDate = new Date(currentDate.year, currentDate.monthIndex, day);
+    if (onDateSelect) {
+      onDateSelect(newSelectedDate);
     }
   };
 
@@ -107,7 +115,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     for (let i = 0; i < totalDays; i++) {
         cells[i + firstDayOfWeek] = i + 1;
     }
-
+    
     return (
       <div className="grid flex-1 grid-cols-1" style={{gridTemplateRows: 'auto 1fr'}}>
         <div 
@@ -124,19 +132,27 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
             style={{'--cols': numCols} as React.CSSProperties} 
             className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-auto flex-1"
         >
-            {cells.map((day, index) => (
+            {cells.map((day, index) => {
+                 const isSelected = selectedDate ? (
+                   selectedDate.getFullYear() === currentDate.year &&
+                   selectedDate.getMonth() === currentDate.monthIndex &&
+                   selectedDate.getDate() === day
+                 ) : false;
+
+                 return (
                  <div
                     key={index}
                     className={cn(
-                        "flex items-start justify-start p-2 rounded-lg transition-colors",
-                        day && "cursor-pointer hover:bg-muted",
-                        day && currentDate.day === day && isDatePicker && "bg-primary text-primary-foreground hover:bg-primary/90",
+                        "flex items-start justify-start p-2 rounded-lg transition-colors cursor-pointer hover:bg-muted",
+                        day && "cursor-pointer",
+                        isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => day && handleDaySelect(day)}
                 >
                     {day && <span className="text-sm">{day}</span>}
                 </div>
-            ))}
+                 )
+            })}
         </div>
       </div>
     );
@@ -174,11 +190,6 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
 
   return (
     <Card className="h-full flex flex-col p-4">
-        {!isDatePicker && !disableEditing && onEdit && (
-            <div className="flex items-center justify-end p-0 mb-4 border-b pb-4">
-                <Button variant="ghost" size="sm" onClick={onEdit}>Edit Model</Button>
-            </div>
-        )}
         <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-5 w-5"/></Button>
             <Button variant="ghost" className="text-xl font-bold" onClick={handleTitleClick}>{getTitle()}</Button>
@@ -192,4 +203,3 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     </Card>
   );
 }
-

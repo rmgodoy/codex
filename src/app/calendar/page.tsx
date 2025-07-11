@@ -373,7 +373,14 @@ export default function CalendarPage() {
                 </Sidebar>
                 <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-background/50 p-4">
                      {isCustomCalendar && activeCalendarModel ? (
-                        <CustomCalendarView calendar={activeCalendarModel} onEdit={() => {}} disableEditing />
+                        <CustomCalendarView
+                          calendar={activeCalendarModel}
+                          onEdit={() => {}}
+                          disableEditing
+                          initialDate={selectedDate}
+                          selectedDate={selectedDate}
+                          onDateSelect={(date) => setSelectedDate(date)}
+                        />
                     ) : (
                         <Calendar
                             onChange={(value) => {
@@ -415,5 +422,3 @@ export default function CalendarPage() {
     </>
   );
 }
-
-    
