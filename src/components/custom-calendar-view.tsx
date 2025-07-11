@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { CustomCalendar } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Edit } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from './ui/card';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     }
     return { year: d.getFullYear(), monthIndex, day: d.getDate() };
   });
-  const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [viewMode, setViewMode] = useState<ViewMode>(isDatePicker ? 'day' : 'day');
   const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
 
   const currentMonth = calendar.months[currentDate.monthIndex];
@@ -101,15 +101,15 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
-    const numRows = Math.ceil(totalDays / numCols);
-
-    const dayGrid = Array.from({ length: numRows * numCols }, (_, i) => {
-        const day = i + 1;
-        return day <= totalDays ? day : null;
-    });
+    const firstDayOfWeek = 0; // Assuming we don't have this data, start on the first cell.
+    const cells = Array(firstDayOfWeek + totalDays).fill(null);
+     
+    for (let i = 0; i < totalDays; i++) {
+        cells[i + firstDayOfWeek] = i + 1;
+    }
 
     return (
-      <div className="grid flex-1" style={{gridTemplateRows: 'auto 1fr'}}>
+      <div className="grid flex-1 grid-cols-1" style={{gridTemplateRows: 'auto 1fr'}}>
         <div 
             style={{'--cols': numCols} as React.CSSProperties} 
             className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] shrink-0"
@@ -121,15 +121,15 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
             ))}
         </div>
         <div 
-            style={{'--cols': numCols, '--rows': numRows} as React.CSSProperties} 
-            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-[repeat(var(--rows),_minmax(0,_1fr))] flex-1"
+            style={{'--cols': numCols} as React.CSSProperties} 
+            className="grid grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] grid-rows-auto flex-1"
         >
-            {dayGrid.map((day, index) => (
+            {cells.map((day, index) => (
                  <div
                     key={index}
                     className={cn(
-                        "p-2 rounded-lg transition-colors",
-                        isDatePicker && day && "cursor-pointer hover:bg-muted",
+                        "flex items-start justify-start p-2 rounded-lg transition-colors",
+                        day && "cursor-pointer hover:bg-muted",
                         day && currentDate.day === day && isDatePicker && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => day && handleDaySelect(day)}
@@ -176,7 +176,7 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     <Card className="h-full flex flex-col p-4">
         {!isDatePicker && !disableEditing && onEdit && (
             <div className="flex items-center justify-end p-0 mb-4 border-b pb-4">
-                <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="h-4 w-4 mr-2" />Edit Model</Button>
+                <Button variant="ghost" size="sm" onClick={onEdit}>Edit Model</Button>
             </div>
         )}
         <div className="flex items-center justify-between mb-4">
@@ -192,3 +192,4 @@ export function CustomCalendarView({ calendar, disableEditing = false, initialDa
     </Card>
   );
 }
+
