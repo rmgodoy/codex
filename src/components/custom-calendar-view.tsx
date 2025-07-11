@@ -53,13 +53,15 @@ export function CustomCalendarView({
     onDateSelect 
 }: CustomCalendarViewProps) {
     
-  const getInitialCustomDate = (): CustomDate => {
+  const getInitialCustomDate = (): CustomDate | null => {
     if (initialDate) {
-      let monthIndex = initialDate.monthIndex;
-      if (monthIndex >= calendar.months.length) {
-          monthIndex = 0;
-      }
-      return { year: initialDate.year, monthIndex, day: initialDate.day };
+        if ('year' in initialDate && initialDate.year !== undefined) {
+            let monthIndex = initialDate.monthIndex;
+            if (monthIndex >= calendar.months.length) {
+                monthIndex = 0;
+            }
+            return { year: initialDate.year, monthIndex, day: initialDate.day };
+        }
     }
     if(calendar.minDate) {
         const d = new Date(0);
@@ -70,7 +72,7 @@ export function CustomCalendarView({
     return { year: 1, monthIndex: 0, day: 1 };
   };
     
-  const [currentDate, setCurrentDate] = useState<CustomDate>(getInitialCustomDate());
+  const [currentDate, setCurrentDate] = useState<CustomDate | null>(getInitialCustomDate());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [decadeStart, setDecadeStart] = useState(0);
   const [isYearInputOpen, setIsYearInputOpen] = useState(false);
@@ -131,6 +133,7 @@ export function CustomCalendarView({
   const handlePrev = () => {
     if (viewMode === 'day') {
       setCurrentDate(prev => {
+        if (!prev) return null;
         let newMonthIndex = prev.monthIndex - 1;
         let newYear = prev.year;
         if (newMonthIndex < 0) {
@@ -140,7 +143,7 @@ export function CustomCalendarView({
         return { ...prev, year: newYear, monthIndex: newMonthIndex };
       });
     } else if (viewMode === 'month') {
-        setCurrentDate(prev => ({ ...prev, year: prev.year - 1}));
+        setCurrentDate(prev => prev ? ({ ...prev, year: prev.year - 1}) : null);
     } else { // year
         setDecadeStart(prev => prev - 10);
     }
@@ -149,6 +152,7 @@ export function CustomCalendarView({
   const handleNext = () => {
      if (viewMode === 'day') {
         setCurrentDate(prev => {
+            if (!prev) return null;
             let newMonthIndex = prev.monthIndex + 1;
             let newYear = prev.year;
             if (newMonthIndex >= calendar.months.length) {
@@ -158,13 +162,14 @@ export function CustomCalendarView({
             return { ...prev, year: newYear, monthIndex: newMonthIndex };
         });
     } else if (viewMode === 'month') {
-        setCurrentDate(prev => ({ ...prev, year: prev.year + 1}));
+        setCurrentDate(prev => prev ? ({ ...prev, year: prev.year + 1}) : null);
     } else { // year
         setDecadeStart(prev => prev + 10);
     }
   };
 
   const handleTitleClick = () => {
+    if (!currentDate) return;
     if (viewMode === 'day') setViewMode('month');
     else if (viewMode === 'month') {
         setDecadeStart(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
@@ -179,23 +184,24 @@ export function CustomCalendarView({
     e.preventDefault();
     const newYear = parseInt(yearInputValue, 10);
     if (!isNaN(newYear)) {
-      setCurrentDate(prev => ({ ...prev, year: newYear }));
+      setCurrentDate(prev => prev ? ({ ...prev, year: newYear }) : { year: newYear, monthIndex: 0, day: 1 });
       setViewMode('month');
       setIsYearInputOpen(false);
     }
   };
   
   const handleMonthSelect = (monthIndex: number) => {
-    setCurrentDate(prev => ({ ...prev, monthIndex, day: 1 }));
+    setCurrentDate(prev => prev ? ({ ...prev, monthIndex, day: 1 }) : { year: new Date().getFullYear(), monthIndex, day: 1});
     setViewMode('day');
   };
 
   const handleYearSelect = (year: number) => {
-    setCurrentDate(prev => ({ ...prev, year }));
+    setCurrentDate(prev => prev ? ({ ...prev, year }) : { year, monthIndex: 0, day: 1 });
     setViewMode('month');
   }
   
   const handleDaySelect = (day: number) => {
+    if (!currentDate) return;
     const newSelectedDate = { year: currentDate.year, monthIndex: currentDate.monthIndex, day };
     if (onDateSelect) {
       onDateSelect(newSelectedDate);
@@ -204,7 +210,7 @@ export function CustomCalendarView({
 
 
   const renderDayView = () => {
-    if (!currentMonth) return null;
+    if (!currentMonth || !currentDate) return null;
     
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
@@ -340,3 +346,4 @@ export function CustomCalendarView({
     </Card>
   );
 }
+
