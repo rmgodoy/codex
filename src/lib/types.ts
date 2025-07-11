@@ -482,3 +482,19 @@ export interface Map {
 }
 
 export type NewMap = Omit<Map, 'id'>;
+
+// Custom Calendar Types
+export interface CustomMonth {
+  id: string;
+  name: string;
+  days: number;
+}
+
+export interface CustomCalendar {
+  id: string;
+  name: string;
+  months: CustomMonth[];
+  weekdays: string[];
+}
+
+export type NewCustomCalendar = Omit<CustomCalendar, 'id'>;

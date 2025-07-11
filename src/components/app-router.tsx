@@ -16,6 +16,7 @@ import RoomsPage from '@/app/rooms/page';
 import DungeonsPage from '@/app/dungeons/page';
 import EncountersPage from '@/app/encounters/page';
 import CalendarPage from '@/app/calendar/page';
+import CustomCalendarPage from '@/app/custom-calendar/page';
 import MapsPage from '@/app/maps/page';
 import CommonersPage from '@/app/random/commoners/page';
 import EncounterTablesPage from '@/app/random/encounter-tables/page';
@@ -34,6 +35,7 @@ const routes: { [key: string]: React.ComponentType<any> } = {
   'dungeons': DungeonsPage,
   'encounters': EncountersPage,
   'calendar': CalendarPage,
+  'custom-calendar': CustomCalendarPage,
   'maps': MapsPage,
   'random/commoners': CommonersPage,
   'random/encounter-tables': EncounterTablesPage,

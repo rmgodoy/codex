@@ -15,6 +15,7 @@ export * from './npcs';
 export * from './pantheon';
 export * from './calendars';
 export * from './calendarEvents';
+export * from './customCalendars';
 export * from './import-export';
 export * from './exportHelpers';
 export * from './maps';

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { WorldMetadata } from '../types';
@@ -30,13 +31,15 @@ export const PANTHEON_STORE_NAME = 'pantheon';
 export const CALENDAR_EVENTS_STORE_NAME = 'calendarEvents';
 export const CALENDARS_STORE_NAME = 'calendars';
 export const MAPS_STORE_NAME = 'maps';
+export const CUSTOM_CALENDARS_STORE_NAME = 'customCalendars';
+
 
 export const ALL_STORE_NAMES = [
   CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, TAGS_STORE_NAME,
   ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME,
   ROOMS_STORE_NAME, DUNGEONS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME,
   NPCS_STORE_NAME, PANTHEON_STORE_NAME, CALENDARS_STORE_NAME,
-  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME
+  CALENDAR_EVENTS_STORE_NAME, MAPS_STORE_NAME, CUSTOM_CALENDARS_STORE_NAME
 ];
 
 let db: IDBDatabase | null = null;
@@ -163,22 +166,9 @@ export const getDb = (): Promise<IDBDatabase> => {
           currentDb.createObjectStore(name, { keyPath });
         }
       };
-
-      createStore(CREATURES_STORE_NAME);
-      createStore(DEEDS_STORE_NAME);
-      createStore(ENCOUNTERS_STORE_NAME);
-      createStore(ENCOUNTER_TABLES_STORE_NAME);
-      createStore(TREASURES_STORE_NAME);
-      createStore(ALCHEMY_ITEMS_STORE_NAME);
-      createStore(ROOMS_STORE_NAME);
-      createStore(DUNGEONS_STORE_NAME);
-      createStore(ITEMS_STORE_NAME);
-      createStore(FACTIONS_STORE_NAME);
-      createStore(NPCS_STORE_NAME);
-      createStore(PANTHEON_STORE_NAME);
-      createStore(CALENDARS_STORE_NAME);
-      createStore(MAPS_STORE_NAME);
       
+      ALL_STORE_NAMES.forEach(name => createStore(name));
+
       const tagsStore = currentDb.objectStoreNames.contains(TAGS_STORE_NAME)
         ? request.transaction!.objectStore(TAGS_STORE_NAME)
         : currentDb.createObjectStore(TAGS_STORE_NAME, { keyPath: ['name', 'source'] });
@@ -207,4 +197,3 @@ export const getDb = (): Promise<IDBDatabase> => {
 };
 
 export const generateId = () => crypto.randomUUID();
-
