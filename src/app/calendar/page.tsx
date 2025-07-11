@@ -175,7 +175,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [customCalendars, setCustomCalendars] = useState<CustomCalendarType[]>([]);
-  const [selectedCalendarId, setSelectedCalendarId] = useState<string>('all');
+  const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -193,8 +193,7 @@ export default function CalendarPage() {
   
   const isCustomCalendar = !!activeCalendarModel;
 
-
-  const fetchCalendarsAndEvents = async (calendarId: string) => {
+  const fetchCalendarsAndEvents = async (calendarId: string | null) => {
     try {
       const [allCalendars, allCustomCalendars] = await Promise.all([
         getAllCalendars(),
@@ -216,9 +215,14 @@ export default function CalendarPage() {
        setCalendars(allCalendars);
        
        let finalCalendarId = calendarId;
-       if (!allCalendars.find(c => c.id === calendarId) && calendarId !== 'all') {
-           finalCalendarId = 'all';
-           setSelectedCalendarId('all');
+       if (!allCalendars.find(c => c.id === calendarId)) {
+           finalCalendarId = allCalendars[0]?.id;
+           setSelectedCalendarId(finalCalendarId);
+       }
+
+       if (!finalCalendarId) {
+            setEvents([]);
+            return;
        }
 
       const allEvents = await getAllCalendarEvents(finalCalendarId);
@@ -247,6 +251,12 @@ export default function CalendarPage() {
         fetchCalendarsAndEvents(selectedCalendarId);
       }
   };
+  
+  useEffect(() => {
+    if (!selectedCalendarId && calendars.length > 0) {
+      setSelectedCalendarId(calendars[0].id);
+    }
+  }, [calendars, selectedCalendarId]);
 
   useEffect(() => {
     fetchCalendarsAndEvents(selectedCalendarId);
@@ -288,6 +298,19 @@ export default function CalendarPage() {
       })
     );
   }, [events]);
+  
+  const formattedSelectedDate = useMemo(() => {
+    if (!selectedDate) return '...';
+    if (activeCalendarModel) {
+        const date = new Date(selectedDate);
+        const year = date.getUTCFullYear();
+        const monthIndex = date.getUTCMonth();
+        const day = date.getUTCDate();
+        const monthName = activeCalendarModel.months[monthIndex]?.name || `Month ${monthIndex + 1}`;
+        return `${monthName} ${day}, ${year}`;
+    }
+    return format(selectedDate, 'PPP');
+  }, [selectedDate, activeCalendarModel]);
 
   return (
     <>
@@ -297,12 +320,11 @@ export default function CalendarPage() {
                 <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
                     <div className="p-4 space-y-4 h-full flex flex-col">
                         <div className="flex items-center gap-2">
-                            <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
+                            <Select value={selectedCalendarId || ''} onValueChange={setSelectedCalendarId}>
                                 <SelectTrigger className="flex-1">
                                     <SelectValue placeholder="Select a calendar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Calendars</SelectItem>
                                     {calendars.map(cal => <SelectItem key={cal.id} value={cal.id}>{cal.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -312,7 +334,7 @@ export default function CalendarPage() {
                         <Separator />
                         <Card className="flex-1 flex flex-col min-h-0">
                             <CardHeader>
-                                <CardTitle>Events for {selectedDate ? format(selectedDate, 'PPP') : '...'}</CardTitle>
+                                <CardTitle>Events for {formattedSelectedDate}</CardTitle>
                             </CardHeader>
                             <CardContent className="flex-1 min-h-0">
                                 <ScrollArea className="h-full">

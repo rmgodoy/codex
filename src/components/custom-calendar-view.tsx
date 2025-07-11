@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { CustomCalendar } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -31,16 +31,16 @@ export function CustomCalendarView({
 }: CustomCalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     const d = initialDate || new Date();
-    let monthIndex = d.getMonth();
+    let monthIndex = d.getUTCMonth();
     if (monthIndex >= calendar.months.length) {
       monthIndex = 0;
     }
-    return { year: d.getFullYear(), monthIndex, day: d.getDate() };
+    return { year: d.getUTCFullYear(), monthIndex, day: d.getUTCDate() };
   });
   const [viewMode, setViewMode] = useState<ViewMode>(isDatePicker ? 'day' : 'day');
   const [decadeStart, setDecadeStart] = useState(Math.floor((currentDate.year - 1) / 10) * 10 + 1);
 
-  const currentMonth = calendar.months[currentDate.monthIndex];
+  const currentMonth = useMemo(() => calendar.months[currentDate.monthIndex], [calendar.months, currentDate.monthIndex]);
 
   const handlePrev = () => {
     if (viewMode === 'day') {
@@ -97,7 +97,7 @@ export function CustomCalendarView({
   }
   
   const handleDaySelect = (day: number) => {
-    const newSelectedDate = new Date(currentDate.year, currentDate.monthIndex, day);
+    const newSelectedDate = new Date(Date.UTC(currentDate.year, currentDate.monthIndex, day));
     if (onDateSelect) {
       onDateSelect(newSelectedDate);
     }
@@ -109,7 +109,9 @@ export function CustomCalendarView({
     
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
-    const firstDayOfWeek = 0; // Assuming we don't have this data, start on the first cell.
+    const firstDay = new Date(Date.UTC(currentDate.year, currentDate.monthIndex, 1));
+    const firstDayOfWeek = (firstDay.getUTCDay() % numCols); // Simple start day calculation
+    
     const cells = Array(firstDayOfWeek + totalDays).fill(null);
      
     for (let i = 0; i < totalDays; i++) {
@@ -134,16 +136,17 @@ export function CustomCalendarView({
         >
             {cells.map((day, index) => {
                  const isSelected = selectedDate ? (
-                   selectedDate.getFullYear() === currentDate.year &&
-                   selectedDate.getMonth() === currentDate.monthIndex &&
-                   selectedDate.getDate() === day
+                   selectedDate.getUTCFullYear() === currentDate.year &&
+                   selectedDate.getUTCMonth() === currentDate.monthIndex &&
+                   selectedDate.getUTCDate() === day
                  ) : false;
 
                  return (
                  <div
                     key={index}
                     className={cn(
-                        "flex items-start justify-start p-2 rounded-lg transition-colors cursor-pointer hover:bg-muted",
+                        "flex items-start justify-start p-2 rounded-lg transition-colors cursor-pointer",
+                        "hover:bg-muted",
                         day && "cursor-pointer",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
