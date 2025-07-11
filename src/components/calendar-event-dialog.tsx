@@ -26,6 +26,12 @@ import { LocationPickerDialog } from "./location-picker-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { CustomDatePickerDialog } from "./custom-date-picker-dialog";
 
+const getYearOne = () => {
+    const date = new Date('2000-01-01T00:00:00Z');
+    date.setUTCFullYear(1, 0, 1);
+    return date;
+};
+
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
@@ -216,7 +222,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={new Date(field.value)} onSelect={(d) => d && field.onChange(d.toISOString())} defaultMonth={new Date(field.value)} disabled={(date) => date < new Date("0001-01-01T00:00:00")} initialFocus/>
+                                    <Calendar mode="single" selected={new Date(field.value)} onSelect={(d) => d && field.onChange(d.toISOString())} defaultMonth={new Date(field.value)} disabled={(date) => date < getYearOne()} initialFocus/>
                                 </PopoverContent>
                                 </Popover>
                             )}
@@ -247,7 +253,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(d) => d && field.onChange(d.toISOString())} defaultMonth={new Date(field.value || watchedStartDate)} disabled={(date) => date < (new Date(watchedStartDate) || new Date("0001-01-01T00:00:00"))} initialFocus/>
+                                    <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(d) => d && field.onChange(d.toISOString())} defaultMonth={new Date(field.value || watchedStartDate)} disabled={(date) => date < (new Date(watchedStartDate) || getYearOne())} initialFocus/>
                                 </PopoverContent>
                                 </Popover>
                             )}
@@ -326,5 +332,3 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
     </Dialog>
   );
 }
-
-    

@@ -171,6 +171,12 @@ function CalendarManagementDialog({ calendars, customCalendars, onCalendarsUpdat
     );
 }
 
+const getYearOne = () => {
+    const date = new Date('2000-01-01T00:00:00Z');
+    date.setUTCFullYear(1, 0, 1);
+    return date;
+};
+
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
@@ -207,7 +213,7 @@ export default function CalendarPage() {
             setCalendars(defaultCalendars);
             setSelectedCalendarId(defaultCalendarId);
             setEvents([]);
-            const yearOne = new Date('0001-01-01T00:00:00');
+            const yearOne = getYearOne();
             setSelectedDate(yearOne);
             setMonth(yearOne);
             return;
@@ -234,7 +240,7 @@ export default function CalendarPage() {
         setSelectedDate(firstEventDate);
         setMonth(firstEventDate);
       } else {
-        const yearOne = new Date('0001-01-01T00:00:00');
+        const yearOne = getYearOne();
         setSelectedDate(yearOne);
         setMonth(yearOne);
       }
@@ -306,6 +312,11 @@ export default function CalendarPage() {
         const year = date.getUTCFullYear();
         const monthIndex = date.getUTCMonth();
         const day = date.getUTCDate();
+        
+        if (monthIndex >= activeCalendarModel.months.length) {
+            return `...`;
+        }
+
         const monthName = activeCalendarModel.months[monthIndex]?.name || `Month ${monthIndex + 1}`;
         return `${monthName} ${day}, ${year}`;
     }
@@ -397,7 +408,6 @@ export default function CalendarPage() {
                      {isCustomCalendar && activeCalendarModel ? (
                         <CustomCalendarView
                           calendar={activeCalendarModel}
-                          onEdit={() => {}}
                           disableEditing
                           initialDate={selectedDate}
                           selectedDate={selectedDate}
@@ -413,7 +423,7 @@ export default function CalendarPage() {
                             value={selectedDate}
                             activeStartDate={month}
                             onActiveStartDateChange={({ activeStartDate }) => activeStartDate && setMonth(activeStartDate)}
-                            minDate={new Date('0001-01-01T00:00:00')}
+                            minDate={getYearOne()}
                             maxDate={new Date(new Date().getFullYear() + 100, 11, 31)}
                             tileContent={({ date, view }) => {
                                 if (view === 'month') {

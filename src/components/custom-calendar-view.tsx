@@ -97,7 +97,8 @@ export function CustomCalendarView({
   }
   
   const handleDaySelect = (day: number) => {
-    const newSelectedDate = new Date(Date.UTC(currentDate.year, currentDate.monthIndex, day));
+    const newSelectedDate = new Date(Date.UTC(0,0,1));
+    newSelectedDate.setUTCFullYear(currentDate.year, currentDate.monthIndex, day);
     if (onDateSelect) {
       onDateSelect(newSelectedDate);
     }
@@ -109,8 +110,10 @@ export function CustomCalendarView({
     
     const numCols = calendar.weekdays.length;
     const totalDays = currentMonth.days;
-    const firstDay = new Date(Date.UTC(currentDate.year, currentDate.monthIndex, 1));
-    const firstDayOfWeek = (firstDay.getUTCDay() % numCols); // Simple start day calculation
+    const firstDayDate = new Date(Date.UTC(0,0,1));
+    firstDayDate.setUTCFullYear(currentDate.year, currentDate.monthIndex, 1);
+
+    const firstDayOfWeek = (firstDayDate.getUTCDay() % numCols); // Simple start day calculation
     
     const cells = Array(firstDayOfWeek + totalDays).fill(null);
      
@@ -145,9 +148,9 @@ export function CustomCalendarView({
                  <div
                     key={index}
                     className={cn(
-                        "flex items-start justify-start p-2 rounded-lg transition-colors cursor-pointer",
-                        "hover:bg-muted",
+                        "flex items-start justify-start p-2 rounded-lg transition-colors",
                         day && "cursor-pointer",
+                        day && "hover:bg-muted",
                         isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                     )}
                     onClick={() => day && handleDaySelect(day)}
