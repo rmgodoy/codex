@@ -184,13 +184,12 @@ const getYearOne = () => {
     return date;
 };
 
-const stringToDate = (isoString: string): Date => {
-    const d = new Date(isoString);
-    const date = new Date(0);
-    date.setUTCFullYear(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    date.setUTCHours(0,0,0,0);
-    return date;
-}
+const customDateToDate = (customDate: CustomDate): Date => {
+    const d = new Date(0);
+    d.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
+    d.setUTCHours(0,0,0,0);
+    return d;
+};
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -298,14 +297,8 @@ export default function CalendarPage() {
             if (selectedCustomDate) return;
             let newDate: CustomDate;
             if (allEvents.length > 0) {
-                const sortedEvents = [...allEvents].sort((a,b) => new Date(typeof a.startDate === 'string' ? a.startDate : '').getTime() - new Date(typeof b.startDate === 'string' ? b.startDate : '').getTime());
-                const firstEvent = sortedEvents[0];
-                if (typeof firstEvent.startDate === 'object') {
-                    newDate = firstEvent.startDate;
-                } else {
-                    const d = stringToDate(firstEvent.startDate);
-                    newDate = { year: d.getUTCFullYear(), monthIndex: d.getUTCMonth(), day: d.getUTCDate() };
-                }
+                const sortedEvents = [...allEvents].sort((a,b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
+                newDate = sortedEvents[0].startDate;
             } else {
                 newDate = getDefaultCustomDate(currentModel);
             }
@@ -315,8 +308,8 @@ export default function CalendarPage() {
             if (selectedDate) return;
             let newDate: Date;
             if (allEvents.length > 0) {
-                const sortedEvents = [...allEvents].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-                newDate = startOfDay(new Date(sortedEvents[0].startDate));
+                const sortedEvents = [...allEvents].sort((a, b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
+                newDate = startOfDay(customDateToDate(sortedEvents[0].startDate));
             } else {
                 newDate = getDefaultDate(null);
             }
@@ -343,7 +336,8 @@ export default function CalendarPage() {
   
   const handleSaveSuccess = () => {
     if (selectedCalendarId) {
-        getAllCalendarEvents(selectedCalendarId).then(setEvents);
+      // Refresh events without changing the current view
+      getAllCalendarEvents(selectedCalendarId).then(setEvents);
     }
     setIsDialogOpen(false);
     setEditingEvent(null);
@@ -370,7 +364,6 @@ export default function CalendarPage() {
     if (isCustomCalendar) {
       if (!selectedCustomDate) return [];
       return events.filter(event => {
-        if (typeof event.startDate !== 'object' || typeof event.endDate !== 'object') return false;
         const start = event.startDate;
         const end = event.endDate;
         const selected = new Date(Date.UTC(selectedCustomDate.year, selectedCustomDate.monthIndex, selectedCustomDate.day));
@@ -378,21 +371,20 @@ export default function CalendarPage() {
         const endDate = new Date(Date.UTC(end.year, end.monthIndex, end.day));
         
         return isWithinInterval(selected, { start: startDate, end: endDate });
-      }).sort((a,b) => (a.startDate as CustomDate).day - (b.startDate as CustomDate).day);
+      }).sort((a,b) => a.startDate.day - b.startDate.day);
     } else {
       if (!selectedDate) return [];
       return events.filter(event =>
-        isWithinInterval(selectedDate, { start: startOfDay(new Date(event.startDate)), end: startOfDay(new Date(event.endDate)) })
-      ).sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+        isWithinInterval(selectedDate, { start: startOfDay(customDateToDate(event.startDate)), end: startOfDay(customDateToDate(event.endDate)) })
+      ).sort((a,b) => customDateToDate(a.startDate).getTime() - customDateToDate(b.startDate).getTime());
     }
   }, [events, selectedDate, selectedCustomDate, isCustomCalendar]);
   
   const eventDays = useMemo(() => {
     return events.flatMap(event => {
-      if (typeof event.startDate !== 'string' || typeof event.endDate !== 'string') return [];
       return eachDayOfInterval({
-        start: startOfDay(new Date(event.startDate)), 
-        end: startOfDay(new Date(event.endDate))
+        start: startOfDay(customDateToDate(event.startDate)), 
+        end: startOfDay(customDateToDate(event.endDate))
       });
     });
   }, [events]);
@@ -472,7 +464,7 @@ export default function CalendarPage() {
                                             </CardHeader>
                                             <CardContent>
                                                 <CardDescription className="text-xs">
-                                                    From: {typeof event.startDate === 'string' ? format(new Date(event.startDate), 'P') : event.startDate.day} To: {typeof event.endDate === 'string' ? format(new Date(event.endDate), 'P') : event.endDate.day}
+                                                    From: {event.startDate.day}/{event.startDate.monthIndex+1}/{event.startDate.year} To: {event.endDate.day}/{event.endDate.monthIndex+1}/{event.endDate.year}
                                                 </CardDescription>
                                                 {event.description && <p className="text-sm mt-2">{event.description}</p>}
                                                 {event.party && <p className="text-xs text-muted-foreground mt-2">Party: <span className="font-semibold text-accent">{event.party.name} ({event.party.type})</span></p>}

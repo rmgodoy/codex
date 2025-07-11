@@ -444,15 +444,20 @@ export interface Calendar {
 }
 export type NewCalendar = Omit<Calendar, 'id'>;
 
+export interface CustomDate {
+    year: number;
+    monthIndex: number;
+    day: number;
+}
+
 export interface CalendarEvent {
     id: string;
     calendarId: string;
     title: string;
     description: string;
-    // For traditional calendars, this will be an ISO string.
-    // For custom calendars, this will be a { year, monthIndex, day } object.
-    startDate: any;
-    endDate: any;
+    // All dates are stored as custom date objects
+    startDate: CustomDate;
+    endDate: CustomDate;
     tags: string[];
     party?: {
         type: CalendarPartyType;

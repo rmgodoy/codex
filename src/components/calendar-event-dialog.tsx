@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 
 import { useToast } from "@/hooks/use-toast";
 import { addCalendarEvent, updateCalendarEvent, getAllCreatures, getAllFactions, addTags, getAllMaps, getAllNpcs } from "@/lib/idb";
-import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Map as WorldMap, Hex, Npc, CustomCalendar, Calendar as CalendarType } from "@/lib/types";
+import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Map as WorldMap, Hex, Npc, CustomCalendar, Calendar as CalendarType, CustomDate } from "@/lib/types";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -25,12 +25,6 @@ import { CalendarPartySelectionDialog } from "./calendar-party-selection-dialog"
 import { LocationPickerDialog } from "./location-picker-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { CustomDatePickerDialog } from "./custom-date-picker-dialog";
-
-interface CustomDate {
-    year: number;
-    monthIndex: number;
-    day: number;
-}
 
 const getYearOne = () => {
     const date = new Date(0);
@@ -52,13 +46,18 @@ const customDateToDate = (customDate: CustomDate): Date => {
     return d;
 };
 
+const customDateSchema = z.object({
+  year: z.number(),
+  monthIndex: z.number(),
+  day: z.number(),
+});
 
 const eventSchema = z.object({
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    startDate: z.any({ required_error: "A start date is required." }),
-    endDate: z.any().optional(),
+    startDate: customDateSchema,
+    endDate: customDateSchema.optional(),
     location: z.object({
         mapId: z.string(),
         hex: z.object({
@@ -68,22 +67,10 @@ const eventSchema = z.object({
         })
     }).optional(),
 }).superRefine((data, ctx) => {
-    if (!data.startDate) {
-        ctx.addIssue({ path: ['startDate'], message: 'A start date is required.' });
-        return;
-    }
-    const isCustom = typeof data.startDate === 'object' && data.startDate !== null && !Array.isArray(data.startDate);
-    
-    if (isCustom) {
-        if(data.endDate) {
-            const start = customDateToDate(data.startDate);
-            const end = customDateToDate(data.endDate);
-            if(start > end) {
-                ctx.addIssue({ path: ['endDate'], message: 'End date cannot be before start date.' });
-            }
-        }
-    } else {
-        if (data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
+    if(data.endDate) {
+        const start = customDateToDate(data.startDate);
+        const end = customDateToDate(data.endDate);
+        if(start > end) {
             ctx.addIssue({ path: ['endDate'], message: 'End date cannot be before start date.' });
         }
     }
@@ -150,7 +137,7 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                 title: "",
                 description: "",
                 tags: [],
-                startDate: isCustom ? initialDate.custom : initialDate.traditional,
+                startDate: isCustom ? initialDate.custom : dateToCustomDate(initialDate.traditional || getYearOne()),
                 endDate: undefined,
                 location: undefined,
             });
@@ -240,13 +227,13 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
                                         <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
+                                            {field.value ? format(customDateToDate(field.value), "PPP") : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={new Date(field.value)} onSelect={(d) => d && field.onChange(d.toISOString())} defaultMonth={new Date(field.value)} disabled={(date) => date < getYearOne()} initialFocus/>
+                                    <Calendar mode="single" selected={customDateToDate(field.value)} onSelect={(d) => d && field.onChange(dateToCustomDate(d))} defaultMonth={customDateToDate(field.value)} disabled={(date) => date < getYearOne()} initialFocus/>
                                 </PopoverContent>
                                 </Popover>
                             )}
@@ -271,13 +258,13 @@ export function CalendarEventDialog({ isOpen, onOpenChange, onSaveSuccess, event
                                 <Popover><PopoverTrigger asChild>
                                     <FormControl>
                                         <Button type="button" variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
+                                            {field.value ? format(customDateToDate(field.value), "PPP") : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value ? new Date(field.value) : undefined} onSelect={(d) => d && field.onChange(d.toISOString())} defaultMonth={new Date(field.value || watchedStartDate)} disabled={(date) => date < (new Date(watchedStartDate) || getYearOne())} initialFocus/>
+                                    <Calendar mode="single" selected={field.value ? customDateToDate(field.value) : undefined} onSelect={(d) => d && field.onChange(dateToCustomDate(d))} defaultMonth={customDateToDate(field.value || watchedStartDate)} disabled={(date) => date < (customDateToDate(watchedStartDate) || getYearOne())} initialFocus/>
                                 </PopoverContent>
                                 </Popover>
                             )}
