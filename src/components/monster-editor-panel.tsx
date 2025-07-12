@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -222,6 +222,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   const [creatureData, setCreatureData] = useState<CreatureWithDeeds | null>(null);
   const [allDeeds, setAllDeeds] = useState<Deed[]>([]);
   const isMobile = useIsMobile();
+  const initialLoadRef = useRef(true);
   
   const initialFormValues = useMemo(() => {
     if (isCreatingNew) {
@@ -281,31 +282,35 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
   useEffect(() => {
     if (isEditing) {
-        const stats = getStatsForRoleAndLevel(watchedRole, watchedLevel);
-        if (stats) {
-            const finalTr = getTR(watchedTemplate, watchedLevel);
-            
-            let finalHp = stats.HP;
-            let finalDmg = stats.DMG;
+      if (initialLoadRef.current) {
+        initialLoadRef.current = false;
+        return;
+      }
+      const stats = getStatsForRoleAndLevel(watchedRole, watchedLevel);
+      if (stats) {
+          const finalTr = getTR(watchedTemplate, watchedLevel);
+          
+          let finalHp = stats.HP;
+          let finalDmg = stats.DMG;
 
-            switch(watchedTemplate) {
-                case 'Underling':
-                    finalHp = 1;
-                    finalDmg = stepDownDamageDie(stats.DMG);
-                    const currentDeeds = getValues('deeds');
-                    replace(currentDeeds.filter(d => d.tier === 'light'));
-                    break;
-                case 'Paragon':
-                    finalHp = stats.HP * 2;
-                    break;
-                case 'Tyrant':
-                    finalHp = stats.HP * 4;
-                    break;
-            }
+          switch(watchedTemplate) {
+              case 'Underling':
+                  finalHp = 1;
+                  finalDmg = stepDownDamageDie(stats.DMG);
+                  const currentDeeds = getValues('deeds');
+                  replace(currentDeeds.filter(d => d.tier === 'light'));
+                  break;
+              case 'Paragon':
+                  finalHp = stats.HP * 2;
+                  break;
+              case 'Tyrant':
+                  finalHp = stats.HP * 4;
+                  break;
+          }
 
-            setValue('attributes', { ...stats, HP: finalHp, DMG: finalDmg });
-            setValue('TR', finalTr);
-        }
+          setValue('attributes', { ...stats, HP: finalHp, DMG: finalDmg });
+          setValue('TR', finalTr);
+      }
     }
   }, [watchedRole, watchedLevel, watchedTemplate, setValue, isEditing, getValues, replace]);
 
@@ -314,8 +319,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
   }, [dataVersion]);
 
   useEffect(() => {
-    // Creation logic is now handled by useForm defaultValues via useMemo.
-    // This effect is now only for loading an existing creature for editing.
+    initialLoadRef.current = true;
     const fetchCreatureData = async () => {
       if (isCreatingNew || !creatureId) {
         setIsEditing(isCreatingNew);

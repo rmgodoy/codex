@@ -3,6 +3,7 @@
 
 import type { CreatureWithDeeds, Deed } from '@/lib/types';
 import { Diamond } from 'lucide-react';
+import { stepUpDamageDie, stepDownDamageDie } from '@/lib/roles';
 
 interface CreatureExportCardProps {
   creature: CreatureWithDeeds;
@@ -20,7 +21,28 @@ const tierAbbreviation = (tier: Deed['tier']) => {
 
 const processEffect = (text: string | undefined, dmg: string): React.ReactNode => {
     if (!text) return null;
-    const processed = text.replace(/\\dd/g, dmg);
+
+    let processed = text;
+    // Regex to find all instances of \dd, \dd+#, or \dd-#
+    const regex = /\\dd([+\-]\d+)?/g;
+    
+    processed = processed.replace(regex, (match, modifier) => {
+        let currentDie = dmg;
+        if (modifier) {
+            const modValue = parseInt(modifier, 10);
+            if (modValue > 0) {
+                for (let i = 0; i < modValue; i++) {
+                    currentDie = stepUpDamageDie(currentDie);
+                }
+            } else if (modValue < 0) {
+                for (let i = 0; i < Math.abs(modValue); i++) {
+                    currentDie = stepDownDamageDie(currentDie);
+                }
+            }
+        }
+        return currentDie;
+    });
+
     const parts = processed.split(/(\bconfer\s+\w+\s+\d+\b)/gi);
     return parts.map((part, index) => {
       if (part.match(/\bconfer\s+\w+\s+\d+\b/i)) {
