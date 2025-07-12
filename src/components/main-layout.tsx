@@ -246,8 +246,6 @@ export default function MainLayout({
       group: "Random",
     },
     { href: `#/${worldSlug}/dungeons`, label: "Dungeons" },
-    { href: `#/${worldSlug}/calendar`, label: "Calendar" },
-    { href: `#/${worldSlug}/calendar-models`, label: "Calendar Models" },
     { href: `#/${worldSlug}/maps`, label: "Maps" },
   ].sort((a, b) => a.label.localeCompare(b.label));
 
@@ -294,6 +292,19 @@ export default function MainLayout({
           </Button>
         </a>
       ))}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant={(hash.includes('/calendar') || hash.includes('/calendar-models')) ? "secondary" : "ghost"}>Calendar</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+            <a href={`#/${worldSlug}/calendar`}>
+              <DropdownMenuItem>Calendars</DropdownMenuItem>
+            </a>
+            <a href={`#/${worldSlug}/calendar-models`}>
+              <DropdownMenuItem>Models</DropdownMenuItem>
+            </a>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 
@@ -357,6 +368,24 @@ export default function MainLayout({
                 </Button>
               </a>
             ))}
+            <Separator className="my-2" />
+            <p className="font-bold text-lg">Calendar</p>
+            <a href={`#/${worldSlug}/calendar`}>
+              <Button
+                variant={hash.includes('/calendar') ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+              >
+                Calendars
+              </Button>
+            </a>
+            <a href={`#/${worldSlug}/calendar-models`}>
+              <Button
+                variant={hash.includes('/calendar-models') ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+              >
+                Models
+              </Button>
+            </a>
           </div>
         </ScrollArea>
       </SheetContent>

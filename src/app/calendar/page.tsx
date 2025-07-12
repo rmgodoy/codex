@@ -25,9 +25,8 @@ import { Separator } from "@/components/ui/separator";
 import { CustomCalendarView } from "@/components/custom-calendar-view";
 
 const customDateToDate = (customDate: CustomDate): Date => {
-    const date = new Date(0);
-    date.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
-    date.setUTCHours(0,0,0,0);
+    const date = new Date();
+    date.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day, 3);
     return date;
 };
 
