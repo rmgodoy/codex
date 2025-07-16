@@ -71,20 +71,24 @@ export function LocationPickerDialog({ children, onLocationSelect }: LocationPic
                 <div className="flex-1 relative bg-background/50">
                     {activeMap ? (
                         <HexGrid
-                            grid={activeMap.tiles}
+                            mapData={activeMap}
                             hexSize={20}
                             className="w-full h-full"
                             onHexClick={setSelectedHex}
                             selectedHex={selectedHex}
                             onGridUpdate={() => {}}
+                            onAddPointToPath={() => {}}
                             activeTool="data"
                             paintMode="brush"
                             paintColor=""
                             paintIcon={null}
                             paintIconColor=""
                             isCtrlPressed={false}
+                            isAltPressed={false}
+                            isShiftPressed={false}
                             isEyedropperActive={false}
                             onEyedropperClick={() => {}}
+                            pathDrawingId={null}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
