@@ -225,7 +225,7 @@ export default function WorldLandingPage() {
     {
       title: "World Map",
       description: "A powerful hex-grid map creator.",
-      icon: Map,
+      icon: MapIcon,
       href: `#/${worldSlug}/maps`,
     },
     {
