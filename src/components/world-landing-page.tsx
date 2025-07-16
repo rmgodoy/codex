@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,7 +16,7 @@ import {
   Calendar,
   Dices,
   FlaskConical,
-  Map,
+  Map as MapIcon,
   Shield,
   Skull,
   Sword,
@@ -24,6 +25,7 @@ import {
   Users,
   Warehouse,
   Gem,
+  Landmark,
 } from "lucide-react";
 import Link from "next/link";
 import { getDb, WORLDS_METADATA_STORE_NAME } from "@/lib/idb/db";
@@ -147,6 +149,12 @@ export default function WorldLandingPage() {
       description: "Create, edit, and manage all the creatures for your game.",
       icon: Skull,
       href: `#/${worldSlug}/bestiary`,
+    },
+    {
+      title: "Cities",
+      description: "Manage the cities and settlements of your world.",
+      icon: Landmark,
+      href: `#/${worldSlug}/cities`,
     },
     {
       title: "Deeds Library",

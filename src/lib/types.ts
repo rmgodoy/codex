@@ -48,7 +48,7 @@ export type DeedVersus = (typeof DEED_VERSUS)[number];
 
 export type DeedTier = 'light' | 'heavy' | 'mighty' | 'tyrant' | 'special';
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction' | 'calendar' | 'pantheon';
+export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction' | 'calendar' | 'pantheon' | 'city';
 
 export interface Tag {
   name: string;
@@ -409,30 +409,41 @@ export interface PantheonEntity {
 
 export type NewPantheonEntity = Omit<PantheonEntity, 'id'>;
 
-// Hex Grid Types (before Calendar)
-export interface Hex {
-    q: number; // Corresponds to column
-    r: number; // Corresponds to row
-    s: number; // s = -q - r
-}
-
 // Calendar Types
 export const CALENDAR_PARTY_TYPES = ['faction', 'creature', 'npc'] as const;
 export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
 
+export interface CustomDate {
+    year: number;
+    monthIndex: number; // 0-based
+    day: number; // 1-based
+}
+
 export interface Calendar {
   id: string;
   name: string;
+  model?: CalendarModel;
 }
 export type NewCalendar = Omit<Calendar, 'id'>;
+
+export interface CalendarModel {
+    id: string;
+    name: string;
+    description: string;
+    yearLength: number;
+    months: { name: string; days: number }[];
+    weekdays: string[];
+    era: string;
+}
+export type NewCalendarModel = Omit<CalendarModel, 'id'>;
 
 export interface CalendarEvent {
     id: string;
     calendarId: string;
     title: string;
     description: string;
-    startDate: string; // ISO string
-    endDate: string; // ISO string
+    startDate: CustomDate;
+    endDate: CustomDate;
     tags: string[];
     party?: {
         type: CalendarPartyType;
@@ -447,6 +458,20 @@ export interface CalendarEvent {
 
 export type NewCalendarEvent = Omit<CalendarEvent, 'id'>;
 
+// City Types
+export interface City {
+  id: string;
+  name: string;
+  description: string;
+  npcIds?: string[];
+  location?: {
+    mapId: string;
+    hex: Hex;
+  };
+  tags?: string[];
+}
+export type NewCity = Omit<City, 'id'>;
+
 // Path Type for Maps
 export interface Path {
   id: string;
@@ -457,6 +482,12 @@ export interface Path {
 }
 
 // Hex Grid Types
+export interface Hex {
+    q: number; // Corresponds to column
+    r: number; // Corresponds to row
+    s: number; // s = -q - r
+}
+
 export interface HexTileData {
     color?: string;
     icon?: string;
