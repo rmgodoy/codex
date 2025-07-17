@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,6 +48,7 @@ interface CityEditorPanelProps {
   onDeleteSuccess: () => void;
   onEditCancel: () => void;
   onBack?: () => void;
+  dataVersion: number;
 }
 
 const defaultValues: CityFormData = {
@@ -58,7 +59,7 @@ const defaultValues: CityFormData = {
   location: undefined,
 };
 
-export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack }: CityEditorPanelProps) {
+export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack, dataVersion }: CityEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!cityId);
@@ -80,43 +81,44 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
       setAllNpcs(npcs);
       setAllMaps(maps);
     });
-  }, []);
+  }, [dataVersion]);
 
-  useEffect(() => {
-    const fetchCityData = async () => {
-      if (isCreatingNew) {
-        form.reset(defaultValues);
-        setCityData(null);
-        setIsEditing(true);
-        setLoading(false);
-        return;
-      }
-      
-      if (!cityId) {
-        setIsEditing(false);
-        setLoading(false);
-        setCityData(null);
-        return;
-      }
-
-      setLoading(true);
+  const fetchCityData = useCallback(async () => {
+    if (isCreatingNew) {
+      form.reset(defaultValues);
+      setCityData(null);
+      setIsEditing(true);
+      setLoading(false);
+      return;
+    }
+    
+    if (!cityId) {
       setIsEditing(false);
-      try {
-        const cityFromDb = await getCityById(cityId);
-        if (cityFromDb) {
-          form.reset(cityFromDb);
-          setCityData(cityFromDb);
-        } else {
-          setCityData(null);
-        }
-      } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Could not load city data." });
-      } finally {
-        setLoading(false);
+      setLoading(false);
+      setCityData(null);
+      return;
+    }
+
+    setLoading(true);
+    setIsEditing(false);
+    try {
+      const cityFromDb = await getCityById(cityId);
+      if (cityFromDb) {
+        form.reset(cityFromDb);
+        setCityData(cityFromDb);
+      } else {
+        setCityData(null);
       }
-    };
-    fetchCityData();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not load city data." });
+    } finally {
+      setLoading(false);
+    }
   }, [cityId, isCreatingNew, form, toast]);
+  
+  useEffect(() => {
+    fetchCityData();
+  }, [fetchCityData, dataVersion]);
   
   const handleCancel = () => {
     if (isCreatingNew) {

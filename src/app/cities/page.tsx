@@ -24,8 +24,19 @@ export default function CitiesPage() {
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
 
+  const refreshList = () => setDataVersion(v => v + 1);
+
   useEffect(() => {
     setIsClient(true);
+    
+    const handleFocus = () => {
+      refreshList();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const filters = {
@@ -48,8 +59,6 @@ export default function CitiesPage() {
     setSortBy('name');
     setSortOrder('asc');
   };
-
-  const refreshList = () => setDataVersion(v => v + 1);
 
   const handleSelectCity = (id: string | null) => {
     setSelectedCityId(id);
@@ -130,6 +139,7 @@ export default function CitiesPage() {
                   onDeleteSuccess={onDeleteSuccess}
                   onEditCancel={onEditCancel}
                   onBack={handleBack}
+                  dataVersion={dataVersion}
                 />
               </div>
             </div>
@@ -163,6 +173,7 @@ export default function CitiesPage() {
                 onSaveSuccess={onSaveSuccess}
                 onDeleteSuccess={onDeleteSuccess}
                 onEditCancel={onEditCancel}
+                dataVersion={dataVersion}
               />
             </div>
           </SidebarInset>
