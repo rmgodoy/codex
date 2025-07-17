@@ -374,39 +374,70 @@ export default function MapsPage() {
         }
     }, [activeMap, handleMapUpdate]);
     
-    const handleUpdateCityLinks = useCallback(async (hex: Hex, cityIds: string[]) => {
-      const tile = activeMap?.tiles.find(t => t.hex.q === hex.q && t.hex.r === hex.r);
-      if (!tile || !activeMap) return;
-  
-      const oldCityIds = new Set(tile.data.cityIds || []);
-      const newCityIds = new Set(cityIds);
-  
-      // Update cities that were removed from the tile
-      for (const cityId of oldCityIds) {
-        if (!newCityIds.has(cityId)) {
-          const city = allCities.find(c => c.id === cityId);
-          if (city) {
-            await updateCity({ ...city, location: undefined });
-          }
+    const handleUpdateCityLinks = useCallback(async (currentHex: Hex, newCityIdsForTile: string[]) => {
+        if (!activeMap) return;
+
+        const currentTile = activeMap.tiles.find(t => t.hex.q === currentHex.q && t.hex.r === currentHex.r);
+        if (!currentTile) return;
+
+        const oldCityIdsOnTile = new Set(currentTile.data.cityIds || []);
+        const newCityIdsOnTile = new Set(newCityIdsForTile);
+        
+        const citiesAdded = newCityIdsForTile.filter(id => !oldCityIdsOnTile.has(id));
+        const citiesRemoved = Array.from(oldCityIdsOnTile).filter(id => !newCityIdsOnTile.has(id));
+
+        const cityUpdates = [];
+        const mapTileUpdates = new Map<string, { q: number; r: number; cityIds: string[] }>();
+        
+        // Handle removals from the current tile
+        for (const cityId of citiesRemoved) {
+            const city = allCities.find(c => c.id === cityId);
+            if (city) {
+                cityUpdates.push(updateCity({ ...city, location: undefined }));
+            }
         }
-      }
-  
-      // Update cities that were added to the tile
-      for (const cityId of newCityIds) {
-        if (!oldCityIds.has(cityId)) {
-          const city = allCities.find(c => c.id === cityId);
-          if (city) {
-            const newLocation = { mapId: activeMap.id, hex };
-            await updateCity({ ...city, location: newLocation });
-          }
+
+        // Handle additions to the current tile
+        for (const cityId of citiesAdded) {
+            const city = allCities.find(c => c.id === cityId);
+            if (!city) continue;
+
+            // If city was on another tile on this map, remove it from there
+            if (city.location && city.location.mapId === activeMap.id) {
+                const oldHexKey = `${city.location.hex.q},${city.location.hex.r}`;
+                if (!mapTileUpdates.has(oldHexKey)) {
+                    const oldTile = activeMap.tiles.find(t => t.hex.q === city.location!.hex.q && t.hex.r === city.location!.hex.r);
+                    mapTileUpdates.set(oldHexKey, { q: city.location.hex.q, r: city.location.hex.r, cityIds: (oldTile?.data.cityIds || []) });
+                }
+                const update = mapTileUpdates.get(oldHexKey)!;
+                update.cityIds = update.cityIds.filter(id => id !== cityId);
+            }
+
+            // Update city's location to the new tile
+            cityUpdates.push(updateCity({ ...city, location: { mapId: activeMap.id, hex: currentHex } }));
         }
-      }
-      
-      handleUpdateTileData(hex, { cityIds });
-      
-      // Refresh local city data
-      getAllCities().then(setAllCities);
-    }, [activeMap, allCities, handleMapUpdate]);
+
+        // Update the current tile's city list
+        const currentHexKey = `${currentHex.q},${currentHex.r}`;
+        if (!mapTileUpdates.has(currentHexKey)) {
+            mapTileUpdates.set(currentHexKey, { q: currentHex.q, r: currentHex.r, cityIds: (currentTile.data.cityIds || []) });
+        }
+        mapTileUpdates.get(currentHexKey)!.cityIds = newCityIdsForTile;
+
+
+        // Apply all tile updates to the map
+        const newTiles = activeMap.tiles.map(tile => {
+            const key = `${tile.hex.q},${tile.hex.r}`;
+            if (mapTileUpdates.has(key)) {
+                return { ...tile, data: { ...tile.data, cityIds: mapTileUpdates.get(key)!.cityIds } };
+            }
+            return tile;
+        });
+
+        await Promise.all(cityUpdates);
+        handleMapUpdate({ ...activeMap, tiles: newTiles });
+        getAllCities().then(setAllCities);
+    }, [activeMap, allCities, handleMapUpdate, toast]);
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
         if (activeMap) {
