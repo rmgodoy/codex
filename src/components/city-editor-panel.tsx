@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getCityById, addCity, updateCity, deleteCity, addTags, getAllNpcs, getAllMaps } from "@/lib/idb";
+import { getCityById, addCity, updateCity, deleteCity, addTags, getAllNpcs, getAllMaps, getMapById, updateMap } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { City, NewCity, Npc, Map as WorldMap, Hex } from "@/lib/types";
 
@@ -143,17 +143,56 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
       let savedId: string;
       if (isCreatingNew) {
         savedId = await addCity(cityToSave as NewCity);
-        toast({ title: "City Created!", description: `${data.name} has been added.` });
       } else if (cityId) {
         savedId = cityId;
         await updateCity({ ...cityToSave, id: cityId });
-        toast({ title: "Save Successful", description: `${data.name} has been updated.` });
       } else {
         return;
       }
+
+      // Handle map tile link update
+      const oldLocation = cityData?.location;
+      const newLocation = data.location;
+      
+      if (oldLocation && (
+          !newLocation ||
+          oldLocation.mapId !== newLocation.mapId ||
+          oldLocation.hex.q !== newLocation.hex.q ||
+          oldLocation.hex.r !== newLocation.hex.r
+      )) {
+          const oldMap = await getMapById(oldLocation.mapId);
+          if (oldMap) {
+              const updatedTiles = oldMap.tiles.map(tile => {
+                  if (tile.hex.q === oldLocation.hex.q && tile.hex.r === oldLocation.hex.r) {
+                      return { ...tile, data: { ...tile.data, cityIds: (tile.data.cityIds || []).filter(id => id !== savedId) } };
+                  }
+                  return tile;
+              });
+              await updateMap({ ...oldMap, tiles: updatedTiles });
+          }
+      }
+
+      if (newLocation) {
+          const newMap = await getMapById(newLocation.mapId);
+          if (newMap) {
+              const updatedTiles = newMap.tiles.map(tile => {
+                  if (tile.hex.q === newLocation.hex.q && tile.hex.r === newLocation.hex.r) {
+                      const cityIds = new Set(tile.data.cityIds || []);
+                      cityIds.add(savedId);
+                      return { ...tile, data: { ...tile.data, cityIds: Array.from(cityIds) } };
+                  }
+                  return tile;
+              });
+              await updateMap({ ...newMap, tiles: updatedTiles });
+          }
+      }
+      
+      toast({ title: isCreatingNew ? "City Created!" : "Save Successful", description: `${data.name} has been saved.` });
       onSaveSuccess(savedId);
       setIsEditing(false);
+
     } catch (error) {
+      console.error(error);
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
   };
@@ -161,6 +200,20 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
   const handleDelete = async () => {
     if (!cityId) return;
     try {
+      // Remove link from map tile first
+      if (cityData?.location) {
+        const map = await getMapById(cityData.location.mapId);
+        if (map) {
+          const updatedTiles = map.tiles.map(tile => {
+            if (tile.hex.q === cityData.location.hex.q && tile.hex.r === cityData.location.hex.r) {
+                return { ...tile, data: { ...tile.data, cityIds: (tile.data.cityIds || []).filter(id => id !== cityId) } };
+            }
+            return tile;
+          });
+          await updateMap({ ...map, tiles: updatedTiles });
+        }
+      }
+
       await deleteCity(cityId);
       toast({ title: "City Deleted", description: "The city has been removed." });
       onDeleteSuccess();

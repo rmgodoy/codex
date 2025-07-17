@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp, Building } from "lucide-react";
 import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
-import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents, getAllCities } from "@/lib/idb";
+import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents, getAllCities, updateCity } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ const ICONS = [
     { name: 'MapPin', component: MapPin },
     { name: 'Landmark', component: Landmark },
     { name: 'Skull', component: Skull },
+    { name: 'Building', component: Building },
 ]
 
 const TERRAIN_COLORS = [
@@ -372,6 +373,40 @@ export default function MapsPage() {
             handleMapUpdate({ ...activeMap, tiles: newGrid });
         }
     }, [activeMap, handleMapUpdate]);
+    
+    const handleUpdateCityLinks = useCallback(async (hex: Hex, cityIds: string[]) => {
+      const tile = activeMap?.tiles.find(t => t.hex.q === hex.q && t.hex.r === hex.r);
+      if (!tile || !activeMap) return;
+  
+      const oldCityIds = new Set(tile.data.cityIds || []);
+      const newCityIds = new Set(cityIds);
+  
+      // Update cities that were removed from the tile
+      for (const cityId of oldCityIds) {
+        if (!newCityIds.has(cityId)) {
+          const city = allCities.find(c => c.id === cityId);
+          if (city) {
+            await updateCity({ ...city, location: undefined });
+          }
+        }
+      }
+  
+      // Update cities that were added to the tile
+      for (const cityId of newCityIds) {
+        if (!oldCityIds.has(cityId)) {
+          const city = allCities.find(c => c.id === cityId);
+          if (city) {
+            const newLocation = { mapId: activeMap.id, hex };
+            await updateCity({ ...city, location: newLocation });
+          }
+        }
+      }
+      
+      handleUpdateTileData(hex, { cityIds });
+      
+      // Refresh local city data
+      getAllCities().then(setAllCities);
+    }, [activeMap, allCities, handleMapUpdate]);
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
         if (activeMap) {
@@ -718,7 +753,7 @@ export default function MapsPage() {
                                                             title="Link Cities"
                                                             items={allCities}
                                                             initialSelectedIds={selectedTile.data.cityIds || []}
-                                                            onConfirm={(ids) => handleUpdateTileData(selectedHex, { cityIds: ids })}
+                                                            onConfirm={(ids) => handleUpdateCityLinks(selectedHex, ids)}
                                                             trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
                                                         />
                                                     </div>
