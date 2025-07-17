@@ -5,10 +5,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path } from "@/lib/types";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp, Building } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
-import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents } from "@/lib/idb";
+import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents, getAllCities } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -230,6 +230,7 @@ export default function MapsPage() {
     const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
     const [allFactions, setAllFactions] = useState<Faction[]>([]);
     const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
+    const [allCities, setAllCities] = useState<City[]>([]);
     
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
     const [isAltPressed, setIsAltPressed] = useState(false);
@@ -293,6 +294,7 @@ export default function MapsPage() {
         getAllDungeons().then(setAllDungeons);
         getAllFactions().then(setAllFactions);
         getAllCalendarEvents().then(setAllEvents);
+        getAllCities().then(setAllCities);
     }, []);
     
     const handleMapsUpdate = (newMapId?: string) => {
@@ -446,6 +448,7 @@ export default function MapsPage() {
     const selectedTile = useMemo(() => activeMap?.tiles.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [activeMap, selectedHex]);
     const dungeonMap = useMemo(() => new Map(allDungeons.map(d => [d.id, d])), [allDungeons]);
     const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f])), [allFactions]);
+    const cityMap = useMemo(() => new Map(allCities.map(c => [c.id, c])), [allCities]);
     
     const eventsForSelectedTile = useMemo(() => {
         if (!selectedTile || !activeMap) return [];
@@ -706,6 +709,24 @@ export default function MapsPage() {
                                                     <p className="text-sm"><span className="font-semibold">Q:</span> {selectedHex.q}, <span className="font-semibold">R:</span> {selectedHex.r}, <span className="font-semibold">S:</span> {selectedHex.s}</p>
                                                 </div>
 
+                                                <Separator />
+                                                
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <Label className="flex items-center gap-2"><Building className="h-4 w-4"/>Cities</Label>
+                                                        <MultiItemSelectionDialog
+                                                            title="Link Cities"
+                                                            items={allCities}
+                                                            initialSelectedIds={selectedTile.data.cityIds || []}
+                                                            onConfirm={(ids) => handleUpdateTileData(selectedHex, { cityIds: ids })}
+                                                            trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
+                                                        />
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {(selectedTile.data.cityIds || []).map(id => <Badge key={id} variant="secondary">{cityMap.get(id)?.name}</Badge>)}
+                                                    </div>
+                                                </div>
+                                                
                                                 <Separator />
 
                                                 <div className="space-y-2">

@@ -442,8 +442,8 @@ export interface CalendarEvent {
     calendarId: string;
     title: string;
     description: string;
-    startDate: CustomDate;
-    endDate: CustomDate;
+    startDate: string;
+    endDate: string;
     tags: string[];
     party?: {
         type: CalendarPartyType;
@@ -494,6 +494,7 @@ export interface HexTileData {
     iconColor?: string;
     dungeonIds?: string[];
     factionIds?: string[];
+    cityIds?: string[];
 }
 
 export interface HexTile {
