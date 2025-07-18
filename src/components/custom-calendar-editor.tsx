@@ -42,6 +42,8 @@ interface CustomCalendarEditorProps {
 }
 
 export function CustomCalendarEditor({ calendar, onSave, onCancel }: CustomCalendarEditorProps) {
+  const isEditingExisting = !!calendar;
+
   const form = useForm<CalendarFormData>({
     resolver: zodResolver(calendarSchema),
     defaultValues: calendar
@@ -127,18 +129,22 @@ export function CustomCalendarEditor({ calendar, onSave, onCancel }: CustomCalen
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Days</FormLabel>
-                              <FormControl><Input type="number" {...field} className="w-24" /></FormControl>
+                              <FormControl><Input type="number" {...field} className="w-24" disabled={isEditingExisting} /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeMonth(index)}><Trash2 className="h-4 w-4" /></Button>
+                        {!isEditingExisting && (
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeMonth(index)}><Trash2 className="h-4 w-4" /></Button>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendMonth({ id: crypto.randomUUID(), name: `Month ${monthFields.length + 1}`, days: 30 })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Month
-                  </Button>
+                  {!isEditingExisting && (
+                    <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendMonth({ id: crypto.randomUUID(), name: `Month ${monthFields.length + 1}`, days: 30 })}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Month
+                    </Button>
+                  )}
                 </div>
 
                 <div>
@@ -156,13 +162,17 @@ export function CustomCalendarEditor({ calendar, onSave, onCancel }: CustomCalen
                             </FormItem>
                           )}
                         />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeWeekday(index)}><Trash2 className="h-4 w-4" /></Button>
+                        {!isEditingExisting && (
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeWeekday(index)}><Trash2 className="h-4 w-4" /></Button>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendWeekday({ id: crypto.randomUUID(), name: "" })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Weekday
-                  </Button>
+                  {!isEditingExisting && (
+                    <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendWeekday({ id: crypto.randomUUID(), name: "" })}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Weekday
+                    </Button>
+                  )}
                 </div>
 
                 <Separator />
@@ -176,7 +186,7 @@ export function CustomCalendarEditor({ calendar, onSave, onCancel }: CustomCalen
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Min Date</FormLabel>
-                                    <FormControl><Input {...field} placeholder="e.g., 0001-01-01" /></FormControl>
+                                    <FormControl><Input {...field} placeholder="e.g., 0001-01-01" disabled={isEditingExisting} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -187,7 +197,7 @@ export function CustomCalendarEditor({ calendar, onSave, onCancel }: CustomCalen
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Max Date</FormLabel>
-                                    <FormControl><Input {...field} placeholder="e.g., 9999-12-31" /></FormControl>
+                                    <FormControl><Input {...field} placeholder="e.g., 9999-12-31" disabled={isEditingExisting} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
