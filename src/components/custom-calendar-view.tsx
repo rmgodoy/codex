@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import type { CustomCalendar, CalendarEvent, CustomDate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { Card } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { Input } from "./ui/input";
@@ -402,7 +403,8 @@ export function CustomCalendarView({
       {!disableEditing && (
         <div className="flex justify-end mb-2">
           <Button variant="outline" size="sm" onClick={onEdit}>
-            Edit Model
+            <Copy className="h-4 w-4 mr-2" />
+            Template
           </Button>
         </div>
       )}
