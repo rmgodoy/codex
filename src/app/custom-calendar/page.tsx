@@ -121,7 +121,7 @@ export default function CalendarModelsPage() {
 
     const MainContent = () => {
         if (isCreatingNew) {
-            return <CustomCalendarEditor onSave={handleSave} onCancel={handleCancel} />;
+            return <CustomCalendarEditor onSave={handleSave} onCancel={handleCancel} calendar={selectedCalendar ?? undefined} />;
         }
         if (selectedCalendar) {
             return <CustomCalendarView key={selectedCalendar.id} calendar={selectedCalendar} onEdit={() => {
