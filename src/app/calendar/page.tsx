@@ -76,12 +76,17 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { CustomCalendarView } from "@/components/custom-calendar-view";
+import moment from "moment";
 
 const DEFAULT_MIN_DATE = new Date(Date.UTC(1, 0, 1));
 DEFAULT_MIN_DATE.setUTCFullYear(1);
 
-const customDateToDate = (customDate: CustomDate): Date => {
-  const date = new Date();
+const customDateToDate = (customDate: CustomDate | string): Date => {
+  if (typeof customDate == "string") {
+    const oldDate = moment(customDate).utc().endOf("day").toDate();
+    customDate = dateToCustomDate(oldDate);
+  }
+  const date = moment().utc().endOf("day").toDate();
   date.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
   return date;
 };
@@ -439,14 +444,11 @@ export default function CalendarPage() {
   }, [selectedCustomDate, isCustomCalendar]);
 
   const refreshData = async (newCalendarId?: string) => {
-    if (newCalendarId) {
-      await fetchCalendarsAndEvents(newCalendarId);
-    } else {
-      if (selectedCalendarId) {
-        const events = await getAllCalendarEvents(selectedCalendarId);
-        setEvents(events);
-      }
+    if (selectedCalendarId) {
+      const events = await getAllCalendarEvents(selectedCalendarId);
+      setEvents(events);
     }
+    await fetchCalendarsAndEvents(newCalendarId || null);
   };
 
   const handleSaveSuccess = () => {
@@ -476,6 +478,34 @@ export default function CalendarPage() {
         description: "Failed to delete event.",
       });
     }
+  };
+
+  const getEventDay = (date: CustomDate | string) => {
+    let value;
+    if (typeof date == "string") {
+      value = moment(date).utc().endOf("day").toDate().getUTCDate();
+    } else {
+      value = date.day;
+    }
+    return String(value).padStart(2, "0");
+  };
+  const getEventMonth = (date: CustomDate | string) => {
+    let value;
+    if (typeof date == "string") {
+      value = moment(date).utc().endOf("day").toDate().getUTCMonth() + 1;
+    } else {
+      value = date.monthIndex + 1;
+    }
+    return String(value).padStart(2, "0");
+  };
+  const getEventYear = (date: CustomDate | string) => {
+    let value;
+    if (typeof date == "string") {
+      value = moment(date).utc().endOf("day").toDate().getUTCFullYear();
+    } else {
+      value = date.year;
+    }
+    return String(value).padStart(4, "0");
   };
 
   const eventsForSelectedDay = useMemo(() => {
@@ -647,11 +677,12 @@ export default function CalendarPage() {
                               </CardHeader>
                               <CardContent>
                                 <CardDescription className="text-xs">
-                                  From: {event.startDate.day}/
-                                  {event.startDate.monthIndex + 1}/
-                                  {event.startDate.year} To: {event.endDate.day}
-                                  /{event.endDate.monthIndex + 1}/
-                                  {event.endDate.year}
+                                  From: {getEventDay(event.startDate)}/
+                                  {getEventMonth(event.startDate)}/
+                                  {getEventYear(event.startDate)} To:{" "}
+                                  {getEventDay(event.endDate)}/
+                                  {getEventMonth(event.endDate)}/
+                                  {getEventYear(event.endDate)}
                                 </CardDescription>
                                 {event.description && (
                                   <p className="text-sm mt-2">
