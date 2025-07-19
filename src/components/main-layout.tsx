@@ -254,7 +254,6 @@ export default function MainLayout({
     },
     { href: `#/${worldSlug}/dungeons`, label: "Dungeons" },
     { href: `#/${worldSlug}/maps`, label: "Maps" },
-    { href: `#/${worldSlug}/calendar`, label: "Calendar" },
   ].sort((a, b) => a.label.localeCompare(b.label));
 
   const compendiumLinks = navLinks.filter(
