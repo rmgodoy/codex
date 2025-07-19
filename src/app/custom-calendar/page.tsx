@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { CustomCalendarEditor } from '@/components/custom-calendar-editor';
 import { CustomCalendarView } from '@/components/custom-calendar-view';
 import type { CustomCalendar as CustomCalendarType } from '@/lib/types';
-import { getAllCustomCalendars, addCustomCalendar, updateCustomCalendar, deleteCustomCalendar } from '@/lib/idb/customCalendars';
+import { getAllCustomCalendars, addCustomCalendar, updateCustomCalendar, deleteCustomCalendarAndRelatedCalendars } from '@/lib/idb/customCalendars';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -38,7 +38,7 @@ function CalendarModelManager({ calendars, onSelect, onNew, onDelete, selectedCa
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>This will permanently delete the selected calendar model. This action cannot be undone.</AlertDialogDescription>
+                                        <AlertDialogDescription>This will permanently delete the "{cal.name}" model. All calendars using this model, and all of their events, will also be deleted. This action cannot be undone.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -104,7 +104,7 @@ export default function CalendarModelsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        await deleteCustomCalendar(id);
+        await deleteCustomCalendarAndRelatedCalendars(id);
         toast({ title: 'Calendar Model Deleted' });
         setSelectedCalendar(null);
         fetchCalendars();
