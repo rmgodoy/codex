@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -356,9 +357,6 @@ export default function CalendarPage() {
   const getDefaultCustomDate = (
     model: CustomCalendarType | null
   ): CustomDate => {
-    if (model?.minDate) {
-      return dateToCustomDate(new Date(model.minDate));
-    }
     return { year: 1, monthIndex: 0, day: 1 };
   };
 

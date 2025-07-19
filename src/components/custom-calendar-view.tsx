@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { CustomCalendar, CalendarEvent, CustomDate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit, Copy } from "lucide-react";
 import { Card } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { Input } from "./ui/input";
@@ -73,16 +73,6 @@ export function CustomCalendarView({
         }
         return { year: initialDate.year, monthIndex, day: initialDate.day };
       }
-    }
-    if (calendar.minDate) {
-      const d = new Date(0);
-      d.setUTCFullYear(
-        parseInt(calendar.minDate.substring(0, 4)),
-        parseInt(calendar.minDate.substring(5, 7)) - 1,
-        parseInt(calendar.minDate.substring(8, 10))
-      );
-      d.setUTCHours(0, 0, 0, 0);
-      return dateToCustomDate(d);
     }
     return { year: 1, monthIndex: 0, day: 1 };
   };
@@ -270,11 +260,8 @@ export function CustomCalendarView({
 
     // Simplified weekday calculation - assumes a continuous cycle
     // A more complex implementation would need a reference epoch date
-    const epochYear = calendar.minDate
-      ? parseInt(calendar.minDate.substring(0, 4))
-      : 1;
     let totalDaysSinceEpoch = 0;
-    for (let y = epochYear; y < firstDayOfMonth.year; y++) {
+    for (let y = 1; y < firstDayOfMonth.year; y++) {
       totalDaysSinceEpoch += calendar.months.reduce(
         (sum, m) => sum + m.days,
         0
@@ -403,8 +390,8 @@ export function CustomCalendarView({
       {!disableEditing && (
         <div className="flex justify-end mb-2">
           <Button variant="outline" size="sm" onClick={onEdit}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
+            <Copy className="h-4 w-4 mr-2" />
+            Template
           </Button>
         </div>
       )}

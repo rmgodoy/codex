@@ -174,37 +174,6 @@ export function CustomCalendarEditor({ calendar, onSave, onCancel }: CustomCalen
                     </Button>
                   )}
                 </div>
-
-                <Separator />
-
-                <div>
-                    <h3 className="text-lg font-medium mb-2">Date Range (Optional)</h3>
-                     <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="minDate"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Min Date</FormLabel>
-                                    <FormControl><Input {...field} placeholder="e.g., 0001-01-01" disabled={isEditingExisting} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="maxDate"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Max Date</FormLabel>
-                                    <FormControl><Input {...field} placeholder="e.g., 9999-12-31" disabled={isEditingExisting} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                     </div>
-                </div>
-
               </div>
             </ScrollArea>
           </CardContent>
