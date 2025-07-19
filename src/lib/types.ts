@@ -1,6 +1,5 @@
-
-import type { Role } from './roles';
-import type { StateEffect } from './states';
+import type { Role } from "./roles";
+import type { StateEffect } from "./states";
 
 export interface WorldMetadata {
   slug: string;
@@ -8,7 +7,7 @@ export interface WorldMetadata {
   description: string;
 }
 
-export type CreatureTemplate = 'Normal' | 'Underling' | 'Paragon' | 'Tyrant';
+export type CreatureTemplate = "Normal" | "Underling" | "Paragon" | "Tyrant";
 
 export interface CreatureAttributes {
   HP: number;
@@ -36,18 +35,40 @@ export interface DeedEffects {
   after?: string;
 }
 
-export const DEED_ACTION_TYPES = ['attack', 'support'] as const;
+export const DEED_ACTION_TYPES = ["attack", "support"] as const;
 export type DeedActionType = (typeof DEED_ACTION_TYPES)[number];
 
-export const DEED_TYPES = ['melee', 'missile', 'innate', 'unarmed', 'spell', 'item', 'versatile'] as const;
+export const DEED_TYPES = [
+  "melee",
+  "missile",
+  "innate",
+  "unarmed",
+  "spell",
+  "item",
+  "versatile",
+] as const;
 export type DeedType = (typeof DEED_TYPES)[number];
 
-export const DEED_VERSUS = ['guard', 'resist', '10', 'special'] as const;
+export const DEED_VERSUS = ["guard", "resist", "10", "special"] as const;
 export type DeedVersus = (typeof DEED_VERSUS)[number];
 
-export type DeedTier = 'light' | 'heavy' | 'mighty' | 'tyrant' | 'special';
+export type DeedTier = "light" | "heavy" | "mighty" | "tyrant" | "special";
 
-export type TagSource = 'creature' | 'deed' | 'encounter' | 'encounterTable' | 'treasure' | 'alchemicalItem' | 'room' | 'dungeon' | 'item' | 'npc' | 'faction' | 'calendar' | 'pantheon';
+export type TagSource =
+  | "creature"
+  | "deed"
+  | "encounter"
+  | "encounterTable"
+  | "treasure"
+  | "alchemicalItem"
+  | "room"
+  | "dungeon"
+  | "item"
+  | "npc"
+  | "faction"
+  | "calendar"
+  | "pantheon"
+  | "city";
 
 export interface Tag {
   name: string;
@@ -66,8 +87,7 @@ export interface Deed {
   tags?: string[];
 }
 
-export type DeedData = Omit<Deed, 'id'>;
-
+export type DeedData = Omit<Deed, "id">;
 
 export interface Creature {
   id: string;
@@ -83,10 +103,10 @@ export interface Creature {
   tags: string[];
 }
 
-export type NewCreature = Omit<Creature, 'id'>;
+export type NewCreature = Omit<Creature, "id">;
 
 // Helper type for UI, with full deed objects
-export interface CreatureWithDeeds extends Omit<Creature, 'deeds'> {
+export interface CreatureWithDeeds extends Omit<Creature, "deeds"> {
   deeds: Deed[];
 }
 
@@ -108,14 +128,14 @@ interface BaseCombatant {
 
 export interface PlayerCombatant {
   id: string;
-  type: 'player';
+  type: "player";
   name: string;
   initiative: number;
   nat20?: boolean;
 }
 
 export interface MonsterCombatant extends BaseCombatant {
-  type: 'monster';
+  type: "monster";
   monsterId: string; // Original creature ID from bestiary
   template: CreatureTemplate;
   maxHp: number;
@@ -154,7 +174,6 @@ export interface Encounter {
   encounterTableId?: string;
 }
 
-
 // Encounter Table Types
 export interface EncounterTableEntry {
   id: string;
@@ -186,8 +205,7 @@ export interface Treasure {
   isGenerated: boolean;
 }
 
-export type NewTreasure = Omit<Treasure, 'id'>;
-
+export type NewTreasure = Omit<Treasure, "id">;
 
 // Commoner Type
 export interface CommonerCombatValues {
@@ -211,7 +229,7 @@ export interface Commoner {
     intellect: number;
     spirit: number;
   };
-  keyAttribute: 'Might' | 'Agility';
+  keyAttribute: "Might" | "Agility";
   alignment: string;
   pastLife: string;
   skill: string;
@@ -220,10 +238,10 @@ export interface Commoner {
 }
 
 // Alchemy Types
-export const ALCHEMY_ITEM_TYPES = ['potion', 'powder', 'oil', 'bomb'] as const;
+export const ALCHEMY_ITEM_TYPES = ["potion", "powder", "oil", "bomb"] as const;
 export type AlchemicalItemType = (typeof ALCHEMY_ITEM_TYPES)[number];
 
-export const ALCHEMY_ITEM_TIERS = ['lesser', 'greater'] as const;
+export const ALCHEMY_ITEM_TIERS = ["lesser", "greater"] as const;
 export type AlchemicalItemTier = (typeof ALCHEMY_ITEM_TIERS)[number];
 
 export interface AlchemicalItem {
@@ -236,7 +254,7 @@ export interface AlchemicalItem {
   tags: string[];
 }
 
-export type NewAlchemicalItem = Omit<AlchemicalItem, 'id'>;
+export type NewAlchemicalItem = Omit<AlchemicalItem, "id">;
 
 // Room Types
 export interface RoomFeature {
@@ -258,11 +276,11 @@ export interface Room {
   totalTreasureValue: number;
 }
 
-export type NewRoom = Omit<Room, 'id'>;
+export type NewRoom = Omit<Room, "id">;
 
 // Dungeon Types
-export type DungeonHostilityLevel = 'I' | 'II' | 'III' | 'IV' | 'V';
-export type DungeonSize = 'Tiny' | 'Small' | 'Medium' | 'Large' | 'Huge';
+export type DungeonHostilityLevel = "I" | "II" | "III" | "IV" | "V";
+export type DungeonSize = "Tiny" | "Small" | "Medium" | "Large" | "Huge";
 
 export interface DungeonRoom {
   instanceId: string; // A unique ID for this instance in the dungeon
@@ -276,77 +294,101 @@ export interface DungeonConnection {
 }
 
 export interface Dungeon {
-    id: string;
-    name: string;
-    description: string;
-    hostility: DungeonHostilityLevel;
-    size: DungeonSize;
-    threatRating: number;
-    treasureValue: number;
-    tags: string[];
-    rooms: DungeonRoom[];
-    connections: DungeonConnection[];
+  id: string;
+  name: string;
+  description: string;
+  hostility: DungeonHostilityLevel;
+  size: DungeonSize;
+  threatRating: number;
+  treasureValue: number;
+  tags: string[];
+  rooms: DungeonRoom[];
+  connections: DungeonConnection[];
 }
 
-export type NewDungeon = Omit<Dungeon, 'id'>;
+export type NewDungeon = Omit<Dungeon, "id">;
 
 // Item Types
-export const ITEM_TYPES = ['weapon', 'armor', 'shield', 'tool'] as const;
+export const ITEM_TYPES = ["weapon", "armor", "shield", "tool"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 
-export const ITEM_QUALITIES = ['crude', 'normal', 'fine'] as const;
+export const ITEM_QUALITIES = ["crude", "normal", "fine"] as const;
 export type ItemQuality = (typeof ITEM_QUALITIES)[number];
 
-export const ITEM_MAGIC_TIERS = ['normal', 'magical', 'artifact'] as const;
+export const ITEM_MAGIC_TIERS = ["normal", "magical", "artifact"] as const;
 export type ItemMagicTier = (typeof ITEM_MAGIC_TIERS)[number];
 
-export const WEAPON_TYPES = ['melee', 'missile', 'spell', 'unarmed'] as const;
+export const WEAPON_TYPES = ["melee", "missile", "spell", "unarmed"] as const;
 export type WeaponType = (typeof WEAPON_TYPES)[number];
 
-export const WEAPON_DAMAGE_DIES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
+export const WEAPON_DAMAGE_DIES = [
+  "d4",
+  "d6",
+  "d8",
+  "d10",
+  "d12",
+  "d20",
+] as const;
 export type WeaponDamageDie = (typeof WEAPON_DAMAGE_DIES)[number];
 
-export const WEAPON_PROPERTIES = ['one-handed', 'two-handed', 'thrown'] as const;
+export const WEAPON_PROPERTIES = [
+  "one-handed",
+  "two-handed",
+  "thrown",
+] as const;
 export type WeaponProperty = (typeof WEAPON_PROPERTIES)[number];
 
-export const ARMOR_PLACEMENTS = ['head', 'chest', 'arms', 'legs', 'outer'] as const;
-export const ITEM_PLACEMENTS = ['head', 'chest', 'arms', 'legs', 'outer', 'shield'] as const;
+export const ARMOR_PLACEMENTS = [
+  "head",
+  "chest",
+  "arms",
+  "legs",
+  "outer",
+] as const;
+export const ITEM_PLACEMENTS = [
+  "head",
+  "chest",
+  "arms",
+  "legs",
+  "outer",
+  "shield",
+] as const;
 export type ItemPlacement = (typeof ITEM_PLACEMENTS)[number];
 
-export const ARMOR_WEIGHTS = ['None', 'Light', 'Heavy'] as const;
+export const ARMOR_WEIGHTS = ["None", "Light", "Heavy"] as const;
 export type ArmorWeight = (typeof ARMOR_WEIGHTS)[number];
 
-export const ARMOR_DIES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
+export const ARMOR_DIES = ["d4", "d6", "d8", "d10", "d12", "d20"] as const;
 export type ArmorDie = (typeof ARMOR_DIES)[number];
 
 export interface Item {
-    id: string;
-    name: string;
-    type: ItemType;
-    price: number;
-    quality: ItemQuality;
-    description: string;
-    magicTier: ItemMagicTier;
-    enchantment?: string;
-    assignedDeedId?: string;
-    magicalTrait?: string;
-    tags?: string[];
-    
-    // Weapon fields
-    damageDie?: WeaponDamageDie;
-    weaponType?: WeaponType;
-    range?: number;
-    property?: WeaponProperty;
-    weaponEffect?: string;
+  id: string;
+  name: string;
+  type: ItemType;
+  price: number;
+  quality: ItemQuality;
+  description: string;
+  magicTier: ItemMagicTier;
+  enchantment?: string;
+  assignedDeedId?: string;
+  magicalTrait?: string;
+  tags?: string[];
 
-    // Armor/Shield fields
-    placement?: ItemPlacement;
-    weight?: ArmorWeight;
-    AR?: string;
-    armorDie?: ArmorDie;
+  // Weapon fields
+  damageDie?: WeaponDamageDie;
+  weaponType?: WeaponType;
+  range?: number;
+  property?: WeaponProperty;
+  weaponEffect?: string;
+
+  // Armor/Shield fields
+  placement?: ItemPlacement;
+  weight?: ArmorWeight;
+  AR?: string;
+  armorDie?: ArmorDie;
 }
 
-export type NewItem = Omit<Item, 'id'>;
+export type NewItem = Omit<Item, "id">;
 
 // Faction Types
 export interface Faction {
@@ -357,7 +399,7 @@ export interface Faction {
   tags: string[];
 }
 
-export type NewFaction = Omit<Faction, 'id'>;
+export type NewFaction = Omit<Faction, "id">;
 
 // NPC Types
 export interface NpcRelationship {
@@ -383,7 +425,7 @@ export interface Npc {
   relationships?: NpcRelationship[];
 }
 
-export type NewNpc = Omit<Npc, 'id'>;
+export type NewNpc = Omit<Npc, "id">;
 
 // Pantheon Types
 export interface PantheonRelationship {
@@ -406,13 +448,13 @@ export interface PantheonEntity {
   tags: string[];
 }
 
-export type NewPantheonEntity = Omit<PantheonEntity, 'id'>;
+export type NewPantheonEntity = Omit<PantheonEntity, "id">;
 
 // Hex Grid Types (before Calendar)
 export interface Hex {
-    q: number; // Corresponds to column
-    r: number; // Corresponds to row
-    s: number; // s = -q - r
+  q: number; // Corresponds to column
+  r: number; // Corresponds to row
+  s: number; // s = -q - r
 }
 
 // Custom Calendar Types
@@ -431,10 +473,10 @@ export interface CustomCalendar {
   maxDate?: string; // YYYY-MM-DD
 }
 
-export type NewCustomCalendar = Omit<CustomCalendar, 'id'>;
+export type NewCustomCalendar = Omit<CustomCalendar, "id">;
 
 // Calendar Types
-export const CALENDAR_PARTY_TYPES = ['faction', 'creature', 'npc'] as const;
+export const CALENDAR_PARTY_TYPES = ["faction", "creature", "npc"] as const;
 export type CalendarPartyType = (typeof CALENDAR_PARTY_TYPES)[number];
 
 export interface Calendar {
@@ -442,35 +484,49 @@ export interface Calendar {
   name: string;
   modelId?: string; // Links to a CustomCalendar id, or undefined for traditional
 }
-export type NewCalendar = Omit<Calendar, 'id'>;
+export type NewCalendar = Omit<Calendar, "id">;
 
 export interface CustomDate {
-    year: number;
-    monthIndex: number;
-    day: number;
+  year: number;
+  monthIndex: number;
+  day: number;
 }
 
 export interface CalendarEvent {
+  id: string;
+  calendarId: string;
+  title: string;
+  description: string;
+  // All dates are stored as custom date objects
+  startDate: CustomDate;
+  endDate: CustomDate;
+  tags: string[];
+  party?: {
+    type: CalendarPartyType;
     id: string;
-    calendarId: string;
-    title: string;
-    description: string;
-    // All dates are stored as custom date objects
-    startDate: CustomDate;
-    endDate: CustomDate;
-    tags: string[];
-    party?: {
-        type: CalendarPartyType;
-        id: string;
-        name: string;
-    };
-    location?: {
-        mapId: string;
-        hex: Hex;
-    };
+    name: string;
+  };
+  location?: {
+    mapId: string;
+    hex: Hex;
+  };
 }
 
-export type NewCalendarEvent = Omit<CalendarEvent, 'id'>;
+export type NewCalendarEvent = Omit<CalendarEvent, "id">;
+
+// City Types
+export interface City {
+  id: string;
+  name: string;
+  description: string;
+  npcIds?: string[];
+  location?: {
+    mapId: string;
+    hex: Hex;
+  };
+  tags?: string[];
+}
+export type NewCity = Omit<City, "id">;
 
 // Path Type for Maps
 export interface Path {
@@ -482,23 +538,30 @@ export interface Path {
 }
 
 // Hex Grid Types
+export interface Hex {
+  q: number; // Corresponds to column
+  r: number; // Corresponds to row
+  s: number; // s = -q - r
+}
+
 export interface HexTileData {
-    color?: string;
-    icon?: string;
-    iconColor?: string;
-    dungeonIds?: string[];
-    factionIds?: string[];
+  color?: string;
+  icon?: string;
+  iconColor?: string;
+  dungeonIds?: string[];
+  factionIds?: string[];
+  cityIds?: string[];
 }
 
 export interface HexTile {
-    hex: Hex;
-    data: HexTileData; // For storing metadata
+  hex: Hex;
+  data: HexTileData; // For storing metadata
 }
 
 export interface Map {
   id: string;
   name: string;
-  shape: 'radial' | 'rectangular';
+  shape: "radial" | "rectangular";
   radius?: number;
   width?: number;
   height?: number;
@@ -506,4 +569,4 @@ export interface Map {
   paths: Path[];
 }
 
-export type NewMap = Omit<Map, 'id'>;
+export type NewMap = Omit<Map, "id">;

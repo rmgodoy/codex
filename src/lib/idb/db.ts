@@ -30,6 +30,7 @@ export const CALENDAR_EVENTS_STORE_NAME = "calendarEvents";
 export const CALENDARS_STORE_NAME = "calendars";
 export const MAPS_STORE_NAME = "maps";
 export const CUSTOM_CALENDARS_STORE_NAME = "customCalendars";
+export const CITIES_STORE_NAME = "cities";
 
 export const ALL_STORE_NAMES = [
   CREATURES_STORE_NAME,
@@ -49,6 +50,7 @@ export const ALL_STORE_NAMES = [
   CALENDAR_EVENTS_STORE_NAME,
   MAPS_STORE_NAME,
   CUSTOM_CALENDARS_STORE_NAME,
+  CITIES_STORE_NAME,
 ];
 
 let db: IDBDatabase | null = null;

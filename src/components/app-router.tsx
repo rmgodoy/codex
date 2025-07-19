@@ -21,6 +21,7 @@ import MapsPage from '@/app/maps/page';
 import CommonersPage from '@/app/random/commoners/page';
 import EncounterTablesPage from '@/app/random/encounter-tables/page';
 import TreasuresPage from '@/app/random/treasures/page';
+import CitiesPage from '@/app/cities/page';
 
 const routes: { [key: string]: React.ComponentType<any> } = {
   '': WorldLandingPage,
@@ -40,6 +41,7 @@ const routes: { [key: string]: React.ComponentType<any> } = {
   'random/commoners': CommonersPage,
   'random/encounter-tables': EncounterTablesPage,
   'random/treasures': TreasuresPage,
+  'cities': CitiesPage,
 };
 
 export default function AppRouter() {

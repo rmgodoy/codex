@@ -18,6 +18,7 @@ import {
   Calendar,
   Map as MapIcon,
   Gem,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,6 +172,7 @@ export default function MainLayout({
       else if (pageKeyLower.startsWith("bestiary")) pageName = "Bestiary";
       else if (pageKeyLower.startsWith("deeds")) pageName = "Deeds";
       else if (pageKeyLower.startsWith("encounters")) pageName = "Encounters";
+      else if (pageKeyLower.startsWith("cities")) pageName = "Cities";
     }
 
     if (isMobile) {
@@ -193,6 +195,11 @@ export default function MainLayout({
     {
       href: `#/${worldSlug}/bestiary`,
       label: "Bestiary",
+      group: "Compendium",
+    },
+    {
+      href: `#/${worldSlug}/cities`,
+      label: "Cities",
       group: "Compendium",
     },
     {
@@ -247,6 +254,7 @@ export default function MainLayout({
     },
     { href: `#/${worldSlug}/dungeons`, label: "Dungeons" },
     { href: `#/${worldSlug}/maps`, label: "Maps" },
+    { href: `#/${worldSlug}/calendar`, label: "Calendar" },
   ].sort((a, b) => a.label.localeCompare(b.label));
 
   const compendiumLinks = navLinks.filter(

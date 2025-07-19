@@ -5,10 +5,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path } from "@/lib/types";
+import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp, Building } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
-import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents } from "@/lib/idb";
+import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents, getAllCities, updateCity } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,7 @@ const ICONS = [
     { name: 'MapPin', component: MapPin },
     { name: 'Landmark', component: Landmark },
     { name: 'Skull', component: Skull },
+    { name: 'Building', component: Building },
 ]
 
 const TERRAIN_COLORS = [
@@ -230,6 +231,7 @@ export default function MapsPage() {
     const [allDungeons, setAllDungeons] = useState<Dungeon[]>([]);
     const [allFactions, setAllFactions] = useState<Faction[]>([]);
     const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
+    const [allCities, setAllCities] = useState<City[]>([]);
     
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
     const [isAltPressed, setIsAltPressed] = useState(false);
@@ -293,6 +295,7 @@ export default function MapsPage() {
         getAllDungeons().then(setAllDungeons);
         getAllFactions().then(setAllFactions);
         getAllCalendarEvents().then(setAllEvents);
+        getAllCities().then(setAllCities);
     }, []);
     
     const handleMapsUpdate = (newMapId?: string) => {
@@ -370,6 +373,71 @@ export default function MapsPage() {
             handleMapUpdate({ ...activeMap, tiles: newGrid });
         }
     }, [activeMap, handleMapUpdate]);
+    
+    const handleUpdateCityLinks = useCallback(async (currentHex: Hex, newCityIdsForTile: string[]) => {
+        if (!activeMap) return;
+
+        const currentTile = activeMap.tiles.find(t => t.hex.q === currentHex.q && t.hex.r === currentHex.r);
+        if (!currentTile) return;
+
+        const oldCityIdsOnTile = new Set(currentTile.data.cityIds || []);
+        const newCityIdsOnTile = new Set(newCityIdsForTile);
+        
+        const citiesAdded = newCityIdsForTile.filter(id => !oldCityIdsOnTile.has(id));
+        const citiesRemoved = Array.from(oldCityIdsOnTile).filter(id => !newCityIdsOnTile.has(id));
+
+        const cityUpdates = [];
+        const mapTileUpdates = new Map<string, { q: number; r: number; cityIds: string[] }>();
+        
+        // Handle removals from the current tile
+        for (const cityId of citiesRemoved) {
+            const city = allCities.find(c => c.id === cityId);
+            if (city) {
+                cityUpdates.push(updateCity({ ...city, location: undefined }));
+            }
+        }
+
+        // Handle additions to the current tile
+        for (const cityId of citiesAdded) {
+            const city = allCities.find(c => c.id === cityId);
+            if (!city) continue;
+
+            // If city was on another tile on this map, remove it from there
+            if (city.location && city.location.mapId === activeMap.id) {
+                const oldHexKey = `${city.location.hex.q},${city.location.hex.r}`;
+                if (!mapTileUpdates.has(oldHexKey)) {
+                    const oldTile = activeMap.tiles.find(t => t.hex.q === city.location!.hex.q && t.hex.r === city.location!.hex.r);
+                    mapTileUpdates.set(oldHexKey, { q: city.location.hex.q, r: city.location.hex.r, cityIds: (oldTile?.data.cityIds || []) });
+                }
+                const update = mapTileUpdates.get(oldHexKey)!;
+                update.cityIds = update.cityIds.filter(id => id !== cityId);
+            }
+
+            // Update city's location to the new tile
+            cityUpdates.push(updateCity({ ...city, location: { mapId: activeMap.id, hex: currentHex } }));
+        }
+
+        // Update the current tile's city list
+        const currentHexKey = `${currentHex.q},${currentHex.r}`;
+        if (!mapTileUpdates.has(currentHexKey)) {
+            mapTileUpdates.set(currentHexKey, { q: currentHex.q, r: currentHex.r, cityIds: (currentTile.data.cityIds || []) });
+        }
+        mapTileUpdates.get(currentHexKey)!.cityIds = newCityIdsForTile;
+
+
+        // Apply all tile updates to the map
+        const newTiles = activeMap.tiles.map(tile => {
+            const key = `${tile.hex.q},${tile.hex.r}`;
+            if (mapTileUpdates.has(key)) {
+                return { ...tile, data: { ...tile.data, cityIds: mapTileUpdates.get(key)!.cityIds } };
+            }
+            return tile;
+        });
+
+        await Promise.all(cityUpdates);
+        handleMapUpdate({ ...activeMap, tiles: newTiles });
+        getAllCities().then(setAllCities);
+    }, [activeMap, allCities, handleMapUpdate, toast]);
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
         if (activeMap) {
@@ -446,6 +514,7 @@ export default function MapsPage() {
     const selectedTile = useMemo(() => activeMap?.tiles.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [activeMap, selectedHex]);
     const dungeonMap = useMemo(() => new Map(allDungeons.map(d => [d.id, d])), [allDungeons]);
     const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f])), [allFactions]);
+    const cityMap = useMemo(() => new Map(allCities.map(c => [c.id, c])), [allCities]);
     
     const eventsForSelectedTile = useMemo(() => {
         if (!selectedTile || !activeMap) return [];
@@ -706,6 +775,24 @@ export default function MapsPage() {
                                                     <p className="text-sm"><span className="font-semibold">Q:</span> {selectedHex.q}, <span className="font-semibold">R:</span> {selectedHex.r}, <span className="font-semibold">S:</span> {selectedHex.s}</p>
                                                 </div>
 
+                                                <Separator />
+                                                
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <Label className="flex items-center gap-2"><Building className="h-4 w-4"/>Cities</Label>
+                                                        <MultiItemSelectionDialog
+                                                            title="Link Cities"
+                                                            items={allCities}
+                                                            initialSelectedIds={selectedTile.data.cityIds || []}
+                                                            onConfirm={(ids) => handleUpdateCityLinks(selectedHex, ids)}
+                                                            trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
+                                                        />
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {(selectedTile.data.cityIds || []).map(id => <Badge key={id} variant="secondary">{cityMap.get(id)?.name}</Badge>)}
+                                                    </div>
+                                                </div>
+                                                
                                                 <Separator />
 
                                                 <div className="space-y-2">

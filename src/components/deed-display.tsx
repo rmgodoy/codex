@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import type { Deed } from "@/lib/types";
 import { Label } from "@/components/ui/label";
+import { stepDownDamageDie, stepUpDamageDie } from "@/lib/roles";
 
 export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplacement?: string }) => {
     const tierColors = {
@@ -23,7 +24,27 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
         if (!text) {
             return undefined;
         }
-        return dmgReplacement ? text.replace(/\\dd/g, dmgReplacement) : text;
+        if (!dmgReplacement) {
+            return text.replace(/\\dd([+\-]\d+)?/g, '...');
+        }
+        // Regex to find all instances of \dd, \dd+#, or \dd-#
+        const regex = /\\dd([+\-]\d+)?/g;
+        return text.replace(regex, (match, modifier) => {
+            let currentDie = dmgReplacement;
+            if (modifier) {
+                const modValue = parseInt(modifier, 10);
+                if (modValue > 0) {
+                    for (let i = 0; i < modValue; i++) {
+                        currentDie = stepUpDamageDie(currentDie);
+                    }
+                } else if (modValue < 0) {
+                    for (let i = 0; i < Math.abs(modValue); i++) {
+                        currentDie = stepDownDamageDie(currentDie);
+                    }
+                }
+            }
+            return currentDie;
+        });
     };
 
     const attackString = `${deed.deedType} ${deed.actionType} VS ${deed.versus}`.toUpperCase();
