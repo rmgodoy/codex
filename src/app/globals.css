@@ -139,11 +139,11 @@
 
   .chocolat {
     --background: 25 45% 15%;
-    --foreground: 30 30% 85%;
+    --foreground: 30 30% 90%;
     --card: 25 40% 20%;
-    --card-foreground: 30 30% 85%;
+    --card-foreground: 30 30% 90%;
     --popover: 25 45% 18%;
-    --popover-foreground: 30 30% 85%;
+    --popover-foreground: 30 30% 90%;
     --primary: 30 70% 60%;
     --primary-foreground: 25 30% 10%;
     --secondary: 20 25% 30%;
@@ -391,3 +391,5 @@
 .react-calendar__tile--active.react-calendar__tile--now {
     @apply bg-primary text-primary-foreground;
 }
+
+    
