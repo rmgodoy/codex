@@ -5,8 +5,6 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import {
   Skull,
   Menu,
-  Upload,
-  Download,
   BookCopy,
   Dices,
   FlaskConical,
@@ -37,33 +35,20 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { importData, exportWorldData } from "@/lib/idb";
 import { useWorld } from "./world-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SettingsMenu } from "./settings-menu";
 
 export default function MainLayout({
   children,
   showSidebarTrigger = true,
-  showImportExport = true,
 }: {
   children: React.ReactNode;
   showSidebarTrigger?: boolean;
-  showImportExport?: boolean;
 }) {
   const { worldSlug, worldName } = useWorld();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [hash, setHash] = useState("");
   const isMobile = useIsMobile();
@@ -110,9 +95,8 @@ export default function MainLayout({
             error.message || "Please check the file format and content.",
         });
       } finally {
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+        const target = event.target as HTMLInputElement;
+        if(target) target.value = "";
       }
     };
     reader.readAsText(file);
@@ -425,53 +409,16 @@ export default function MainLayout({
           )}
         </div>
         <div className="flex items-center gap-1">
-          {showImportExport && worldSlug && (
+          {isWorldContext && (
             <>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImport}
-                accept=".json"
-                className="hidden"
+              <SettingsMenu 
+                context="world"
+                onImport={handleImport}
+                onExport={handleExport}
               />
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" title="Import Data">
-                    <Upload className="h-5 w-5" />
-                    <span className="sr-only">Import Data</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Import Data?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will overwrite all existing data in the current world
-                      with data from the selected JSON file. This action cannot
-                      be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Proceed
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <Button
-                variant="ghost"
-                size="icon"
-                title="Export Data"
-                onClick={handleExport}
-              >
-                <Download className="h-5 w-5" />
-                <span className="sr-only">Export Data</span>
-              </Button>
+              <div className="md:hidden">{mobileNav}</div>
             </>
           )}
-          {isWorldContext && <div className="md:hidden">{mobileNav}</div>}
         </div>
       </header>
       <main className="flex-1 min-h-0">{children}</main>

@@ -10,12 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { listWorlds, deleteWorld, renameWorld, exportWorldData } from '@/lib/idb';
+import { listWorlds, deleteWorld, renameWorld, exportWorldData, importData, setWorldDbName } from '@/lib/idb';
 import { Download, Edit, Trash2, Skull, BookCopy, Sword, Users, Swords as SwordsIcon, Map as MapIcon, Loader2, Dices, FlaskConical, Warehouse, Shield, User, Calendar, Gem, MoreVertical } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { WorldMetadata } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SettingsMenu } from '@/components/settings-menu';
 
 const landingFeatures = [
   {
@@ -203,6 +204,52 @@ function LandingPage() {
     }
   };
 
+  const handleImportNewWorld = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      let importedName = file.name.replace(/\.json$/, '').replace(/codex_world_/g, '').replace(/_/g, ' ');
+      let slug = importedName.trim().toLowerCase().replace(/\s+/g, "-");
+      
+      const existingSlugs = new Set(worlds.map(w => w.slug));
+      let counter = 1;
+      let originalSlug = slug;
+      while (existingSlugs.has(slug)) {
+        slug = `${originalSlug}-${counter}`;
+        importedName = `${importedName} ${counter}`;
+        counter++;
+      }
+
+      try {
+        const content = e.target?.result;
+        if (typeof content !== "string") throw new Error("File content could not be read.");
+        
+        const importedData = JSON.parse(content);
+        setWorldDbName(slug);
+        await importData(importedData);
+        
+        toast({ title: "Import Successful", description: `World "${importedName}" has been created.` });
+        
+        // This will trigger a reload and navigation to the new world's landing page
+        window.location.hash = `#/${slug}`;
+        window.location.reload();
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Import Failed",
+          description: error.message || "Please check the file format.",
+        });
+      } finally {
+        const target = event.target as HTMLInputElement;
+        if(target) target.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+
+
   const truncateDescription = (description: string) => {
     if (description.length <= 50) {
       return description;
@@ -219,6 +266,9 @@ function LandingPage() {
     <MainLayout showSidebarTrigger={false}>
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
+          <div className="absolute top-4 right-4">
+            <SettingsMenu context="landing" onImportNewWorld={handleImportNewWorld} />
+          </div>
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
               Codex
