@@ -492,7 +492,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
 
         typeSpecificDetails = (
           <div className="space-y-4">
-            <h4 className="text-md font-semibold text-primary-foreground">Weapon Details</h4>
+            <h4 className="text-md font-semibold text-foreground">Weapon Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div><span className="font-semibold text-muted-foreground">Damage:</span> {itemData.damageDie}</div>
                 <div className="capitalize"><span className="font-semibold text-muted-foreground">Type:</span> {typeAndRange}</div>
@@ -506,7 +506,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
       case 'shield':
         typeSpecificDetails = (
            <div className="space-y-4">
-            <h4 className="text-md font-semibold text-primary-foreground">Armor/Shield Details</h4>
+            <h4 className="text-md font-semibold text-foreground">Armor/Shield Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div><span className="font-semibold text-muted-foreground">Placement:</span> {itemData.placement}</div>
                 <div><span className="font-semibold text-muted-foreground">Weight:</span> {itemData.weight}</div>
@@ -526,14 +526,14 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
 
     return (
       <>
-        {itemData.description && <div><h4 className="text-md font-semibold text-primary-foreground">Description</h4><p className="text-foreground/80 whitespace-pre-wrap">{itemData.description}</p></div>}
+        {itemData.description && <div><h4 className="text-md font-semibold text-foreground">Description</h4><p className="text-foreground/80 whitespace-pre-wrap">{itemData.description}</p></div>}
         {typeSpecificDetails && <Separator />}
         {typeSpecificDetails}
         {(itemData.magicTier === 'magical' || itemData.magicTier === 'artifact') && (
           <>
             <Separator />
             <div className="space-y-4">
-              <h4 className="text-md font-semibold text-primary-foreground">{itemData.magicTier === 'magical' ? 'Magical Properties' : 'Artifact Properties'}</h4>
+              <h4 className="text-md font-semibold text-foreground">{itemData.magicTier === 'magical' ? 'Magical Properties' : 'Artifact Properties'}</h4>
               {itemData.enchantment && <div><p className="font-semibold text-muted-foreground">Enchantment:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.enchantment}</p></div>}
               {itemData.magicTier === 'artifact' && itemData.magicalTrait && <div><p className="font-semibold text-muted-foreground">Magical Trait:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.magicalTrait}</p></div>}
               {deed && <div><p className="font-semibold text-muted-foreground">Granted Deed:</p><p className="text-accent">{deed.name}</p></div>}
@@ -592,7 +592,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         return (
           <>
             <Separator />
-            <h3 className="text-lg font-semibold text-primary-foreground">Weapon Properties</h3>
+            <h3 className="text-lg font-semibold text-foreground">Weapon Properties</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <FormField name="damageDie" control={form.control} render={({ field }) => (<FormItem><FormLabel>Damage Die</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_DAMAGE_DIES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weaponType" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weapon Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{WEAPON_TYPES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
@@ -609,7 +609,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
         return (
           <>
             <Separator />
-            <h3 className="text-lg font-semibold text-primary-foreground">Armor/Shield Properties</h3>
+            <h3 className="text-lg font-semibold text-foreground">Armor/Shield Properties</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FormField name="placement" control={form.control} render={({ field }) => (<FormItem><FormLabel>Placement</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{(watchedType === 'shield' ? [ 'shield' ] : ARMOR_PLACEMENTS).map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField name="weight" control={form.control} render={({ field }) => (<FormItem><FormLabel>Weight</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={watchedType === 'shield'}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{ARMOR_WEIGHTS.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
@@ -640,7 +640,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <h3 className="text-lg font-semibold text-primary-foreground">Base Properties</h3>
+                <h3 className="text-lg font-semibold text-foreground">Base Properties</h3>
                 <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Item Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField name="description" control={form.control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={4} /></FormControl><FormMessage/></FormItem>)} />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -655,7 +655,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
                 {(watchedMagicTier === 'magical' || watchedMagicTier === 'artifact') && (
                   <>
                     <Separator />
-                    <h3 className="text-lg font-semibold text-primary-foreground">Magical Properties</h3>
+                    <h3 className="text-lg font-semibold text-foreground">Magical Properties</h3>
                     <FormField name="enchantment" control={form.control} render={({ field }) => (<FormItem><FormLabel>Enchantment</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} rows={4} /></FormControl><FormMessage /></FormItem>)} />
                   </>
                 )}
