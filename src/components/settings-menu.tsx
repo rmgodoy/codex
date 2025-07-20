@@ -100,14 +100,20 @@ export function SettingsMenu({
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full">
-                    <Palette className="mr-2 h-4 w-4"/>
                     Change Theme
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>Default Dark</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("light")}>Oasis</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("dark-red")}>Crimson</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("desert")}>Desert</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("space")}>Space</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("twilight")}>Twilight</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("chocolat")}>Chocolat</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("emerald")}>Emerald</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("silver")}>Silver</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("zombie")}>Zombie</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

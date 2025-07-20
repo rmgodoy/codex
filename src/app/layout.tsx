@@ -51,7 +51,7 @@ export default function RootLayout({
             defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
-            themes={['light', 'dark', 'dark-red']}
+            themes={['light', 'dark', 'dark-red', 'desert', 'space', 'twilight', 'chocolat', 'emerald', 'silver', 'zombie']}
           >
           <WorldProvider>
             <SidebarProvider>
