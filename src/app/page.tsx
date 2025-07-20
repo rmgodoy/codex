@@ -221,7 +221,7 @@ function LandingPage() {
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl">
               Codex
             </h1>
             <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">
@@ -307,7 +307,7 @@ function LandingPage() {
                       className="border rounded-lg p-4 flex items-center justify-between gap-4 bg-card"
                     >
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-lg text-primary-foreground truncate">
+                        <h3 className="font-bold text-lg text-card-foreground truncate">
                           {world.name}
                         </h3>
                         <p className="text-sm text-muted-foreground hidden md:block">
