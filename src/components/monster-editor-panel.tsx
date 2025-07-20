@@ -606,7 +606,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                 <CardContent>
                     <Separator className="my-6"/>
                     <div>
-                      <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
+                      <h3 className="text-lg font-semibold mb-4 text-foreground">Attributes</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-x-6 gap-y-4">
                         <div className="flex items-center gap-2"><Heart className="h-5 w-5 text-accent"/><div><Label>HP</Label><p className="text-lg font-bold">{creatureData.attributes.HP}</p></div></div>
                         <div className="flex items-center gap-2"><Rabbit className="h-5 w-5 text-accent"/><div><Label>Speed</Label><p className="text-lg font-bold">{creatureData.attributes.Speed}</p></div></div>
@@ -621,7 +621,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     {creatureData.abilities && creatureData.abilities.length > 0 && <Separator className="my-6"/>}
                     {creatureData.abilities && creatureData.abilities.length > 0 && (
                         <div>
-                            <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Abilities</h3>
+                            <h3 className="text-lg font-semibold mb-2 text-foreground">Abilities</h3>
                             <div className="space-y-2">
                                 {creatureData.abilities.map((ability) => (
                                     <p key={ability.id} className="text-foreground/90 whitespace-pre-wrap">
@@ -633,7 +633,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     )}
                     <Separator className="my-6"/>
                     <div>
-                        <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Deeds</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-foreground">Deeds</h3>
                         {sortedDeeds.length > 0 ? (
                             sortedDeeds.map((deed, i) => <DeedDisplay key={i} deed={deed} dmgReplacement={creatureData.attributes.DMG} />)
                         ) : (
@@ -643,7 +643,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                     {creatureData.description && <Separator className="my-6"/>}
                     {creatureData.description && (
                         <div className="mt-4">
-                            <h3 className="text-lg font-semibold mb-2 text-primary-foreground">Description</h3>
+                            <h3 className="text-lg font-semibold mb-2 text-foreground">Description</h3>
                             <p className="text-foreground/90 whitespace-pre-wrap">{creatureData.description}</p>
                         </div>
                     )}
@@ -763,7 +763,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
               <Separator />
               
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-primary-foreground">Attributes</h3>
+                <h3 className="text-lg font-semibold mb-4 text-foreground">Attributes</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                   <FormField name="attributes.HP" control={form.control} render={({ field }) => (
                     <FormItem>
@@ -820,7 +820,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
               <div>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-primary-foreground">Abilities</h3>
+                    <h3 className="text-lg font-semibold text-foreground">Abilities</h3>
                     <Button type="button" size="sm" variant="outline" onClick={() => appendAbility({ id: crypto.randomUUID(), name: '', description: '' })}>
                       <Plus className="h-4 w-4 mr-2" /> Add Ability
                     </Button>
@@ -856,7 +856,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
 
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-primary-foreground">Deeds</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Deeds</h3>
                   <div className="flex flex-wrap justify-end gap-2">
                     <DeedSelectionDialog onAddDeeds={handleAddDeedsFromLibrary} allDeeds={allDeeds} existingDeedIds={existingDeedIds} />
                     <Button type="button" size="sm" variant="outline" onClick={() => append({ name: '', tier: 'light', actionType: 'attack', deedType: 'melee', versus: 'guard', target: '', effects: { start: '', base: '', hit: '', spark: '', shadow: '', after: '' }, tags: [] })}>
@@ -871,7 +871,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                               <CollapsibleTrigger asChild>
                                   <button type="button" className="flex items-center gap-3 text-left w-full">
                                       <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
-                                      <span className="text-lg font-semibold text-primary-foreground">
+                                      <span className="text-lg font-semibold text-foreground">
                                           {watchedData.deeds?.[index]?.name || "New Deed"}
                                       </span>
                                       {watchedData.deeds?.[index]?.id && <span className="text-xs text-muted-foreground">(from library)</span>}
@@ -956,7 +956,7 @@ export default function CreatureEditorPanel({ creatureId, isCreatingNew, templat
                               )} />
 
                               <div className="mt-4 space-y-4">
-                              <h4 className="font-semibold text-sm text-primary-foreground">Effects</h4>
+                              <h4 className="font-semibold text-sm text-foreground">Effects</h4>
                               <FormField name={`deeds.${index}.effects.start`} control={form.control} render={({ field }) => (
                                   <FormItem>
                                       <FormLabel>Start <span className="text-muted-foreground text-xs">(Optional)</span></FormLabel>

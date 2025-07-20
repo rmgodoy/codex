@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -335,12 +334,12 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                 <CardContent>
                     <div className="space-y-6">
                         {tableData.description && <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Description</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Description</h3>
                           <p className="text-foreground/80 whitespace-pre-wrap">{tableData.description}</p>
                         </div>}
                         <Separator/>
                          <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Table Entries</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Table Entries</h3>
                             <div className="space-y-3">
                                 {tableData.entries.map(entry => {
                                   const creature = creatureMap.get(entry.creatureId);
@@ -371,8 +370,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
                 </CardContent>
                 <CardFooter>
                      <AlertDialog>
-                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{tableData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                         <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
@@ -443,7 +441,7 @@ export default function EncounterTableEditorPanel({ tableId, isCreatingNew, onSa
               
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-primary-foreground">Table Entries</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Table Entries</h3>
                   <CreatureSelectionDialog onAddCreature={addEntry} existingCreatureIds={existingCreatureIds} />
                 </div>
                 <div className="space-y-3">

@@ -62,7 +62,7 @@ export default function CommonerCard({ commoner }: CommonerCardProps) {
         <Separator />
         <div>
             <Label>Alignment</Label>
-            <p className="text-foreground/90"><span className="font-bold text-primary-foreground">{alignmentType}:</span> {alignmentTraits}</p>
+            <p className="text-foreground/90"><span className="font-bold text-foreground">{alignmentType}:</span> {alignmentTraits}</p>
         </div>
         <div>
             <Label>Skill</Label>

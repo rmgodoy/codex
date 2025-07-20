@@ -184,12 +184,12 @@ export default function FactionEditorPanel({ factionId, isCreatingNew, onSaveSuc
                 <CardContent>
                     <div className="space-y-6">
                         <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Description</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Description</h3>
                           <p className="text-foreground/80 whitespace-pre-wrap">{factionData.description || "No description provided."}</p>
                         </div>
                         <Separator />
                         <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Goals</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Goals</h3>
                           <p className="text-foreground/80 whitespace-pre-wrap">{factionData.goals || "No goals provided."}</p>
                         </div>
 
@@ -206,8 +206,7 @@ export default function FactionEditorPanel({ factionId, isCreatingNew, onSaveSuc
                 </CardContent>
                 <CardFooter>
                      <AlertDialog>
-                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{factionData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                         <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
