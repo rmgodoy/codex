@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Cog, Upload, Download, FilePlus2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +21,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "./ui/dialog";
 
 interface SettingsMenuProps {
   onExport?: () => void;
@@ -39,6 +46,57 @@ export function SettingsMenu({
 }: SettingsMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newWorldFileInputRef = useRef<HTMLInputElement>(null);
+  const [isLandingSettingsOpen, setIsLandingSettingsOpen] = useState(false);
+
+  if (context === "landing") {
+    return (
+      <>
+        <input
+          type="file"
+          ref={newWorldFileInputRef}
+          onChange={onImportNewWorld}
+          accept=".json"
+          className="hidden"
+        />
+        <Dialog
+          open={isLandingSettingsOpen}
+          onOpenChange={setIsLandingSettingsOpen}
+        >
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" title="Settings">
+              <Cog className="h-5 w-5" />
+              <span className="sr-only">Settings</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Settings</DialogTitle>
+              <DialogDescription>
+                Application-wide settings and actions.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => newWorldFileInputRef.current?.click()}
+              >
+                <FilePlus2 className="mr-2" /> Import New World
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsLandingSettingsOpen(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   return (
     <>
@@ -46,13 +104,6 @@ export function SettingsMenu({
         type="file"
         ref={fileInputRef}
         onChange={onImport}
-        accept=".json"
-        className="hidden"
-      />
-       <input
-        type="file"
-        ref={newWorldFileInputRef}
-        onChange={onImportNewWorld}
         accept=".json"
         className="hidden"
       />
@@ -90,12 +141,6 @@ export function SettingsMenu({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          )}
-
-          {context === "landing" && onImportNewWorld && (
-             <DropdownMenuItem onSelect={() => newWorldFileInputRef.current?.click()}>
-                <FilePlus2 className="mr-2" /> Import New World
-             </DropdownMenuItem>
           )}
 
           {context === "world" && onExport && (
