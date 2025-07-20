@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   Cog,
   Upload,
@@ -9,6 +9,7 @@ import {
   FilePlus2,
   Moon,
   Sun,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,13 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import { useTheme } from "next-themes";
 import { useToast } from "@/hooks/use-toast";
 import { setWorldDbName, importData } from "@/lib/idb";
@@ -89,20 +97,20 @@ export function SettingsMenu({
   const ThemeSwitcher = () => (
     <div className="pt-4">
         <h3 className="mb-2 text-sm font-medium text-muted-foreground">Theme</h3>
-        <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" onClick={() => setTheme("light")}>
-                <Sun className="mr-2 h-4 w-4"/>
-                Oasis
-            </Button>
-            <Button variant="outline" onClick={() => setTheme("dark")}>
-                <Moon className="mr-2 h-4 w-4"/>
-                Dark
-            </Button>
-            <Button variant="outline" onClick={() => setTheme("system")}>
-                <Moon className="mr-2 h-4 w-4"/>
-                System
-            </Button>
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <Palette className="mr-2 h-4 w-4"/>
+                    Change Theme
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setTheme("light")}>Oasis</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark-red")}>Crimson</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     </div>
   );
 
