@@ -266,12 +266,12 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
                 <CardContent>
                     <div className="space-y-6">
                         <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Description</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Description</h3>
                           <p className="text-foreground/80 whitespace-pre-wrap">{cityData.description || "No description provided."}</p>
                         </div>
                         <Separator />
                         <div>
-                            <h3 className="text-lg font-semibold text-primary-foreground mb-2">Location</h3>
+                            <h3 className="text-lg font-semibold text-foreground mb-2">Location</h3>
                             {cityData.location ? (
                                 <p className="text-sm">Located on map <span className="font-semibold text-accent">{mapMap.get(cityData.location.mapId) || 'Unknown Map'}</span> at (Q: {cityData.location.hex.q}, R: {cityData.location.hex.r}).</p>
                             ): (
@@ -280,7 +280,7 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
                         </div>
                         <Separator />
                         <div>
-                            <h3 className="text-lg font-semibold text-primary-foreground mb-2">Notable NPCs</h3>
+                            <h3 className="text-lg font-semibold text-foreground mb-2">Notable NPCs</h3>
                             {cityData.npcIds && cityData.npcIds.length > 0 ? (
                                 <div className="flex flex-wrap gap-2">
                                     {cityData.npcIds.map(id => <Badge key={id} variant="secondary">{npcMap.get(id) || 'Unknown NPC'}</Badge>)}
@@ -302,8 +302,7 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
                 </CardContent>
                 <CardFooter>
                      <AlertDialog>
-                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{cityData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                         <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>

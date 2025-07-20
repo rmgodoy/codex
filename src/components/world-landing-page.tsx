@@ -246,7 +246,7 @@ export default function WorldLandingPage() {
                 <Input
                   value={worldName}
                   onChange={(e) => setWorldName(e.target.value)}
-                  className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl text-center h-auto bg-transparent border-primary"
+                  className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl text-center h-auto bg-transparent border-primary"
                 />
                 <Textarea
                   value={worldDescription}
@@ -263,7 +263,7 @@ export default function WorldLandingPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
+                <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl">
                   {metadata?.name || contextWorldName || "Loading..."}
                 </h1>
                 <p className="mt-3 max-w-md mx-auto text-lg text-muted-foreground sm:text-xl md:mt-5 md:max-w-3xl">

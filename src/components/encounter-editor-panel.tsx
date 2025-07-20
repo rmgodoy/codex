@@ -504,16 +504,16 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                 <CardContent>
                     <div className="space-y-6">
                         <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Scene</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Scene</h3>
                           <p className="text-foreground/80 whitespace-pre-wrap">{encounterData.sceneDescription || "No scene description."}</p>
                         </div>
                          <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">GM Notes</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">GM Notes</h3>
                           <p className="text-foreground/80 whitespace-pre-wrap">{encounterData.gmNotes || "No GM notes."}</p>
                         </div>
                         <Separator/>
                          <div>
-                          <h3 className="text-lg font-semibold text-primary-foreground mb-2">Combatants</h3>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Combatants</h3>
                             <div className="space-y-3">
                                 <h4 className="font-semibold text-muted-foreground">Players ({(encounterData.players || []).length})</h4>
                                 <ul className="space-y-2 pl-4">
@@ -561,9 +561,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                     </div>
                 </CardContent>
                 <CardFooter>
-                     <AlertDialog>
-                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                      <AlertDialogContent>
+                     <AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{encounterData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                         <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
@@ -622,7 +620,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
               <Separator />
               
               <div>
-                <h3 className="text-lg font-semibold text-primary-foreground mb-4">Combatants</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Combatants</h3>
                 
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
@@ -722,4 +720,3 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
     </div>
   );
 }
-

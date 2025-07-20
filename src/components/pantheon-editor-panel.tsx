@@ -339,13 +339,13 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Lore</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.lore || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Lore</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.lore || "Not specified."}</p></div>
                         <Separator />
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Goal</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.goal || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Goal</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.goal || "Not specified."}</p></div>
                         <Separator />
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Symbols</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.symbols || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Symbols</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.symbols || "Not specified."}</p></div>
                         <Separator />
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Followers</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.followers || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Followers</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.followers || "Not specified."}</p></div>
                         
                         {entityData.artifactId && (
                           <><Separator /><p><span className="font-semibold text-muted-foreground">Artifact:</span> <Link href="/items" className="text-accent hover:underline">{artifactMap.get(entityData.artifactId) || 'Unknown Artifact'}</Link></p></>
@@ -353,7 +353,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                         
                         {entityData.relationships && entityData.relationships.length > 0 && (
                              <><Separator /><div>
-                                <h3 className="text-lg font-semibold text-primary-foreground mb-2">Relationships</h3>
+                                <h3 className="text-lg font-semibold text-foreground mb-2">Relationships</h3>
                                 <ul className="list-disc pl-5 space-y-1">
                                     {entityData.relationships.map(rel => (
                                         <li key={rel.id} className="text-sm">
@@ -419,7 +419,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                 </div>
                 <Separator/>
                 <div>
-                    <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground">Relationships</h3><AddRelationshipDialog currentEntityId={entityId} allEntities={allEntities} onAdd={appendRelationship} /></div>
+                    <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-foreground">Relationships</h3><AddRelationshipDialog currentEntityId={entityId} allEntities={allEntities} onAdd={appendRelationship} /></div>
                     <div className="space-y-2">
                         {relationshipFields.map((field, index) => (<div key={field.id} className="flex items-center gap-2 p-2 border rounded-lg bg-card-foreground/5"><p className="flex-1"><span className="capitalize">{field.type}</span> <span className="font-semibold text-accent">{entityMap.get(field.targetEntityId) || '...'}</span></p><Button type="button" variant="ghost" size="icon" onClick={() => removeRelationship(index)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button></div>))}
                         {relationshipFields.length === 0 && <p className="text-muted-foreground text-center text-sm py-2">No relationships defined.</p>}

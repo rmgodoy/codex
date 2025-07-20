@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -310,8 +311,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   if (!roomId && !isCreatingNew) {
     return (
       <div className="w-full max-w-5xl mx-auto">
-        <Card className="h-full flex items-center justify-center min-h-[300px]">
-          <CardContent className="text-center pt-6"><p className="text-xl text-muted-foreground">Select a room to view or create a new one.</p></CardContent>
+        <Card className="h-full flex items-center justify-center min-h-[300px]"><CardContent className="text-center pt-6"><p className="text-xl text-muted-foreground">Select a room to view or create a new one.</p></CardContent>
         </Card>
       </div>
     );
@@ -338,10 +338,10 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
-                        {roomData.description && <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Description</h3><p className="text-foreground/80 whitespace-pre-wrap">{roomData.description}</p></div>}
+                        {roomData.description && <div><h3 className="text-lg font-semibold text-foreground mb-2">Description</h3><p className="text-foreground/80 whitespace-pre-wrap">{roomData.description}</p></div>}
                         
                         <div>
-                            <h3 className="text-lg font-semibold text-primary-foreground mb-2">Features</h3>
+                            <h3 className="text-lg font-semibold text-foreground mb-2">Features</h3>
                             {roomData.features.length > 0 ? (
                                 <ul className="space-y-4">
                                     {roomData.features.map(feature => (
@@ -404,7 +404,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                 <Separator />
               
                 <div>
-                  <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-primary-foreground">Room Features</h3><Button type="button" size="sm" variant="outline" onClick={handleAddFeature}><Plus className="h-4 w-4 mr-2" /> Add Feature</Button></div>
+                  <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-semibold text-foreground">Room Features</h3><Button type="button" size="sm" variant="outline" onClick={handleAddFeature}><Plus className="h-4 w-4 mr-2" /> Add Feature</Button></div>
                   <div className="space-y-3">
                     {featureFields.map((field, index) => (
                       <Collapsible 
@@ -416,7 +416,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                               <CollapsibleTrigger asChild>
                                   <button type="button" className="flex items-center gap-3 text-left w-full">
                                       <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
-                                      <span className="text-lg font-semibold text-primary-foreground">
+                                      <span className="text-lg font-semibold text-foreground">
                                           {form.watch(`features.${index}.title`) || "New Feature"}
                                       </span>
                                   </button>

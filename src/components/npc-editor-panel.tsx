@@ -491,7 +491,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                                 <div className="flex flex-wrap gap-x-8 gap-y-4">
                                 {npcData.factionIds && npcData.factionIds.length > 0 && (
                                     <div>
-                                        <h3 className="text-lg font-semibold text-primary-foreground mb-2">Factions</h3>
+                                        <h3 className="text-lg font-semibold text-foreground mb-2">Factions</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {npcData.factionIds.map(id => (
                                                 <Badge key={id} variant="secondary">{factionMap.get(id) || 'Unknown'}</Badge>
@@ -501,7 +501,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                                 )}
                                 {npcData.beliefIds && npcData.beliefIds.length > 0 && (
                                     <div>
-                                        <h3 className="text-lg font-semibold text-primary-foreground mb-2">Beliefs</h3>
+                                        <h3 className="text-lg font-semibold text-foreground mb-2">Beliefs</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {npcData.beliefIds.map(id => (
                                                 <Badge key={id} variant="secondary">{entityMap.get(id) || 'Unknown'}</Badge>
@@ -517,7 +517,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                         {npcData.relationships && npcData.relationships.length > 0 && (
                              <>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-primary-foreground mb-2">Relationships</h3>
+                                    <h3 className="text-lg font-semibold text-foreground mb-2">Relationships</h3>
                                     <ul className="list-disc pl-5 space-y-1">
                                         {npcData.relationships.map(rel => (
                                             <li key={rel.id} className="text-sm">
@@ -529,13 +529,13 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                                 <Separator />
                             </>
                         )}
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Appearance</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.appearance || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Appearance</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.appearance || "Not specified."}</p></div>
                         <Separator />
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Personality</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.personality || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Personality</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.personality || "Not specified."}</p></div>
                         <Separator />
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Motivation</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.motivation || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Motivation</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.motivation || "Not specified."}</p></div>
                         <Separator />
-                        <div><h3 className="text-lg font-semibold text-primary-foreground mb-2">Backstory</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.backstory || "Not specified."}</p></div>
+                        <div><h3 className="text-lg font-semibold text-foreground mb-2">Backstory</h3><p className="text-foreground/80 whitespace-pre-wrap">{npcData.backstory || "Not specified."}</p></div>
                         {npcData.tags && npcData.tags.length > 0 && (
                             <div className="mt-4 pt-3 border-t border-border/50">
                                 <div className="flex flex-wrap gap-2">
@@ -549,8 +549,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                 </CardContent>
                 <CardFooter>
                      <AlertDialog>
-                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogTrigger asChild><Button type="button" variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger><AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{npcData.name}". This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                         <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
@@ -659,7 +658,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                 
                  <div>
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-primary-foreground">Relationships</h3>
+                        <h3 className="text-lg font-semibold text-foreground">Relationships</h3>
                         <AddRelationshipDialog currentNpcId={npcId} allNpcs={allNpcs} onAdd={appendRelationship} />
                     </div>
                     <div className="space-y-2">
