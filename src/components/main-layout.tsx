@@ -392,7 +392,7 @@ export default function MainLayout({
           {isWorldContext && showSidebarTrigger && <SidebarTrigger />}
           <a href="#" className="flex items-center gap-3">
             <Skull className="text-primary h-8 w-8" />
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-foreground whitespace-nowrap">
               {finalPageTitle}
             </h1>
           </a>
