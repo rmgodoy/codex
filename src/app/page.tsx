@@ -204,52 +204,6 @@ function LandingPage() {
     }
   };
 
-  const handleImportNewWorld = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      let importedName = file.name.replace(/\.json$/, '').replace(/codex_world_/g, '').replace(/_/g, ' ');
-      let slug = importedName.trim().toLowerCase().replace(/\s+/g, "-");
-      
-      const existingSlugs = new Set(worlds.map(w => w.slug));
-      let counter = 1;
-      let originalSlug = slug;
-      while (existingSlugs.has(slug)) {
-        slug = `${originalSlug}-${counter}`;
-        importedName = `${importedName} ${counter}`;
-        counter++;
-      }
-
-      try {
-        const content = e.target?.result;
-        if (typeof content !== "string") throw new Error("File content could not be read.");
-        
-        const importedData = JSON.parse(content);
-        setWorldDbName(slug);
-        await importData(importedData);
-        
-        toast({ title: "Import Successful", description: `World "${importedName}" has been created.` });
-        
-        // This will trigger a reload and navigation to the new world's landing page
-        window.location.hash = `#/${slug}`;
-        window.location.reload();
-      } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Import Failed",
-          description: error.message || "Please check the file format.",
-        });
-      } finally {
-        const target = event.target as HTMLInputElement;
-        if(target) target.value = "";
-      }
-    };
-    reader.readAsText(file);
-  };
-
-
   const truncateDescription = (description: string) => {
     if (description.length <= 50) {
       return description;

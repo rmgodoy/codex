@@ -2,17 +2,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Cog, Upload, Download, FilePlus2, Monitor, Moon, Sun } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
-} from "@/components/ui/dropdown-menu";
+  Cog,
+  Upload,
+  Download,
+  FilePlus2,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -35,64 +32,79 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useTheme } from "next-themes";
+import { useToast } from "@/hooks/use-toast";
+import { setWorldDbName, importData } from "@/lib/idb";
 
 interface SettingsMenuProps {
   onExport?: () => void;
   onImport?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onImportNewWorld?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   context: "landing" | "world";
 }
 
 export function SettingsMenu({
   onExport,
   onImport,
-  onImportNewWorld,
   context,
 }: SettingsMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newWorldFileInputRef = useRef<HTMLInputElement>(null);
   const { setTheme } = useTheme();
+  const { toast } = useToast();
 
-  if (context === "landing") {
-    return (
-      <>
-        <input
-          type="file"
-          ref={newWorldFileInputRef}
-          onChange={onImportNewWorld}
-          accept=".json"
-          className="hidden"
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" title="Settings">
-              <Cog className="h-5 w-5" />
-              <span className="sr-only">Settings</span>
+  const handleImportNewWorld = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      let importedName = file.name.replace(/\.json$/, '').replace(/codex_world_/g, '').replace(/_/g, ' ');
+      let slug = importedName.trim().toLowerCase().replace(/\s+/g, "-");
+      
+      try {
+        const content = e.target?.result;
+        if (typeof content !== "string") throw new Error("File content could not be read.");
+        
+        const importedData = JSON.parse(content);
+        setWorldDbName(slug);
+        await importData(importedData);
+        
+        toast({ title: "Import Successful", description: `World "${importedName}" has been created.` });
+        
+        window.location.hash = `#/${slug}`;
+        window.location.reload();
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Import Failed",
+          description: error.message || "Please check the file format.",
+        });
+      } finally {
+        const target = event.target as HTMLInputElement;
+        if(target) target.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  const ThemeSwitcher = () => (
+    <div className="pt-4">
+        <h3 className="mb-2 text-sm font-medium text-muted-foreground">Theme</h3>
+        <div className="grid grid-cols-3 gap-2">
+            <Button variant="outline" onClick={() => setTheme("light")}>
+                <Sun className="mr-2 h-4 w-4"/>
+                Oasis
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => newWorldFileInputRef.current?.click()}>
-              <FilePlus2 className="mr-2" /> Import New World
-            </DropdownMenuItem>
-             <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 mr-2" />
-                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 mr-2" />
-                    <span>Theme</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setTheme("light")}>Oasis</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("dark")}>Default Dark</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-            </DropdownMenuSub>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </>
-    );
-  }
+            <Button variant="outline" onClick={() => setTheme("dark")}>
+                <Moon className="mr-2 h-4 w-4"/>
+                Dark
+            </Button>
+            <Button variant="outline" onClick={() => setTheme("system")}>
+                <Moon className="mr-2 h-4 w-4"/>
+                System
+            </Button>
+        </div>
+    </div>
+  );
 
   return (
     <>
@@ -103,63 +115,66 @@ export function SettingsMenu({
         accept=".json"
         className="hidden"
       />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+       <input
+        type="file"
+        ref={newWorldFileInputRef}
+        onChange={handleImportNewWorld}
+        accept=".json"
+        className="hidden"
+      />
+      <Dialog>
+        <DialogTrigger asChild>
           <Button variant="ghost" size="icon" title="Settings">
             <Cog className="h-5 w-5" />
             <span className="sr-only">Settings</span>
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {context === "world" && onImport && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Upload className="mr-2" /> Import & Overwrite
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Import Data?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will overwrite all existing data in the current world
-                    with data from the selected JSON file. This action cannot be
-                    undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Proceed
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-
-          {context === "world" && onExport && (
-            <DropdownMenuItem onSelect={onExport}>
-              <Download className="mr-2" /> Export Current World
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 mr-2" />
-                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 mr-2" />
-                <span>Theme</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => setTheme("light")}>Oasis</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme("dark")}>Default Dark</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-                </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {context === 'landing' && (
+               <Button variant="outline" className="w-full" onClick={() => newWorldFileInputRef.current?.click()}>
+                 <FilePlus2 className="mr-2" /> Import New World
+               </Button>
+            )}
+            {context === 'world' && onImport && (
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                        <Upload className="mr-2" /> Import & Overwrite
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Import Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will overwrite all existing data in the current world
+                        with data from the selected JSON file. This action cannot be
+                        undone.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        Proceed
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
+            )}
+            {context === 'world' && onExport && (
+                 <Button variant="outline" className="w-full" onClick={onExport}>
+                    <Download className="mr-2" /> Export Current World
+                 </Button>
+            )}
+            <ThemeSwitcher />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
