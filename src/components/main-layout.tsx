@@ -409,7 +409,7 @@ export default function MainLayout({
           )}
         </div>
         <div className="flex items-center gap-1">
-          {isWorldContext && (
+          {isWorldContext ? (
             <>
               <SettingsMenu 
                 context="world"
@@ -418,6 +418,8 @@ export default function MainLayout({
               />
               <div className="md:hidden">{mobileNav}</div>
             </>
+          ) : (
+             <SettingsMenu context="landing" />
           )}
         </div>
       </header>

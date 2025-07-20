@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { WorldProvider } from '@/components/world-provider';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'Codex',
@@ -17,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <style
           dangerouslySetInnerHTML={{
@@ -45,12 +46,19 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <WorldProvider>
-          <SidebarProvider>
-            {children}
-          </SidebarProvider>
-        </WorldProvider>
-        <Toaster />
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+          <WorldProvider>
+            <SidebarProvider>
+              {children}
+            </SidebarProvider>
+          </WorldProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

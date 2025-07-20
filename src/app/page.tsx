@@ -266,9 +266,6 @@ function LandingPage() {
     <MainLayout showSidebarTrigger={false}>
       <div className="h-full overflow-y-auto bg-background/50">
         <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="relative mb-4 flex justify-end">
-            <SettingsMenu context="landing" onImportNewWorld={handleImportNewWorld} />
-          </div>
           <div className="text-center">
             <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground sm:text-5xl md:text-6xl">
               Codex

@@ -2,12 +2,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Cog, Upload, Download, FilePlus2 } from "lucide-react";
+import { Cog, Upload, Download, FilePlus2, Monitor, Moon, Sun } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +34,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "./ui/dialog";
+import { useTheme } from "next-themes";
 
 interface SettingsMenuProps {
   onExport?: () => void;
@@ -46,7 +51,7 @@ export function SettingsMenu({
 }: SettingsMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const newWorldFileInputRef = useRef<HTMLInputElement>(null);
-  const [isLandingSettingsOpen, setIsLandingSettingsOpen] = useState(false);
+  const { setTheme } = useTheme();
 
   if (context === "landing") {
     return (
@@ -58,42 +63,33 @@ export function SettingsMenu({
           accept=".json"
           className="hidden"
         />
-        <Dialog
-          open={isLandingSettingsOpen}
-          onOpenChange={setIsLandingSettingsOpen}
-        >
-          <DialogTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" title="Settings">
               <Cog className="h-5 w-5" />
               <span className="sr-only">Settings</span>
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Settings</DialogTitle>
-              <DialogDescription>
-                Application-wide settings and actions.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => newWorldFileInputRef.current?.click()}
-              >
-                <FilePlus2 className="mr-2" /> Import New World
-              </Button>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsLandingSettingsOpen(false)}
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => newWorldFileInputRef.current?.click()}>
+              <FilePlus2 className="mr-2" /> Import New World
+            </DropdownMenuItem>
+             <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 mr-2" />
+                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 mr-2" />
+                    <span>Theme</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>Oasis</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>Default Dark</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </>
     );
   }
@@ -148,6 +144,20 @@ export function SettingsMenu({
               <Download className="mr-2" /> Export Current World
             </DropdownMenuItem>
           )}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 mr-2" />
+                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 mr-2" />
+                <span>Theme</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setTheme("light")}>Oasis</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme("dark")}>Default Dark</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+                </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
     </>
