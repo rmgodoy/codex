@@ -160,10 +160,10 @@ export default function InitiativeTracker({
           <ul className="space-y-2 pr-4">
             {combatantsInTurnOrder.map((c) => (
               <li key={c.turnId}>
-                <button
+                <div
                     onClick={() => onSelectCombatant(c.id)}
                     className={cn(
-                        "w-full text-left p-3 rounded-lg border-l-4 transition-all",
+                        "w-full text-left p-3 rounded-lg border-l-4 transition-all cursor-pointer",
                         selectedCombatantId === c.id
                         ? "bg-primary/20 border-primary shadow-md"
                         : "bg-background border-transparent hover:bg-muted"
@@ -202,7 +202,7 @@ export default function InitiativeTracker({
                         <Label htmlFor={`nat20-${c.id}`}>Nat 20</Label>
                     </div>
                     )}
-                </button>
+                </div>
               </li>
             ))}
           </ul>
