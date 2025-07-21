@@ -37,6 +37,7 @@ import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { Label } from "./ui/label";
+import { useWorld } from "./world-provider";
 
 const itemSchema = z.object({
   name: z.string().min(1, "Item name is required"),
@@ -206,6 +207,7 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
   const [loading, setLoading] = useState(!isCreatingNew && !!itemId);
   const [itemData, setItemData] = useState<Item | null>(null);
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
   
   const [allDeeds, setAllDeeds] = useState<Deed[]>([]);
   const [weaponData, setWeaponData] = useState<Partial<WeaponSpecificData>>({});
@@ -536,7 +538,12 @@ export default function ItemEditorPanel({ itemId, isCreatingNew, template, onSav
               <h4 className="text-md font-semibold text-foreground">{itemData.magicTier === 'magical' ? 'Magical Properties' : 'Artifact Properties'}</h4>
               {itemData.enchantment && <div><p className="font-semibold text-muted-foreground">Enchantment:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.enchantment}</p></div>}
               {itemData.magicTier === 'artifact' && itemData.magicalTrait && <div><p className="font-semibold text-muted-foreground">Magical Trait:</p><p className="text-foreground/80 whitespace-pre-wrap">{itemData.magicalTrait}</p></div>}
-              {deed && <div><p className="font-semibold text-muted-foreground">Granted Deed:</p><p className="text-accent">{deed.name}</p></div>}
+              {deed && (
+                <div>
+                  <p className="font-semibold text-muted-foreground">Granted Deed:</p>
+                  <a href={`#/${worldSlug}/deeds/${deed.id}`} className="text-accent hover:underline">{deed.name}</a>
+                </div>
+              )}
             </div>
           </>
         )}
