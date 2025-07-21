@@ -54,8 +54,9 @@ const TERRAIN_COLORS = [
 ];
 
 const customDateToDate = (customDate: CustomDate): Date => {
-  const date = moment.utc([customDate.year, customDate.monthIndex, customDate.day]).toDate();
-  return date;
+    const date = moment().utc().endOf("day").toDate();
+    date.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
+    return date;
 };
 
 function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsUpdate: (newMapId?: string) => void }) {
