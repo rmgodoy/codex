@@ -31,12 +31,12 @@ const StatDisplay = ({ label, modified, original, isBonus }: { label: string, mo
   }
 
   return (
-    <div>
-        <Label>{label}</Label>
+    <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-card-foreground/5 min-w-[80px]">
+        <Label className="text-xs">{label}</Label>
         {isModified ? (
             <p className="text-lg font-bold">
                 <span className={colorClass}>{modified}</span>
-                <span className="text-muted-foreground text-sm ml-2 line-through">{original}</span>
+                <span className="text-muted-foreground text-xs ml-1 line-through">{original}</span>
             </p>
         ) : (
              <p className="text-lg font-bold">{original}</p>
@@ -234,7 +234,8 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
           {combatant.type === 'monster' && modifiedAttributes && originalAttributes && (
              <>
                 <Separator />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center my-6">
+                <div className="w-full overflow-x-auto pb-2">
+                  <div className="flex flex-nowrap md:grid md:grid-cols-7 gap-2">
                     <StatDisplay label="Speed" modified={modifiedAttributes.Speed} original={originalAttributes.Speed} />
                     <StatDisplay label="Accuracy" modified={modifiedAttributes.Accuracy} original={originalAttributes.Accuracy} isBonus />
                     <StatDisplay label="Guard" modified={modifiedAttributes.Guard} original={originalAttributes.Guard} isBonus />
@@ -242,6 +243,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                     <StatDisplay label="Roll Bonus" modified={modifiedAttributes.rollBonus > 0 ? `+${modifiedAttributes.rollBonus}`: modifiedAttributes.rollBonus} original={originalAttributes.rollBonus > 0 ? `+${originalAttributes.rollBonus}`: originalAttributes.rollBonus} isBonus />
                     <StatDisplay label="DMG" modified={combatant.attributes.DMG} original={combatant.attributes.DMG} />
                     <StatDisplay label="Initiative" modified={modifiedAttributes.Initiative} original={originalAttributes.Initiative} isBonus />
+                  </div>
                 </div>
              </>
           )}
@@ -250,7 +252,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
           
           <div>
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-primary-foreground">States</h3>
+                <h3 className="text-xl font-semibold text-foreground">States</h3>
             </div>
              <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Popover open={isStatePopoverOpen} onOpenChange={setIsStatePopoverOpen}>
@@ -341,7 +343,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
             <>
                 <Separator/>
                 <div>
-                    <h3 className="text-xl font-semibold text-primary-foreground my-4">Abilities</h3>
+                    <h3 className="text-xl font-semibold text-foreground my-4">Abilities</h3>
                     <div className="space-y-2 text-foreground/90 whitespace-pre-wrap">
                         {combatant.abilities.map((ability) => (
                             <p key={ability.id}>
@@ -357,10 +359,12 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
             <>
                 <Separator/>
                 <div>
-                    <h3 className="text-xl font-semibold text-primary-foreground mb-4">Deeds</h3>
-                    {combatant.deeds.map((deed, i) => (
-                        <DeedDisplay key={`${deed.id}-${i}`} deed={deed} dmgReplacement={combatant.attributes.DMG} />
-                    ))}
+                    <h3 className="text-xl font-semibold text-foreground mb-4">Deeds</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {combatant.deeds.map((deed, i) => (
+                            <DeedDisplay key={`${deed.id}-${i}`} deed={deed} dmgReplacement={combatant.attributes.DMG} />
+                        ))}
+                    </div>
                 </div>
             </>
           )}
