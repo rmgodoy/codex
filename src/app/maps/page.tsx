@@ -6,7 +6,7 @@ import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp, Building } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City } from "@/lib/types";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City, CustomDate } from "@/lib/types";
 import { generateHexGrid, resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
 import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents, getAllCities, updateCity } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import moment from "moment";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -51,6 +52,11 @@ const TERRAIN_COLORS = [
     { name: 'Desert', color: '#F5A623' },
     { name: 'Snow', color: '#FFFFFF' },
 ];
+
+const customDateToDate = (customDate: CustomDate): Date => {
+  const date = moment.utc([customDate.year, customDate.monthIndex, customDate.day]).toDate();
+  return date;
+};
 
 function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsUpdate: (newMapId?: string) => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -838,7 +844,7 @@ export default function MapsPage() {
                                                                 <div key={event.id} className="p-1 rounded bg-muted/50">
                                                                     <p className="font-semibold text-sm">{event.title}</p>
                                                                     <p className="text-xs text-muted-foreground">
-                                                                        {format(new Date(event.startDate), 'P')} - {format(new Date(event.endDate), 'P')}
+                                                                        {format(customDateToDate(event.startDate), 'P')} - {format(customDateToDate(event.endDate), 'P')}
                                                                     </p>
                                                                 </div>
                                                             ))}
@@ -970,3 +976,4 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
         </div>
     );
 }
+
