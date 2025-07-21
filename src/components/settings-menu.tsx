@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "./ui/dialog";
 import {
   DropdownMenu,
