@@ -58,7 +58,7 @@ export default function AppRouter() {
 
       if (currentWorldSlug === worldSlug) {
         const PageComponent = routes[pageKey] || WorldLandingPage;
-        setPage({ Component: () => PageComponent, props: { selectedId: selectedId } });
+        setPage({ Component: PageComponent, props: { selectedId: selectedId } });
       }
     };
 
