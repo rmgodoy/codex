@@ -48,6 +48,11 @@ export default function DataToolPanel(props: DataToolPanelProps) {
         return <p className="text-sm text-muted-foreground">Click on a tile to see or edit its data.</p>;
     }
 
+    const getEventHref = (event: CalendarEvent) => {
+        const dateString = encodeURIComponent(JSON.stringify(event.startDate));
+        return `#/${worldSlug}/calendar?selectedId=${event.calendarId}&selectedDate=${dateString}`;
+    }
+
     return (
         <div className="space-y-4">
             <div>
@@ -111,7 +116,7 @@ export default function DataToolPanel(props: DataToolPanelProps) {
                              try {
                                 return (
                                     <div key={event.id} className="p-1 rounded bg-muted/50">
-                                        <p className="font-semibold text-sm">{event.title}</p>
+                                        <a href={getEventHref(event)} className="font-semibold text-sm text-accent hover:underline">{event.title}</a>
                                         <p className="text-xs text-muted-foreground">
                                             {format(customDateToDate(event.startDate), 'P')} - {format(customDateToDate(event.endDate), 'P')}
                                         </p>

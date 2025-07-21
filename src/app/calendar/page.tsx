@@ -324,7 +324,12 @@ function CalendarManagementDialog({
   );
 }
 
-export default function CalendarPage() {
+interface CalendarPageProps {
+  selectedId?: string;
+  selectedDate?: CustomDate;
+}
+
+export default function CalendarPage({ selectedId, selectedDate }: CalendarPageProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [calendars, setCalendars] = useState<CalendarType[]>([]);
   const [customCalendars, setCustomCalendars] = useState<CustomCalendarType[]>(
@@ -392,9 +397,13 @@ export default function CalendarPage() {
   };
 
   useEffect(() => {
-    fetchCalendarsAndEvents(selectedCalendarId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    fetchCalendarsAndEvents(selectedId || selectedCalendarId);
+    if (selectedDate) {
+        setSelectedCustomDate(selectedDate);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, selectedDate]);
+
 
   const handleCalendarSelection = (newId: string) => {
     setSelectedCalendarId(newId);
