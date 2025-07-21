@@ -1,7 +1,7 @@
 
 "use client";
 
-import { getDb, ALL_STORE_NAMES, setWorldDbName } from './db';
+import { getDb, ALL_STORE_NAMES, setWorldDbName, generateId } from './db';
 import type { TagSource } from '@/lib/types';
 
 
@@ -62,6 +62,10 @@ export const importData = async (data: any): Promise<void> => {
     const processStore = (storeName: string, items: any[]) => {
         if (items && Array.isArray(items)) {
             items.forEach((item: any) => {
+                // Ensure item has an ID before putting it in the store
+                if (!item.id) {
+                    item.id = generateId();
+                }
                 stores[storeName].put(item);
                 if ('tags' in item) {
                     processTags(item.tags, storeName as TagSource);
