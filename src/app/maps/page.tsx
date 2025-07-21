@@ -5,10 +5,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, Paintbrush, Database, Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Plus, Trash2, Cog, Check, Edit, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Waypoints, CornerLeftUp, Building } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City, CustomDate } from "@/lib/types";
-import { generateHexGrid, resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
-import { getAllDungeons, getAllFactions, getAllMaps, addMap, getMapById, updateMap, deleteMap, getAllCalendarEvents, getAllCities, updateCity } from "@/lib/idb";
+import { Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Building } from "lucide-react";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City } from "@/lib/types";
+import { resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
+import { getAllDungeons, getAllFactions, getAllMaps, getMapById, updateMap, getAllCalendarEvents, getAllCities, updateCity } from "@/lib/idb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -19,17 +19,15 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MultiItemSelectionDialog } from "@/components/multi-item-selection-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import moment from "moment";
-import { useWorld } from "@/components/world-provider";
+import MapManagementDialog from "@/components/maps/map-management-dialog";
+import PathToolPanel from "@/components/maps/path-tool-panel";
+import { customDateToDate } from "@/components/maps/custom-date-converter";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -53,171 +51,6 @@ const TERRAIN_COLORS = [
     { name: 'Desert', color: '#F5A623' },
     { name: 'Snow', color: '#FFFFFF' },
 ];
-
-const customDateToDate = (customDate: CustomDate): Date => {
-    const date = moment().utc().endOf("day").toDate();
-    date.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
-    return date;
-};
-
-function MapManagementDialog({ maps, onMapsUpdate }: { maps: WorldMap[], onMapsUpdate: (newMapId?: string) => void }) {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [newMapName, setNewMapName] = useState("");
-    const [newMapShape, setNewMapShape] = useState<'radial' | 'rectangular'>('radial');
-    const [newMapRadius, setNewMapRadius] = useState(20);
-    const [newMapWidth, setNewMapWidth] = useState(30);
-    const [newMapHeight, setNewMapHeight] = useState(20);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editingName, setEditingName] = useState("");
-    const { toast } = useToast();
-
-    const handleAddMap = async () => {
-        if (!newMapName.trim()){
-            toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid name.' });
-            return;
-        }
-
-        let newGrid: HexTile[];
-        let newMap: NewMap;
-
-        if (newMapShape === 'radial') {
-            if (!newMapRadius || newMapRadius <= 0) {
-                 toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide a valid radius.' });
-                 return;
-            }
-            newGrid = generateHexGrid(newMapRadius);
-            newMap = { name: newMapName.trim(), shape: 'radial', radius: newMapRadius, tiles: newGrid, paths: [] };
-        } else {
-             if (!newMapWidth || newMapWidth <= 0 || !newMapHeight || newMapHeight <= 0) {
-                 toast({ variant: 'destructive', title: 'Invalid Input', description: 'Please provide valid width and height.' });
-                 return;
-            }
-            newGrid = generateRectangularHexGrid(newMapWidth, newMapHeight);
-            newMap = { name: newMapName.trim(), shape: 'rectangular', width: newMapWidth, height: newMapHeight, tiles: newGrid, paths: [] };
-        }
-
-        try {
-            const newId = await addMap(newMap);
-            toast({ title: 'Map Created', description: `'${newMapName}' has been added.` });
-            setNewMapName("");
-            setNewMapRadius(20);
-            setNewMapWidth(30);
-            setNewMapHeight(20);
-            onMapsUpdate(newId);
-            setIsDialogOpen(false);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to create map.' });
-        }
-    };
-
-    const handleStartEdit = (map: WorldMap) => {
-        setEditingId(map.id);
-        setEditingName(map.name);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingId(null);
-        setEditingName("");
-    };
-
-    const handleRenameMap = async () => {
-        if (!editingId || !editingName.trim()) return;
-        const mapToUpdate = maps.find(m => m.id === editingId);
-        if (!mapToUpdate) return;
-        try {
-            await updateMap({ ...mapToUpdate, name: editingName.trim() });
-            toast({ title: 'Map Renamed' });
-            onMapsUpdate();
-            handleCancelEdit();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to rename map.' });
-        }
-    };
-
-    const handleDeleteMap = async (mapId: string) => {
-        try {
-            await deleteMap(mapId);
-            toast({ title: 'Map Deleted' });
-            onMapsUpdate();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete map.' });
-        }
-    };
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="icon"><Cog className="h-5 w-5" /></Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Manage Maps</DialogTitle>
-                    <DialogDescription>Add, rename, or delete your maps.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="space-y-4 p-3 border rounded-md">
-                        <Label>New Map</Label>
-                        <Input 
-                            placeholder="New map name..." 
-                            value={newMapName}
-                            onChange={(e) => setNewMapName(e.target.value)}
-                        />
-                        <RadioGroup value={newMapShape} onValueChange={(v) => setNewMapShape(v as any)} className="flex gap-4">
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="radial" id="radial" /><Label htmlFor="radial">Radial</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="rectangular" id="rectangular" /><Label htmlFor="rectangular">Rectangular</Label></div>
-                        </RadioGroup>
-                        
-                        {newMapShape === 'radial' ? (
-                            <Input placeholder="Radius" type="number" value={newMapRadius} onChange={(e) => setNewMapRadius(parseInt(e.target.value, 10) || 0)} />
-                        ) : (
-                            <div className="flex gap-2">
-                                <Input placeholder="Width" type="number" value={newMapWidth} onChange={(e) => setNewMapWidth(parseInt(e.target.value, 10) || 0)} />
-                                <Input placeholder="Height" type="number" value={newMapHeight} onChange={(e) => setNewMapHeight(parseInt(e.target.value, 10) || 0)} />
-                            </div>
-                        )}
-
-                        <Button onClick={handleAddMap} className="w-full"><Plus className="h-4 w-4" /> Add Map</Button>
-                    </div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {maps.map(map => (
-                            <div key={map.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50 gap-2">
-                                {editingId === map.id ? (
-                                    <>
-                                        <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleRenameMap() }} className="h-8" autoFocus />
-                                        <div className="flex items-center gap-1">
-                                            <Button size="icon" className="h-7 w-7" onClick={handleRenameMap} aria-label="Save"><Check className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancelEdit} aria-label="Cancel"><X className="h-4 w-4" /></Button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="flex-1 truncate" title={map.name}>{map.name}</span>
-                                        <div className="flex items-center shrink-0">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartEdit(map)} aria-label="Edit"><Edit className="h-4 w-4"/></Button>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Delete"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>This will permanently delete the "{map.name}" map and all of its tiles.</AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteMap(map.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 export default function MapsPage() {
     const [maps, setMaps] = useState<WorldMap[]>([]);
@@ -870,112 +703,5 @@ export default function MapsPage() {
                 </Collapsible>
             </div>
         </MainLayout>
-    );
-}
-
-function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingId }: { activeMap: WorldMap | null, onPathUpdate: (paths: Path[]) => void, pathDrawingId: string | null, setPathDrawingId: (id: string | null) => void }) {
-    
-    const handleAddPath = () => {
-        const newPath: Path = {
-            id: crypto.randomUUID(),
-            name: `Path ${((activeMap?.paths || []).length) + 1}`,
-            color: '#FFD700',
-            strokeWidth: 3,
-            points: [],
-        };
-        const newPaths = [newPath, ...(activeMap?.paths || [])];
-        onPathUpdate(newPaths);
-        setPathDrawingId(newPath.id);
-    };
-
-    const handleUpdatePath = (pathId: string, updates: Partial<Path>) => {
-        const newPaths = (activeMap?.paths || []).map(p => p.id === pathId ? { ...p, ...updates } : p);
-        onPathUpdate(newPaths);
-    };
-
-    const handleDeletePath = (pathId: string) => {
-        if (pathDrawingId === pathId) {
-            setPathDrawingId(null);
-        }
-        const newPaths = (activeMap?.paths || []).filter(p => p.id !== pathId);
-        onPathUpdate(newPaths);
-    };
-    
-    const handleRemoveLastPoint = (pathId: string) => {
-       const newPaths = (activeMap?.paths || []).map(p => {
-           if (p.id === pathId) {
-               return {...p, points: p.points.slice(0, -1)};
-           }
-           return p;
-       });
-       onPathUpdate(newPaths);
-    };
-
-    if (!activeMap) {
-        return <p className="text-sm text-muted-foreground text-center pt-4">Select a map to manage paths.</p>;
-    }
-
-    return (
-        <div className="space-y-4">
-            <Button onClick={handleAddPath} className="w-full"><Plus className="h-4 w-4 mr-2" />Add New Path</Button>
-            <Separator />
-            <ScrollArea className="h-96">
-                <div className="space-y-3 pr-2">
-                    {(activeMap.paths || []).map(path => (
-                        <div key={path.id} className="p-3 border rounded-md bg-muted/50 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <Input
-                                    value={path.name}
-                                    onChange={(e) => handleUpdatePath(path.id, { name: e.target.value })}
-                                    className="h-8 flex-1"
-                                />
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Path?</AlertDialogTitle>
-                                            <AlertDialogDescription>Are you sure you want to delete "{path.name}"? This cannot be undone.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeletePath(path.id)} className="bg-destructive">Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Label>Color:</Label>
-                                <Input type="color" value={path.color} onChange={(e) => handleUpdatePath(path.id, { color: e.target.value })} className="h-8 w-16 p-1"/>
-                                <Label>Width:</Label>
-                                <Input type="number" value={path.strokeWidth} min="1" max="20" onChange={(e) => handleUpdatePath(path.id, { strokeWidth: parseInt(e.target.value, 10) || 1 })} className="h-8 flex-1"/>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant={pathDrawingId === path.id ? "secondary" : "outline"}
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => setPathDrawingId(prev => prev === path.id ? null : path.id)}
-                                >
-                                    {pathDrawingId === path.id ? <Check className="h-4 w-4 mr-2" /> : <Paintbrush className="h-4 w-4 mr-2" />}
-                                    {pathDrawingId === path.id ? "Drawing..." : "Draw Path"}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-9 w-9"
-                                  onClick={() => handleRemoveLastPoint(path.id)}
-                                  disabled={path.points.length === 0}
-                                  aria-label="Remove last point"
-                                >
-                                  <CornerLeftUp className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </ScrollArea>
-        </div>
     );
 }
