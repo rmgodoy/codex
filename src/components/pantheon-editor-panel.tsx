@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { Label } from "./ui/label";
 import Link from "next/link";
+import { useWorld } from "./world-provider";
 
 const pantheonRelationshipSchema = z.object({
   id: z.string(),
@@ -200,6 +201,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
   const [allEntities, setAllEntities] = useState<PantheonEntity[]>([]);
   const [allArtifacts, setAllArtifacts] = useState<Item[]>([]);
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
   
   const entityMap = useMemo(() => new Map(allEntities.map(e => [e.id, e.name])), [allEntities]);
   const artifactMap = useMemo(() => new Map(allArtifacts.map(a => [a.id, a.name])), [allArtifacts]);
@@ -348,7 +350,7 @@ export default function PantheonEditorPanel({ entityId, isCreatingNew, onSaveSuc
                         <div><h3 className="text-lg font-semibold text-foreground mb-2">Followers</h3><p className="text-foreground/80 whitespace-pre-wrap">{entityData.followers || "Not specified."}</p></div>
                         
                         {entityData.artifactId && (
-                          <><Separator /><p><span className="font-semibold text-muted-foreground">Artifact:</span> <Link href="/items" className="text-accent hover:underline">{artifactMap.get(entityData.artifactId) || 'Unknown Artifact'}</Link></p></>
+                          <><Separator /><p><span className="font-semibold text-muted-foreground">Artifact:</span> <a href={`#/${worldSlug}/items/${entityData.artifactId}`} className="text-accent hover:underline">{artifactMap.get(entityData.artifactId) || 'Unknown Artifact'}</a></p></>
                         )}
                         
                         {entityData.relationships && entityData.relationships.length > 0 && (
