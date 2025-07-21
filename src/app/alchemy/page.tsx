@@ -12,8 +12,12 @@ import { populateDefaultAlchemyData } from '@/lib/default-alchemy-data';
 
 type SortByType = 'name' | 'tier' | 'cost';
 
-export default function AlchemyPage() {
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+interface AlchemyPageProps {
+  selectedId?: string;
+}
+
+export default function AlchemyPage({ selectedId }: AlchemyPageProps) {
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -33,7 +37,13 @@ export default function AlchemyPage() {
     populateDefaultAlchemyData().then(() => {
         setDataVersion(v => v + 1);
     });
-  }, []);
+    if (selectedId) {
+      setSelectedItemId(selectedId);
+      if (isMobile) {
+        setMobileView('editor');
+      }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,
