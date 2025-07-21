@@ -57,6 +57,8 @@ export function WorldProvider({ children }: WorldProviderProps) {
         if (request.result) {
           setWorldName(request.result.name);
         } else {
+          // This case might happen if the URL is manipulated to a non-existent world.
+          // We can create a default entry, or just show the slug as the name.
           const defaultName = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           const newMetadata: WorldMetadata = { slug: slug, name: defaultName, description: 'A new world of adventure awaits...' };
           store.put(newMetadata);
