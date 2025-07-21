@@ -78,6 +78,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { CustomCalendarView } from "@/components/custom-calendar-view";
 import moment from "moment";
+import { useWorld } from "@/components/world-provider";
 
 const DEFAULT_MIN_DATE = new Date(Date.UTC(1, 0, 1));
 DEFAULT_MIN_DATE.setUTCFullYear(1);
@@ -340,6 +341,7 @@ export default function CalendarPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const { toast } = useToast();
+  const { worldSlug } = useWorld();
 
   const activeCalendar = useMemo(() => {
     return calendars.find((c) => c.id === selectedCalendarId);
@@ -542,6 +544,17 @@ export default function CalendarPage() {
     return selectedCustomDate || getDefaultCustomDate(activeCalendarModel);
   }, [selectedCustomDate, activeCalendarModel]);
 
+  const partyToHref = (party: CalendarEvent['party']) => {
+    if (!party) return '#';
+    const pageMap = {
+      'creature': 'bestiary',
+      'faction': 'factions',
+      'npc': 'npcs'
+    };
+    const page = pageMap[party.type];
+    return `#/${worldSlug}/${page}/${party.id}`;
+  };
+
   const calendarManager = (
     <div className="flex items-center gap-2">
       <Select
@@ -690,9 +703,9 @@ export default function CalendarPage() {
                                 {event.party && (
                                   <p className="text-xs text-muted-foreground mt-2">
                                     Party:{" "}
-                                    <span className="font-semibold text-accent">
+                                    <a href={partyToHref(event.party)} className="font-semibold text-accent hover:underline">
                                       {event.party.name} ({event.party.type})
-                                    </span>
+                                    </a>
                                   </p>
                                 )}
                                 {event.location && (

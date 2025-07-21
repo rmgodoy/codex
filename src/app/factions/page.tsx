@@ -10,8 +10,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 type SortByType = 'name';
 
-export default function FactionsPage() {
-  const [selectedFactionId, setSelectedFactionId] = useState<string | null>(null);
+interface FactionsPageProps {
+  selectedId?: string;
+}
+
+export default function FactionsPage({ selectedId }: FactionsPageProps) {
+  const [selectedFactionId, setSelectedFactionId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -26,7 +30,13 @@ export default function FactionsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedFactionId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,
