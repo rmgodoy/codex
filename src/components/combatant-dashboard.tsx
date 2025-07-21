@@ -134,11 +134,23 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
     setHpChange("");
   };
 
+  const updateCombatantStates = (newStates: CombatantState[]) => {
+    let newInitiative = combatant.attributes.Initiative;
+    newStates.forEach(state => {
+      if (state.name === 'Hastened') {
+        newInitiative += state.intensity;
+      } else if (state.name === 'Hindered') {
+        newInitiative -= state.intensity;
+      }
+    });
+    onUpdate({ ...combatant, states: newStates, initiative: newInitiative });
+  };
+
   const handleStateChange = (stateId: string, field: 'intensity', value: number) => {
     const newStates = combatant.states.map(s => 
       s.id === stateId ? { ...s, [field]: value } : s
     );
-    onUpdate({ ...combatant, states: newStates });
+    updateCombatantStates(newStates);
   };
   
   const addCustomState = () => {
@@ -147,7 +159,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
           name: 'New State',
           intensity: 1,
       };
-      onUpdate({...combatant, states: [...combatant.states, newState]});
+      updateCombatantStates([...combatant.states, newState]);
   }
 
   const addSelectedCommonState = () => {
@@ -162,20 +174,19 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
       effects: stateToAdd.effects,
     };
   
-    onUpdate({ ...combatant, states: [...combatant.states, newState]});
+    updateCombatantStates([...combatant.states, newState]);
     setSelectedCommonState(''); // Reset select
   }
 
-
   const removeState = (stateId: string) => {
-      onUpdate({...combatant, states: combatant.states.filter(s => s.id !== stateId)});
+      updateCombatantStates(combatant.states.filter(s => s.id !== stateId));
   }
   
   const updateState = (stateId: string, updatedState: Partial<CombatantState>) => {
     const newStates = combatant.states.map(s => 
       s.id === stateId ? { ...s, ...updatedState } : s
     );
-    onUpdate({ ...combatant, states: newStates });
+    updateCombatantStates(newStates);
   }
 
   return (
