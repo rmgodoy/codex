@@ -48,10 +48,7 @@ const rollQuantity = (quantityStr: string): number => {
 // Helper function to calculate turn order
 const calculateTurnOrder = (combatants: Combatant[]) => {
   if (!combatants || combatants.length === 0) {
-    return {
-      turnOrder: [],
-      untrackedPlayers: [],
-    };
+    return [];
   }
   
   const activeCombatants = combatants.filter(c => c.type === 'player' || (c.type === 'monster' && c.currentHp > 0));
@@ -59,17 +56,16 @@ const calculateTurnOrder = (combatants: Combatant[]) => {
   const allPlayers = activeCombatants.filter((c): c is PlayerCombatant => c.type === 'player');
   const monsters = activeCombatants.filter((c): c is MonsterCombatant => c.type === 'monster');
     
-  const untracked = allPlayers.filter(p => (p.initiative === undefined || p.initiative <= 0) && !p.nat20);
-  const trackedPlayers = allPlayers.filter(p => (p.initiative !== undefined && p.initiative > 0) || p.nat20);
-
   const sortByInitiative = (a: Combatant, b: Combatant) => (b.initiative || 0) - (a.initiative || 0);
   
-  const nat20Players = trackedPlayers.filter(p => p.nat20).sort(sortByInitiative);
-  const otherPlayers = trackedPlayers.filter(p => !p.nat20);
+  const nat20Players = allPlayers.filter(p => p.nat20).sort(sortByInitiative);
+  const otherPlayers = allPlayers.filter(p => !p.nat20);
 
   const maxMonsterInitiative = monsters.length > 0 ? Math.max(...monsters.map(m => m.initiative)) : -Infinity;
-  const highInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) > maxMonsterInitiative).sort(sortByInitiative);
-  const lowInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) <= maxMonsterInitiative).sort(sortByInitiative);
+  
+  // Players with initiative >= max monster initiative go first
+  const highInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) >= maxMonsterInitiative).sort(sortByInitiative);
+  const lowInitiativePlayers = otherPlayers.filter(p => (p.initiative || 0) < maxMonsterInitiative).sort(sortByInitiative);
   
   const sortedMonsters = [...monsters].sort(sortByInitiative);
   const paragonsAndTyrants = monsters.filter(m => m.template === 'Paragon' || m.template === 'Tyrant').sort(sortByInitiative);
@@ -83,14 +79,14 @@ const calculateTurnOrder = (combatants: Combatant[]) => {
     ...paragonsAndTyrants.map(c => ({ ...c, turnId: `${c.id}-extra` })),
   ];
   
-  return { turnOrder: finalTurnOrder, untrackedPlayers: untracked };
+  return finalTurnOrder;
 };
 
 export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEncounterViewProps) {
   const [combatantsByRound, setCombatantsByRound] = useState<Record<number, Combatant[]>>({});
   const [loading, setLoading] = useState(true);
-  const [turnIndex, setTurnIndex] = useState(0);
   const [round, setRound] = useState(1);
+  const [selectedCombatantId, setSelectedCombatantId] = useState<string | null>(null);
   const [perilHistory, setPerilHistory] = useState<Record<number, PerilState>>({});
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -160,27 +156,21 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     });
   }, []);
   
-  const allPlayersReady = useMemo(() => {
-    if (loading || combatants.length === 0) return false;
-    const players = combatants.filter((c): c is PlayerCombatant => c.type === 'player');
-    if (players.length === 0) return true;
-    return players.every(p => (p.initiative !== undefined && p.initiative > 0) || p.nat20);
-  }, [combatants, loading]);
-  
   const { activeCombatants, defeatedCombatants } = useMemo(() => {
     const active = combatants.filter(c => c.type === 'player' || (c.type === 'monster' && c.currentHp > 0));
     const defeated = combatants.filter((c): c is MonsterCombatant => c.type === 'monster' && c.currentHp <= 0);
     return { activeCombatants: active, defeatedCombatants: defeated };
   }, [combatants]);
 
-  const { turnOrder, activeTurn, untrackedPlayers } = useMemo(() => {
-    if (loading || activeCombatants.length === 0) return { turnOrder: [], activeTurn: null, untrackedPlayers: [] };
+  const turnOrder = useMemo(() => {
+    if (loading || activeCombatants.length === 0) return [];
+    return calculateTurnOrder(activeCombatants);
+  }, [activeCombatants, loading]);
 
-    const { turnOrder: finalTurnOrder, untrackedPlayers: untracked } = calculateTurnOrder(activeCombatants);
-    const currentActiveTurn = allPlayersReady ? finalTurnOrder[turnIndex] : null;
-
-    return { turnOrder: finalTurnOrder, activeTurn: currentActiveTurn, untrackedPlayers: untracked };
-  }, [activeCombatants, turnIndex, loading, allPlayersReady]);
+  const selectedCombatant = useMemo(() => {
+      if (!selectedCombatantId) return null;
+      return combatants.find(c => c.id === selectedCombatantId) || null;
+  }, [selectedCombatantId, combatants]);
 
 
   useEffect(() => {
@@ -279,49 +269,25 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
     initializeCombatants();
   }, [encounter, rollPerilForRound, onEndEncounter, toast]);
   
-  const nextTurn = () => {
-    if (!allPlayersReady) return;
-    
-    // Check if turnOrder is empty or if we are already at the end
-    const isEndOfRound = turnOrder.length === 0 || turnIndex >= turnOrder.length - 1;
-
-    if (isEndOfRound) {
-        // End of round, start new one
-        const newRound = round + 1;
-        
-        // If the state for the next round doesn't exist yet, create it.
-        if (!combatantsByRound[newRound]) {
-            const newCombatantsForRound: Combatant[] = JSON.parse(JSON.stringify(combatants));
-            
-            // Reset initiative and nat20 for all players for the new round.
-            newCombatantsForRound.forEach((c: Combatant) => {
-                if (c.type === 'player') {
-                    c.initiative = 0;
-                    c.nat20 = false;
-                }
-            });
-    
-            setCombatantsByRound(prev => ({ ...prev, [newRound]: newCombatantsForRound }));
-            rollPerilForRound(newRound, newCombatantsForRound);
-        }
-
-        setRound(newRound);
-        setTurnIndex(0);
-    } else {
-        setTurnIndex(prevIndex => prevIndex + 1);
+  const nextRound = () => {
+    const newRound = round + 1;
+    if (!combatantsByRound[newRound]) {
+        const newCombatantsForRound: Combatant[] = JSON.parse(JSON.stringify(combatants));
+        newCombatantsForRound.forEach((c: Combatant) => {
+            if (c.type === 'player') {
+                c.initiative = 0;
+                c.nat20 = false;
+            }
+        });
+        setCombatantsByRound(prev => ({ ...prev, [newRound]: newCombatantsForRound }));
+        rollPerilForRound(newRound, newCombatantsForRound);
     }
+    setRound(newRound);
   };
 
-  const prevTurn = () => {
-    if (turnIndex === 0 && round > 1) {
-      const newRound = round - 1;
-      const prevRoundCombatants = combatantsByRound[newRound] || [];
-      const { turnOrder: prevTurnOrder } = calculateTurnOrder(prevRoundCombatants);
-      
-      setRound(newRound);
-      setTurnIndex(prevTurnOrder.length > 0 ? prevTurnOrder.length - 1 : 0);
-    } else if (turnIndex > 0) {
-      setTurnIndex(prevIndex => prevIndex - 1);
+  const prevRound = () => {
+    if (round > 1) {
+      setRound(prevRound => prevRound - 1);
     }
   };
   
@@ -338,7 +304,6 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
       
       const newState = { ...prevRounds, [round]: newCombatants };
 
-      // Persist player initiatives across future rounds if they exist
       if (updatedCombatant.type === 'player') {
           for (let i = round + 1; i <= Math.max(...Object.keys(prevRounds).map(Number)); i++) {
               if (newState[i]) {
@@ -376,38 +341,36 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
          <header className="py-4 px-6 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-sm sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <Swords className="text-primary h-8 w-8" />
-              <h1 className="text-xl md:text-3xl font-headline font-bold text-primary-foreground whitespace-nowrap">{encounter.name}</h1>
+              <h1 className="text-xl md:text-3xl font-headline font-bold text-foreground whitespace-nowrap">{encounter.name}</h1>
             </div>
             <Button variant="destructive" onClick={onEndEncounter}>End Encounter</Button>
          </header>
          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <InitiativeTracker 
                 combatantsInTurnOrder={turnOrder}
-                untrackedPlayers={untrackedPlayers}
                 defeatedCombatants={defeatedCombatants}
-                activeTurnId={activeTurn?.turnId || null}
+                selectedCombatantId={selectedCombatantId}
+                onSelectCombatant={setSelectedCombatantId}
                 round={round}
-                onNextTurn={nextTurn}
-                onPrevTurn={prevTurn}
+                onNextRound={nextRound}
+                onPrevRound={prevRound}
                 onCombatantUpdate={updateCombatant}
                 onRevive={reviveCombatant}
                 perilRoll={currentPeril.roll}
                 perilText={currentPeril.text}
-                allPlayersReady={allPlayersReady}
-                turnIndex={turnIndex}
                 onAddPlayer={addPlayer}
             />
-            {activeTurn ? (
+            {selectedCombatant ? (
               <CombatantDashboard
-                  key={activeTurn.turnId} 
-                  combatant={activeTurn}
+                  key={selectedCombatant.id} 
+                  combatant={selectedCombatant}
                   onUpdate={updateCombatant}
               />
             ) : (
               <div className="p-8 text-center text-muted-foreground flex items-center justify-center h-full rounded-lg bg-card">
                 <div>
                   <p className="text-xl">Encounter loaded.</p>
-                  <p>Set player initiatives and press "Next" to begin.</p>
+                  <p>Select a combatant from the list to view their details.</p>
                 </div>
               </div>
             )}
@@ -424,7 +387,7 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
               <SidebarTrigger />
               <div className="flex items-center gap-3">
                 <Swords className="text-primary h-8 w-8" />
-                <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary-foreground">{encounter.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-headline font-bold text-foreground">{encounter.name}</h1>
               </div>
             </div>
             <Button variant="destructive" onClick={onEndEncounter}>End Encounter</Button>
@@ -434,35 +397,33 @@ export default function LiveEncounterView({ encounter, onEndEncounter }: LiveEnc
                 {loading ? <Skeleton className="h-full w-full" /> : (
                   <InitiativeTracker 
                       combatantsInTurnOrder={turnOrder}
-                      untrackedPlayers={untrackedPlayers}
                       defeatedCombatants={defeatedCombatants}
-                      activeTurnId={activeTurn?.turnId || null}
+                      selectedCombatantId={selectedCombatantId}
+                      onSelectCombatant={setSelectedCombatantId}
                       round={round}
-                      onNextTurn={nextTurn}
-                      onPrevTurn={prevTurn}
+                      onNextRound={nextRound}
+                      onPrevRound={prevRound}
                       onCombatantUpdate={updateCombatant}
                       onRevive={reviveCombatant}
                       perilRoll={currentPeril.roll}
                       perilText={currentPeril.text}
-                      allPlayersReady={allPlayersReady}
-                      turnIndex={turnIndex}
                       onAddPlayer={addPlayer}
                   />
                 )}
             </Sidebar>
             <SidebarInset className="flex-1 overflow-y-auto bg-background/50">
               <div className="p-4 sm:p-6 md:p-8 h-full">
-                {activeTurn ? (
+                {selectedCombatant ? (
                   <CombatantDashboard
-                      key={activeTurn.turnId} 
-                      combatant={activeTurn}
+                      key={selectedCombatant.id} 
+                      combatant={selectedCombatant}
                       onUpdate={updateCombatant}
                   />
                 ) : (
                   <div className="text-center text-muted-foreground flex items-center justify-center h-full">
                     <div>
                       <p className="text-xl">Encounter loaded.</p>
-                      <p>Set player initiatives and press "Next" to begin.</p>
+                      <p>Select a combatant from the list to view their details.</p>
                     </div>
                   </div>
                 )}
