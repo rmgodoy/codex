@@ -15,9 +15,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 type DungeonViewMode = 'preparation' | 'live';
 type SortByType = 'name' | 'threatRating';
 
-export default function DungeonsPage() {
+interface DungeonsPageProps {
+  selectedId?: string;
+}
+
+export default function DungeonsPage({ selectedId }: DungeonsPageProps) {
   const [mode, setMode] = useState<DungeonViewMode>('preparation');
-  const [selectedDungeonId, setSelectedDungeonId] = useState<string | null>(null);
+  const [selectedDungeonId, setSelectedDungeonId] = useState<string | null>(selectedId || null);
   const [liveDungeon, setLiveDungeon] = useState<Dungeon | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
@@ -33,7 +37,13 @@ export default function DungeonsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+      setSelectedDungeonId(selectedId);
+      if (isMobile) {
+        setMobileView('editor');
+      }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,

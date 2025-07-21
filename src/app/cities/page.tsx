@@ -10,8 +10,12 @@ import CityEditorPanel from '@/components/city-editor-panel';
 
 type SortByType = 'name';
 
-export default function CitiesPage() {
-  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
+interface CitiesPageProps {
+  selectedId?: string;
+}
+
+export default function CitiesPage({ selectedId }: CitiesPageProps) {
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -28,7 +32,15 @@ export default function CitiesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    
+    if (selectedId) {
+      setSelectedCityId(selectedId);
+      if (isMobile) {
+        setMobileView('editor');
+      }
+    }
+  }, [selectedId, isMobile]);
+
+  useEffect(() => {
     const handleFocus = () => {
       refreshList();
     };

@@ -29,6 +29,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import moment from "moment";
+import { useWorld } from "@/components/world-provider";
 
 const ICONS = [
     { name: 'Home', component: Home },
@@ -248,6 +249,7 @@ export default function MapsPage() {
     const { toast } = useToast();
     const isMobile = useIsMobile();
     const [isToolsOpen, setIsToolsOpen] = useState(true);
+    const { worldSlug } = useWorld();
 
     useEffect(() => {
         setIsToolsOpen(!isMobile);
@@ -796,7 +798,7 @@ export default function MapsPage() {
                                                         />
                                                     </div>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {(selectedTile.data.cityIds || []).map(id => <Badge key={id} variant="secondary">{cityMap.get(id)?.name}</Badge>)}
+                                                        {(selectedTile.data.cityIds || []).map(id => <a key={id} href={`#/${worldSlug}/cities/${id}`}><Badge variant="secondary" className="hover:bg-accent/50">{cityMap.get(id)?.name}</Badge></a>)}
                                                     </div>
                                                 </div>
                                                 
@@ -814,7 +816,7 @@ export default function MapsPage() {
                                                         />
                                                     </div>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {(selectedTile.data.dungeonIds || []).map(id => <Badge key={id} variant="secondary">{dungeonMap.get(id)?.name}</Badge>)}
+                                                        {(selectedTile.data.dungeonIds || []).map(id => <a key={id} href={`#/${worldSlug}/dungeons/${id}`}><Badge variant="secondary" className="hover:bg-accent/50">{dungeonMap.get(id)?.name}</Badge></a>)}
                                                     </div>
                                                 </div>
                                                 
@@ -832,7 +834,7 @@ export default function MapsPage() {
                                                         />
                                                     </div>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {(selectedTile.data.factionIds || []).map(id => <Badge key={id} variant="secondary">{factionMap.get(id)?.name}</Badge>)}
+                                                        {(selectedTile.data.factionIds || []).map(id => <a key={id} href={`#/${worldSlug}/factions/${id}`}><Badge variant="secondary" className="hover:bg-accent/50">{factionMap.get(id)?.name}</Badge></a>)}
                                                     </div>
                                                 </div>
 
@@ -977,4 +979,3 @@ function PathToolPanel({ activeMap, onPathUpdate, pathDrawingId, setPathDrawingI
         </div>
     );
 }
-
