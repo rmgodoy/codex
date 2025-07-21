@@ -12,8 +12,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 type SortByType = 'name' | 'race';
 
-export default function NpcsPage() {
-  const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
+interface NpcsPageProps {
+  selectedId?: string;
+}
+
+export default function NpcsPage({ selectedId }: NpcsPageProps) {
+  const [selectedNpcId, setSelectedNpcId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<Npc> | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
@@ -31,7 +35,13 @@ export default function NpcsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedNpcId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,
