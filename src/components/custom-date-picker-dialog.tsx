@@ -4,8 +4,8 @@
 import { useState } from 'react';
 import type { CustomCalendar } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Button } from './ui/button';
 import { CustomCalendarView } from './custom-calendar-view';
+import { customDateToDate } from './maps/custom-date-converter';
 
 interface CustomDate {
     year: number;
@@ -37,7 +37,7 @@ export function CustomDatePickerDialog({ calendarModel, initialDate, onDateSelec
             setIsOpen(false);
           }}
           disableEditing
-          initialDate={initialDate ? new Date(Date.UTC(initialDate.year, initialDate.monthIndex, initialDate.day)) : undefined}
+          initialDate={initialDate ? customDateToDate(initialDate) : undefined}
           selectedDate={initialDate}
         />
       </DialogContent>
