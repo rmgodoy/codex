@@ -48,9 +48,10 @@ const StatDisplay = ({ label, modified, original, isBonus }: { label: string, mo
 interface CombatantDashboardProps {
   combatant: Combatant;
   onUpdate: (combatant: Combatant) => void;
+  onInitiativeUpdate?: (combatant: MonsterCombatant) => void;
 }
 
-export default function CombatantDashboard({ combatant, onUpdate }: CombatantDashboardProps) {
+export default function CombatantDashboard({ combatant, onUpdate, onInitiativeUpdate }: CombatantDashboardProps) {
   const [hpChange, setHpChange] = useState("");
   const [selectedCommonState, setSelectedCommonState] = useState("");
   const [stateSearch, setStateSearch] = useState("");
@@ -135,15 +136,11 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
   };
 
   const updateCombatantStates = (newStates: CombatantState[]) => {
-    let newInitiative = combatant.attributes.Initiative;
-    newStates.forEach(state => {
-      if (state.name === 'Hastened') {
-        newInitiative += state.intensity;
-      } else if (state.name === 'Hindered') {
-        newInitiative -= state.intensity;
-      }
-    });
-    onUpdate({ ...combatant, states: newStates, initiative: newInitiative });
+    const updatedCombatant = { ...combatant, states: newStates };
+    onUpdate(updatedCombatant);
+    if (onInitiativeUpdate) {
+        onInitiativeUpdate(updatedCombatant);
+    }
   };
 
   const handleStateChange = (stateId: string, field: 'intensity', value: number) => {
@@ -246,7 +243,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
              <>
                 <Separator />
                 <div className="w-full overflow-x-auto pb-2">
-                  <div className="flex flex-nowrap md:grid md:grid-cols-7 gap-2">
+                  <div className="flex flex-nowrap gap-2">
                     <StatDisplay label="Speed" modified={modifiedAttributes.Speed} original={originalAttributes.Speed} />
                     <StatDisplay label="Accuracy" modified={modifiedAttributes.Accuracy} original={originalAttributes.Accuracy} isBonus />
                     <StatDisplay label="Guard" modified={modifiedAttributes.Guard} original={originalAttributes.Guard} isBonus />
@@ -373,7 +370,7 @@ export default function CombatantDashboard({ combatant, onUpdate }: CombatantDas
                     <h3 className="text-xl font-semibold text-foreground mb-4">Deeds</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {combatant.deeds.map((deed, i) => (
-                            <DeedDisplay key={`${deed.id}-${i}`} deed={deed} dmgReplacement={combatant.attributes.DMG} />
+                            <DeedDisplay key={`${deed.id}-${i}`} deed={deed} dmgReplacement={combatant.attributes.DMG} isLiveEncounter={true} />
                         ))}
                     </div>
                 </div>

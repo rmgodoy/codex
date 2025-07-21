@@ -11,8 +11,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 type SortByType = 'name' | 'tier';
 
-export default function DeedsPage() {
-  const [selectedDeedId, setSelectedDeedId] = useState<string | null>(null);
+interface DeedsPageProps {
+  selectedId?: string;
+}
+
+export default function DeedsPage({ selectedId }: DeedsPageProps) {
+  const [selectedDeedId, setSelectedDeedId] = useState<string | null>(selectedId || null);
   const [dataVersion, setDataVersion] = useState(0);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<Deed> | null>(null);
@@ -29,7 +33,13 @@ export default function DeedsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedDeedId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,

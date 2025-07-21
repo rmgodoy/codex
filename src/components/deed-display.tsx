@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 import type { Deed } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { stepDownDamageDie, stepUpDamageDie } from "@/lib/roles";
+import { useWorld } from "./world-provider";
 
-export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplacement?: string }) => {
+export const DeedDisplay = ({ deed, dmgReplacement, isLiveEncounter }: { deed: Deed, dmgReplacement?: string, isLiveEncounter?: boolean }) => {
+    const { worldSlug } = useWorld();
     const tierColors = {
         light: 'border-sky-400',
         heavy: 'border-amber-400',
@@ -50,10 +52,18 @@ export const DeedDisplay = ({ deed, dmgReplacement }: { deed: Deed, dmgReplaceme
     const attackString = `${deed.deedType} ${deed.actionType} VS ${deed.versus}`.toUpperCase();
     const fullTargetString = `${attackString} | ${deed.target}`;
 
+    const DeedTitle = () => {
+        const titleContent = <h4 className="text-xl font-bold">{deed.name}</h4>;
+        if (isLiveEncounter) {
+            return titleContent;
+        }
+        return <a href={`#/${worldSlug}/deeds/${deed.id}`} className="hover:underline">{titleContent}</a>;
+    };
+
     return (
         <div className={cn("rounded-lg border bg-card-foreground/5 border-l-4 p-4 mb-4", tierColors[deed.tier])}>
             <div className="flex justify-between items-baseline mb-3">
-                <h4 className="text-xl font-bold">{deed.name}</h4>
+                <DeedTitle />
                 <div className={cn("text-xs font-bold uppercase px-2 py-0.5 rounded-full", tierTextBg[deed.tier])}>{deed.tier}</div>
             </div>
             <div className="text-sm text-muted-foreground mb-3 border-b border-t border-border py-2">

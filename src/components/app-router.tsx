@@ -46,18 +46,19 @@ const routes: { [key: string]: React.ComponentType<any> } = {
 
 export default function AppRouter() {
   const { worldSlug } = useWorld();
-  const [page, setPage] = useState<React.ComponentType<any> | null>(null);
+  const [page, setPage] = useState<{ Component: React.ComponentType<any> | null; props: any }>({ Component: null, props: {} });
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
       const parts = hash.split('/').filter(Boolean);
       const currentWorldSlug = parts[0];
-      const pageKey = parts.slice(1).join('/') || '';
+      const pageKey = parts.slice(1, parts[1]?.startsWith('random') ? 3 : 2).join('/');
+      const selectedId = parts.length > (pageKey.startsWith('random') ? 3 : 2) ? parts[parts.length -1] : null;
 
       if (currentWorldSlug === worldSlug) {
-        const PageComponent = routes[pageKey] || WorldLandingPage; 
-        setPage(() => PageComponent);
+        const PageComponent = routes[pageKey] || WorldLandingPage;
+        setPage({ Component: () => PageComponent, props: { selectedId: selectedId } });
       }
     };
 
@@ -70,6 +71,6 @@ export default function AppRouter() {
     return null;
   }
 
-  const PageComponent = page;
-  return PageComponent ? <PageComponent /> : null;
+  const { Component, props } = page;
+  return Component ? <Component {...props} /> : null;
 }
