@@ -115,7 +115,11 @@ export const importData = async (data: any, newWorldName?: string): Promise<void
     });
     
     allTagsToCreate.forEach(tag => {
-        stores.tags.put(tag);
+      try {
+        stores.tags.put({...tag, id: generateId()});
+      }catch (err) {
+        console.error(`Error creating tag ${tag.name}: ${err}`);
+      }
     });
     
     return new Promise<void>((resolve, reject) => {
