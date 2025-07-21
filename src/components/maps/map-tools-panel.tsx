@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, CalendarEvent, Path, City } from "@/lib/types";
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
