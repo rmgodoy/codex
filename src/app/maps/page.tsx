@@ -1,62 +1,21 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/main-layout";
 import HexGrid from "@/components/hexgrid/HexGrid";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Trees, Mountain, Castle, TowerControl, X, AlertCircle, Tent, Waves, MapPin, Landmark, Skull, Brush, PaintBucket, Eraser, Link as LinkIcon, Users, Pipette, Calendar as CalendarIcon, ChevronsUpDown, Building } from "lucide-react";
-import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, NewMap, CalendarEvent, Path, City } from "@/lib/types";
-import { resizeHexGrid, generateRectangularHexGrid } from "@/lib/hex-utils";
+import type { Hex, HexTile, Dungeon, Faction, Map as WorldMap, CalendarEvent, Path, City } from "@/lib/types";
 import { getAllDungeons, getAllFactions, getAllMaps, getMapById, updateMap, getAllCalendarEvents, getAllCities, updateCity } from "@/lib/idb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { MultiItemSelectionDialog } from "@/components/multi-item-selection-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import MapManagementDialog from "@/components/maps/map-management-dialog";
-import PathToolPanel from "@/components/maps/path-tool-panel";
-import { customDateToDate } from "@/components/maps/custom-date-converter";
-
-const ICONS = [
-    { name: 'Home', component: Home },
-    { name: 'Trees', component: Trees },
-    { name: 'Mountain', component: Mountain },
-    { name: 'Castle', component: Castle },
-    { name: 'TowerControl', component: TowerControl },
-    { name: 'Tent', component: Tent },
-    { name: 'Waves', component: Waves },
-    { name: 'MapPin', component: MapPin },
-    { name: 'Landmark', component: Landmark },
-    { name: 'Skull', component: Skull },
-    { name: 'Building', component: Building },
-]
-
-const TERRAIN_COLORS = [
-    { name: 'Water', color: '#4A90E2' },
-    { name: 'Grass', color: '#7ED321' },
-    { name: 'Forest', color: '#417505' },
-    { name: 'Stone', color: '#9B9B9B' },
-    { name: 'Desert', color: '#F5A623' },
-    { name: 'Snow', color: '#FFFFFF' },
-];
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import MapToolsPanel from "@/components/maps/map-tools-panel";
+import { useWorld } from "@/components/world-provider";
+import { cn } from "@/lib/utils";
 
 export default function MapsPage() {
     const [maps, setMaps] = useState<WorldMap[]>([]);
     const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
     const [activeMap, setActiveMap] = useState<WorldMap | null>(null);
-    const [mapSettings, setMapSettings] = useState<{name: string, shape: 'radial' | 'rectangular', radius: number, width: number, height: number} | null>(null);
 
     const [selectedHex, setSelectedHex] = useState<Hex | null>(null);
     const [activeTool, setActiveTool] = useState<'settings' | 'paint' | 'path' | 'data'>('settings');
@@ -74,33 +33,20 @@ export default function MapsPage() {
     const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
     const [allCities, setAllCities] = useState<City[]>([]);
     
-    const [isCtrlPressed, setIsCtrlPressed] = useState(false);
     const [isAltPressed, setIsAltPressed] = useState(false);
-    const [isShiftPressed, setIsShiftPressed] = useState(false);
     const [isEyedropperActive, setIsEyedropperActive] = useState(false);
 
     const { toast } = useToast();
-    const isMobile = useIsMobile();
-    const [isToolsOpen, setIsToolsOpen] = useState(true);
-    const { worldSlug } = useWorld();
-
-    useEffect(() => {
-        setIsToolsOpen(!isMobile);
-    }, [isMobile]);
     
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Control') setIsCtrlPressed(true);
             if (e.key === 'Alt') {
                 e.preventDefault();
                 setIsAltPressed(true);
             }
-            if (e.key === 'Shift') setIsShiftPressed(true);
         };
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key === 'Control') setIsCtrlPressed(false);
             if (e.key === 'Alt') setIsAltPressed(false);
-            if (e.key === 'Shift') setIsShiftPressed(false);
         };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -156,20 +102,6 @@ export default function MapsPage() {
         }
     }, [selectedMapId]);
     
-     useEffect(() => {
-        if (activeMap) {
-            setMapSettings({ 
-                name: activeMap.name, 
-                shape: activeMap.shape || 'radial', 
-                radius: activeMap.radius || 20, 
-                width: activeMap.width || 30,
-                height: activeMap.height || 20
-            });
-        } else {
-            setMapSettings(null);
-        }
-    }, [activeMap]);
-
     const getLuminance = (hex: string) => {
         hex = hex.replace('#', '');
         const r = parseInt(hex.substring(0, 2), 16);
@@ -231,7 +163,6 @@ export default function MapsPage() {
         const cityUpdates = [];
         const mapTileUpdates = new Map<string, { q: number; r: number; cityIds: string[] }>();
         
-        // Handle removals from the current tile
         for (const cityId of citiesRemoved) {
             const city = allCities.find(c => c.id === cityId);
             if (city) {
@@ -239,12 +170,10 @@ export default function MapsPage() {
             }
         }
 
-        // Handle additions to the current tile
         for (const cityId of citiesAdded) {
             const city = allCities.find(c => c.id === cityId);
             if (!city) continue;
 
-            // If city was on another tile on this map, remove it from there
             if (city.location && city.location.mapId === activeMap.id) {
                 const oldHexKey = `${city.location.hex.q},${city.location.hex.r}`;
                 if (!mapTileUpdates.has(oldHexKey)) {
@@ -255,19 +184,15 @@ export default function MapsPage() {
                 update.cityIds = update.cityIds.filter(id => id !== cityId);
             }
 
-            // Update city's location to the new tile
             cityUpdates.push(updateCity({ ...city, location: { mapId: activeMap.id, hex: currentHex } }));
         }
 
-        // Update the current tile's city list
         const currentHexKey = `${currentHex.q},${currentHex.r}`;
         if (!mapTileUpdates.has(currentHexKey)) {
             mapTileUpdates.set(currentHexKey, { q: currentHex.q, r: currentHex.r, cityIds: (currentTile.data.cityIds || []) });
         }
         mapTileUpdates.get(currentHexKey)!.cityIds = newCityIdsForTile;
 
-
-        // Apply all tile updates to the map
         const newTiles = activeMap.tiles.map(tile => {
             const key = `${tile.hex.q},${tile.hex.r}`;
             if (mapTileUpdates.has(key)) {
@@ -279,16 +204,13 @@ export default function MapsPage() {
         await Promise.all(cityUpdates);
         handleMapUpdate({ ...activeMap, tiles: newTiles });
         getAllCities().then(setAllCities);
-    }, [activeMap, allCities, handleMapUpdate, toast]);
+    }, [activeMap, allCities, handleMapUpdate]);
 
     const handleUpdateTileData = (hex: Hex, updates: Partial<HexTile['data']>) => {
         if (activeMap) {
             const newTiles = activeMap.tiles.map(tile => {
                 if (tile.hex.q === hex.q && tile.hex.r === hex.r) {
-                    return {
-                        ...tile,
-                        data: { ...tile.data, ...updates }
-                    };
+                    return { ...tile, data: { ...tile.data, ...updates } };
                 }
                 return tile;
             });
@@ -304,71 +226,15 @@ export default function MapsPage() {
     
     const handleAddPointToPath = useCallback((point: {x: number, y: number}) => {
         if (!activeMap || !pathDrawingId) return;
-
         const updatedPaths = (activeMap.paths || []).map(path => {
             if (path.id === pathDrawingId) {
                 return { ...path, points: [...path.points, point] };
             }
             return path;
         });
-
         handlePathUpdate(updatedPaths);
     }, [activeMap, pathDrawingId, handlePathUpdate]);
-
-    const handleSaveMapSettings = async () => {
-        if (!activeMap || !mapSettings) return;
-
-        if (!mapSettings.name.trim()) {
-            toast({ variant: 'destructive', title: 'Validation Error', description: 'Map name cannot be empty.' });
-            return;
-        }
-
-        let newGrid: HexTile[];
-        let updatedMap: WorldMap;
-
-        if (mapSettings.shape === 'radial') {
-             if (isNaN(mapSettings.radius) || mapSettings.radius <= 0 || mapSettings.radius > 100) {
-                toast({ variant: 'destructive', title: 'Validation Error', description: 'Radius must be a number between 1 and 100.' });
-                return;
-            }
-            newGrid = resizeHexGrid(activeMap.tiles, mapSettings.radius);
-            updatedMap = { ...activeMap, name: mapSettings.name, shape: 'radial', radius: mapSettings.radius, width: undefined, height: undefined, tiles: newGrid };
-        } else { // rectangular
-             if (isNaN(mapSettings.width) || mapSettings.width <= 0 || mapSettings.width > 200 || isNaN(mapSettings.height) || mapSettings.height <= 0 || mapSettings.height > 200) {
-                toast({ variant: 'destructive', title: 'Validation Error', description: 'Width and Height must be between 1 and 200.' });
-                return;
-            }
-            newGrid = generateRectangularHexGrid(mapSettings.width, mapSettings.height, activeMap.tiles);
-            updatedMap = { ...activeMap, name: mapSettings.name, shape: 'rectangular', width: mapSettings.width, height: mapSettings.height, radius: undefined, tiles: newGrid };
-        }
-        
-        try {
-            await updateMap(updatedMap);
-            setActiveMap(updatedMap);
-            setMaps(prevMaps => prevMaps.map(m => m.id === updatedMap.id ? { ...m, name: updatedMap.name } : m));
-            toast({ title: 'Map settings saved!' });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Save failed' });
-        }
-    };
     
-    const isEraseMode = paintMode === 'erase';
-    const selectedTile = useMemo(() => activeMap?.tiles.find(t => t.hex.q === selectedHex?.q && t.hex.r === selectedHex?.r), [activeMap, selectedHex]);
-    const dungeonMap = useMemo(() => new Map(allDungeons.map(d => [d.id, d])), [allDungeons]);
-    const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f])), [allFactions]);
-    const cityMap = useMemo(() => new Map(allCities.map(c => [c.id, c])), [allCities]);
-    
-    const eventsForSelectedTile = useMemo(() => {
-        if (!selectedTile || !activeMap) return [];
-        return allEvents.filter(event => 
-            event.location &&
-            event.location.mapId === activeMap.id &&
-            event.location.hex.q === selectedTile.hex.q &&
-            event.location.hex.r === selectedTile.hex.r &&
-            event.location.hex.s === selectedTile.hex.s
-        );
-    }, [selectedTile, activeMap, allEvents]);
-
     return (
         <MainLayout>
             <div className="w-full h-full bg-background relative">
@@ -387,9 +253,9 @@ export default function MapsPage() {
                         paintIcon={paintIcon}
                         paintIconColor={finalIconColor}
                         selectedHex={selectedHex}
-                        isCtrlPressed={isCtrlPressed}
+                        isCtrlPressed={false}
                         isAltPressed={isAltPressed}
-                        isShiftPressed={isShiftPressed}
+                        isShiftPressed={false}
                         isEyedropperActive={isEyedropperActive}
                         onEyedropperClick={handleEyedropperClick}
                         pathDrawingId={pathDrawingId}
@@ -400,307 +266,38 @@ export default function MapsPage() {
                     </div>
                 )}
 
-                <Collapsible
-                    open={isMobile ? isToolsOpen : true}
-                    onOpenChange={isMobile ? setIsToolsOpen : undefined}
-                    className={cn(
-                        "fixed z-10 w-80 shadow-lg top-20 left-4"
-                    )}
-                >
-                    <Card>
-                        <CardHeader>
-                             <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    Map Tools
-                                </CardTitle>
-                                {isMobile && (
-                                    <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <ChevronsUpDown className="h-4 w-4" />
-                                            <span className="sr-only">Toggle tools panel</span>
-                                        </Button>
-                                    </CollapsibleTrigger>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CollapsibleContent>
-                            <CardContent>
-                                <Tabs value={activeTool} onValueChange={(value) => setActiveTool(value as any)} className="w-full">
-                                    <TabsList className="grid w-full grid-cols-4">
-                                        <TabsTrigger value="settings">Settings</TabsTrigger>
-                                        <TabsTrigger value="paint">Paint</TabsTrigger>
-                                        <TabsTrigger value="path">Path</TabsTrigger>
-                                        <TabsTrigger value="data">Data</TabsTrigger>
-                                    </TabsList>
-                                    <TabsContent value="settings" className="mt-4 space-y-4">
-                                        <div className="space-y-2">
-                                            <Label>Map Selection</Label>
-                                            <div className="flex gap-2">
-                                                <Select value={selectedMapId || ''} onValueChange={setSelectedMapId}>
-                                                    <SelectTrigger className="flex-1"><SelectValue placeholder="Select a map..."/></SelectTrigger>
-                                                    <SelectContent>
-                                                        {maps.map(map => <SelectItem key={map.id} value={map.id}>{map.name}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <MapManagementDialog maps={maps} onMapsUpdate={handleMapsUpdate} />
-                                            </div>
-                                        </div>
-                                        <Separator/>
-                                        {activeMap && mapSettings ? (
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="map-name">Map Name</Label>
-                                                    <Input id="map-name" value={mapSettings.name} onChange={(e) => setMapSettings(s => s ? {...s, name: e.target.value} : null)} />
-                                                </div>
-                                                 <div className="space-y-2">
-                                                    <Label>Shape</Label>
-                                                    <RadioGroup value={mapSettings.shape} onValueChange={(v) => setMapSettings(s => s ? { ...s, shape: v as any } : null)} className="flex gap-4">
-                                                        <div className="flex items-center space-x-2"><RadioGroupItem value="radial" id="edit-radial" /><Label htmlFor="edit-radial">Radial</Label></div>
-                                                        <div className="flex items-center space-x-2"><RadioGroupItem value="rectangular" id="edit-rectangular" /><Label htmlFor="edit-rectangular">Rectangular</Label></div>
-                                                    </RadioGroup>
-                                                </div>
-                                                {mapSettings.shape === 'radial' ? (
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="map-radius">Map Radius</Label>
-                                                        <Input id="map-radius" type="number" value={mapSettings.radius} onChange={(e) => setMapSettings(s => s ? {...s, radius: parseInt(e.target.value) || 0} : null)} min="1" max="100" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                         <div className="space-y-2">
-                                                            <Label htmlFor="map-width">Width</Label>
-                                                            <Input id="map-width" type="number" value={mapSettings.width} onChange={(e) => setMapSettings(s => s ? {...s, width: parseInt(e.target.value) || 0} : null)} min="1" max="200" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label htmlFor="map-height">Height</Label>
-                                                            <Input id="map-height" type="number" value={mapSettings.height} onChange={(e) => setMapSettings(s => s ? {...s, height: parseInt(e.target.value) || 0} : null)} min="1" max="200" />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <Button onClick={handleSaveMapSettings} className="w-full">Save Settings</Button>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground text-center pt-4">Select a map to view its settings, or create a new one.</p>
-                                        )}
-                                    </TabsContent>
-                                    <TabsContent value="paint" className="mt-4">
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label>Paint Mode</Label>
-                                                <ToggleGroup 
-                                                    type="single" 
-                                                    value={
-                                                        isShiftPressed && paintMode === 'brush' ? 'erase' :
-                                                        (isCtrlPressed && paintMode === 'brush' ? 'bucket' : paintMode)
-                                                    }
-                                                    onValueChange={(value) => { if (value) setPaintMode(value as 'brush' | 'bucket' | 'erase') }} 
-                                                    className="w-full"
-                                                >
-                                                    <ToggleGroupItem value="brush" aria-label="Brush" className="w-1/3">
-                                                        <Brush className="h-4 w-4 mr-2" /> Brush
-                                                    </ToggleGroupItem>
-                                                    <ToggleGroupItem value="bucket" aria-label="Bucket" className="w-1/3">
-                                                        <PaintBucket className="h-4 w-4 mr-2" /> Bucket
-                                                    </ToggleGroupItem>
-                                                    <ToggleGroupItem value="erase" aria-label="Erase" className="w-1/3">
-                                                        <Eraser className="h-4 w-4 mr-2" /> Erase
-                                                    </ToggleGroupItem>
-                                                </ToggleGroup>
-                                            </div>
-                                            <Separator />
-                                            <fieldset disabled={isEraseMode || isEyedropperActive} className="space-y-4 disabled:opacity-50">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="color-picker">Tile Color</Label>
-                                                    <Input id="color-picker" type="color" value={paintColor} onChange={(e) => setPaintColor(e.target.value)} className="w-full h-10 p-1" />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label>Terrain Colors</Label>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button variant={isEyedropperActive ? "secondary" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setIsEyedropperActive(prev => !prev)}>
-                                                                        <Pipette className="h-4 w-4"/>
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Pick Tile Properties (or hold Alt)</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {TERRAIN_COLORS.map(({ name, color }) => (
-                                                            <Button
-                                                                key={name}
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="h-8"
-                                                                onClick={() => setPaintColor(color)}
-                                                            >
-                                                                <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color }} />
-                                                                <span className="ml-2">{name}</span>
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <Separator />
-                                                
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <Label>Tile Icon</Label>
-                                                        <div className="flex items-center gap-1">
-                                                            {!isIconColorAuto && (
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                className="h-8 w-8"
-                                                                                onClick={() => setIsIconColorAuto(true)}
-                                                                            >
-                                                                                <AlertCircle className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            <p>Reset to automatic color</p>
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            )}
-                                                            <Input
-                                                                id="icon-color-picker"
-                                                                type="color"
-                                                                value={manualIconColor}
-                                                                onChange={(e) => {
-                                                                    setManualIconColor(e.target.value);
-                                                                    setIsIconColorAuto(false);
-                                                                }}
-                                                                className="w-10 h-10 p-1"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="grid grid-cols-5 gap-2">
-                                                        {ICONS.map(({ name, component: Icon }) => (
-                                                            <Button
-                                                                key={name}
-                                                                variant="outline"
-                                                                size="icon"
-                                                                onClick={() => setPaintIcon(prev => prev === name ? null : name)}
-                                                                className={cn(paintIcon === name && "ring-2 ring-ring ring-offset-2 bg-accent text-accent-foreground")}
-                                                            >
-                                                                <Icon className="h-5 w-5" />
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                    {paintIcon && (
-                                                        <Button variant="ghost" size="sm" className="w-full h-8" onClick={() => setPaintIcon(null)}>
-                                                            <X className="h-4 w-4 mr-2" /> Clear Icon Selection
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </fieldset>
-                                        </div>
-                                    </TabsContent>
-                                    <TabsContent value="path" className="mt-4">
-                                      <PathToolPanel activeMap={activeMap} onPathUpdate={handlePathUpdate} pathDrawingId={pathDrawingId} setPathDrawingId={setPathDrawingId} />
-                                    </TabsContent>
-                                    <TabsContent value="data" className="mt-4">
-                                        {selectedHex && selectedTile ? (
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <p className="font-semibold text-base">Selected Tile</p>
-                                                    <p className="text-sm"><span className="font-semibold">Q:</span> {selectedHex.q}, <span className="font-semibold">R:</span> {selectedHex.r}, <span className="font-semibold">S:</span> {selectedHex.s}</p>
-                                                </div>
-
-                                                <Separator />
-                                                
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="flex items-center gap-2"><Building className="h-4 w-4"/>Cities</Label>
-                                                        <MultiItemSelectionDialog
-                                                            title="Link Cities"
-                                                            items={allCities}
-                                                            initialSelectedIds={selectedTile.data.cityIds || []}
-                                                            onConfirm={(ids) => handleUpdateCityLinks(selectedHex, ids)}
-                                                            trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {(selectedTile.data.cityIds || []).map(id => <a key={id} href={`#/${worldSlug}/cities/${id}`}><Badge variant="secondary" className="hover:bg-accent/50">{cityMap.get(id)?.name}</Badge></a>)}
-                                                    </div>
-                                                </div>
-                                                
-                                                <Separator />
-
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="flex items-center gap-2"><MapPin className="h-4 w-4"/>Dungeons</Label>
-                                                        <MultiItemSelectionDialog
-                                                            title="Link Dungeons"
-                                                            items={allDungeons}
-                                                            initialSelectedIds={selectedTile.data.dungeonIds || []}
-                                                            onConfirm={(ids) => handleUpdateTileData(selectedHex, { dungeonIds: ids })}
-                                                            trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {(selectedTile.data.dungeonIds || []).map(id => <a key={id} href={`#/${worldSlug}/dungeons/${id}`}><Badge variant="secondary" className="hover:bg-accent/50">{dungeonMap.get(id)?.name}</Badge></a>)}
-                                                    </div>
-                                                </div>
-                                                
-                                                <Separator />
-
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <Label className="flex items-center gap-2"><Users className="h-4 w-4"/>Factions</Label>
-                                                        <MultiItemSelectionDialog
-                                                            title="Link Factions"
-                                                            items={allFactions}
-                                                            initialSelectedIds={selectedTile.data.factionIds || []}
-                                                            onConfirm={(ids) => handleUpdateTileData(selectedHex, { factionIds: ids })}
-                                                            trigger={<Button size="sm" variant="outline"><LinkIcon className="h-4 w-4"/></Button>}
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {(selectedTile.data.factionIds || []).map(id => <a key={id} href={`#/${worldSlug}/factions/${id}`}><Badge variant="secondary" className="hover:bg-accent/50">{factionMap.get(id)?.name}</Badge></a>)}
-                                                    </div>
-                                                </div>
-
-                                                <Separator />
-                                                <div className="space-y-2">
-                                                    <Label className="flex items-center gap-2"><CalendarIcon className="h-4 w-4"/>Events</Label>
-                                                    {eventsForSelectedTile.length > 0 ? (
-                                                        <div className="flex flex-col gap-1 text-xs">
-                                                            {eventsForSelectedTile.map(event => (
-                                                                <div key={event.id} className="p-1 rounded bg-muted/50">
-                                                                    <p className="font-semibold text-sm">{event.title}</p>
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        {format(customDateToDate(event.startDate), 'P')} - {format(customDateToDate(event.endDate), 'P')}
-                                                                    </p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-xs text-muted-foreground">No events linked to this tile.</p>
-                                                    )}
-                                                </div>
-
-
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">Click on a tile to see or edit its data.</p>
-                                        )}
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
+                <MapToolsPanel
+                    maps={maps}
+                    selectedMapId={selectedMapId}
+                    setSelectedMapId={setSelectedMapId}
+                    activeMap={activeMap}
+                    handleMapsUpdate={handleMapsUpdate}
+                    handleMapUpdate={handleMapUpdate}
+                    activeTool={activeTool}
+                    setActiveTool={setActiveTool}
+                    paintMode={paintMode}
+                    setPaintMode={setPaintMode}
+                    paintColor={paintColor}
+                    setPaintColor={setPaintColor}
+                    isEyedropperActive={isEyedropperActive}
+                    setIsEyedropperActive={setIsEyedropperActive}
+                    isIconColorAuto={isIconColorAuto}
+                    setIsIconColorAuto={setIsIconColorAuto}
+                    manualIconColor={manualIconColor}
+                    setManualIconColor={setManualIconColor}
+                    paintIcon={paintIcon}
+                    setPaintIcon={setPaintIcon}
+                    pathDrawingId={pathDrawingId}
+                    setPathDrawingId={setPathDrawingId}
+                    handlePathUpdate={handlePathUpdate}
+                    selectedHex={selectedHex}
+                    allDungeons={allDungeons}
+                    allFactions={allFactions}
+                    allCities={allCities}
+                    allEvents={allEvents}
+                    handleUpdateTileData={handleUpdateTileData}
+                    handleUpdateCityLinks={handleUpdateCityLinks}
+                />
             </div>
         </MainLayout>
     );
