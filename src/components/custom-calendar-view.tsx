@@ -9,30 +9,13 @@ import { Card } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { Input } from "./ui/input";
 import moment from "moment";
-
-const dateToCustomDate = (date: Date): CustomDate => ({
-  year: date.getUTCFullYear(),
-  monthIndex: date.getUTCMonth(),
-  day: date.getUTCDate(),
-});
+import { dateToCustomDate } from "./maps/custom-date-converter";
 
 const isSameCustomDay = (d1?: CustomDate | null, d2?: CustomDate | null) => {
   if (!d1 || !d2) return false;
   return (
     d1.year === d2.year && d1.monthIndex === d2.monthIndex && d1.day === d2.day
   );
-};
-
-const isDateInRange = (
-  date: CustomDate,
-  start: CustomDate,
-  end: CustomDate
-) => {
-  // This is a simplified comparison that works for year/month/day objects
-  const dateNum = date.year * 10000 + date.monthIndex * 100 + date.day;
-  const startNum = start.year * 10000 + start.monthIndex * 100 + start.day;
-  const endNum = end.year * 10000 + end.monthIndex * 100 + end.day;
-  return dateNum >= startNum && dateNum <= endNum;
 };
 
 const customDateToKey = (date: CustomDate) =>

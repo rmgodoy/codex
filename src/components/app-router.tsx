@@ -22,6 +22,7 @@ import CommonersPage from '@/app/random/commoners/page';
 import EncounterTablesPage from '@/app/random/encounter-tables/page';
 import TreasuresPage from '@/app/random/treasures/page';
 import CitiesPage from '@/app/cities/page';
+import type { CustomDate } from '@/lib/types';
 
 const routes: { [key: string]: React.ComponentType<any> } = {
   '': WorldLandingPage,
@@ -46,18 +47,40 @@ const routes: { [key: string]: React.ComponentType<any> } = {
 
 export default function AppRouter() {
   const { worldSlug } = useWorld();
-  const [page, setPage] = useState<React.ComponentType<any> | null>(null);
+  const [page, setPage] = useState<{ Component: React.ComponentType<any> | null; props: any }>({ Component: null, props: {} });
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
-      const parts = hash.split('/').filter(Boolean);
+      const [path, queryString] = hash.split('?');
+      const parts = path.split('/').filter(Boolean);
       const currentWorldSlug = parts[0];
-      const pageKey = parts.slice(1).join('/') || '';
+      const pageKey = parts.slice(1, parts[1]?.startsWith('random') ? 3 : 2).join('/');
+      const selectedId = parts.length > (pageKey.startsWith('random') ? 3 : 2) ? parts[parts.length -1] : undefined;
 
+      let extraProps: Record<string, any> = { selectedId };
+
+      if (queryString) {
+        const params = new URLSearchParams(queryString);
+        params.forEach((value, key) => {
+          if (key === 'selectedDate' && value) {
+            try {
+              const decodedDate = JSON.parse(decodeURIComponent(value));
+              if(decodedDate.year && decodedDate.monthIndex !== undefined && decodedDate.day) {
+                extraProps[key] = decodedDate as CustomDate;
+              }
+            } catch (e) {
+              console.error("Failed to parse selectedDate from URL", e);
+            }
+          } else {
+            extraProps[key] = value;
+          }
+        });
+      }
+      
       if (currentWorldSlug === worldSlug) {
-        const PageComponent = routes[pageKey] || WorldLandingPage; 
-        setPage(() => PageComponent);
+        const PageComponent = routes[pageKey] || WorldLandingPage;
+        setPage({ Component: PageComponent, props: extraProps });
       }
     };
 
@@ -70,6 +93,6 @@ export default function AppRouter() {
     return null;
   }
 
-  const PageComponent = page;
-  return PageComponent ? <PageComponent /> : null;
+  const { Component, props } = page;
+  return Component ? <Component {...props} /> : null;
 }

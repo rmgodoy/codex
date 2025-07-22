@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -9,6 +8,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { getRoomById, addRoom, updateRoom, deleteRoom, addTags, getAllEncounters, getAllTreasures, getAllAlchemicalItems } from "@/lib/idb";
 import type { Room, NewRoom, Encounter, Treasure, AlchemicalItem } from "@/lib/types";
+import { useWorld } from "./world-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -168,6 +168,7 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
   const [allAlchemicalItems, setAllAlchemicalItems] = useState<AlchemicalItem[]>([]);
   
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
 
   const itemMaps = useMemo(() => ({
       encounters: new Map(allEncounters.map(e => [e.id, e])),
@@ -347,9 +348,10 @@ export default function RoomEditorPanel({ roomId, isCreatingNew, onSaveSuccess, 
                                     {roomData.features.map(feature => (
                                         <li key={feature.id} className="p-3 bg-card-foreground/5 rounded-lg">
                                             <p className="font-semibold">{feature.title}</p>
-                                            {feature.encounterIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Bot className="h-4 w-4"/> Linked Encounters</h4><ul className="list-disc list-inside mt-1">{feature.encounterIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.encounters.get(id)?.name || '...'}</li>)}</ul></div>}
-                                            {feature.treasureIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Gem className="h-4 w-4"/> Linked Treasures</h4><ul className="list-disc list-inside mt-1">{feature.treasureIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.treasures.get(id)?.name || '...'}</li>)}</ul></div>}
-                                            {feature.alchemicalItemIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><FlaskConical className="h-4 w-4"/> Linked Alchemy</h4><ul className="list-disc list-inside mt-1">{feature.alchemicalItemIds.map(id => <li key={id} className="text-sm text-accent">{itemMaps.alchemicalItems.get(id)?.name || '...'}</li>)}</ul></div>}
+                                            <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                            {feature.encounterIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Bot className="h-4 w-4"/> Linked Encounters</h4><ul className="list-disc list-inside mt-1">{feature.encounterIds.map(id => <li key={id} className="text-sm"><a href={`#/${worldSlug}/encounters/${id}`} className="text-accent hover:underline">{itemMaps.encounters.get(id)?.name || '...'}</a></li>)}</ul></div>}
+                                            {feature.treasureIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><Gem className="h-4 w-4"/> Linked Treasures</h4><ul className="list-disc list-inside mt-1">{feature.treasureIds.map(id => <li key={id} className="text-sm"><a href={`#/${worldSlug}/random/treasures/${id}`} className="text-accent hover:underline">{itemMaps.treasures.get(id)?.name || '...'}</a></li>)}</ul></div>}
+                                            {feature.alchemicalItemIds.length > 0 && <div className="mt-2 pl-4"><h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2"><FlaskConical className="h-4 w-4"/> Linked Alchemy</h4><ul className="list-disc list-inside mt-1">{feature.alchemicalItemIds.map(id => <li key={id} className="text-sm"><a href={`#/${worldSlug}/alchemy/${id}`} className="text-accent hover:underline">{itemMaps.alchemicalItems.get(id)?.name || '...'}</a></li>)}</ul></div>}
                                         </li>
                                     ))}
                                 </ul>

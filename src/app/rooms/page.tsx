@@ -11,8 +11,12 @@ import RoomEditorPanel from '@/components/room-editor-panel';
 
 type SortByType = 'name';
 
-export default function RoomsPage() {
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+interface RoomsPageProps {
+  selectedId?: string;
+}
+
+export default function RoomsPage({ selectedId }: RoomsPageProps) {
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -27,7 +31,13 @@ export default function RoomsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedRoomId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,

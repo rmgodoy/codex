@@ -4,48 +4,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
 import { useToast } from "@/hooks/use-toast";
-import {
-  addCalendarEvent,
-  updateCalendarEvent,
-  getAllCreatures,
-  getAllFactions,
-  addTags,
-  getAllMaps,
-  getAllNpcs,
-} from "@/lib/idb";
-import type {
-  CalendarEvent,
-  NewCalendarEvent,
-  Creature,
-  Faction,
-  CalendarPartyType,
-  Map as WorldMap,
-  Hex,
-  Npc,
-  CustomCalendar,
-  Calendar as CalendarType,
-  CustomDate,
-} from "@/lib/types";
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "./ui/dialog";
+import { addCalendarEvent,updateCalendarEvent,getAllCreatures,getAllFactions,addTags,getAllMaps,getAllNpcs } from "@/lib/idb";
+import type { CalendarEvent, NewCalendarEvent, Creature, Faction, CalendarPartyType, Map as WorldMap, Hex, Npc, CustomCalendar, Calendar as CalendarType, CustomDate } from "@/lib/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "./ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -57,25 +21,7 @@ import { CalendarPartySelectionDialog } from "./calendar-party-selection-dialog"
 import { LocationPickerDialog } from "./location-picker-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { CustomDatePickerDialog } from "./custom-date-picker-dialog";
-import moment from "moment";
-
-const getYearOne = () => {
-  const DEFAULT_MIN_DATE = new Date(Date.UTC(1, 0, 1));
-  DEFAULT_MIN_DATE.setUTCFullYear(1);
-  return DEFAULT_MIN_DATE;
-};
-
-const dateToCustomDate = (date: Date): CustomDate => ({
-  year: date.getUTCFullYear(),
-  monthIndex: date.getUTCMonth(),
-  day: date.getUTCDate(),
-});
-
-const customDateToDate = (customDate: CustomDate): Date => {
-  const date = moment().utc().endOf("day").toDate();
-  date.setUTCFullYear(customDate.year, customDate.monthIndex, customDate.day);
-  return date;
-};
+import { customDateToDate, dateToCustomDate, getYearOne } from "./maps/custom-date-converter";
 
 const customDateSchema = z.object({
   year: z.number(),
@@ -88,8 +34,8 @@ const eventSchema = z
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    startDate: customDateSchema,
-    endDate: customDateSchema.optional(),
+    startDate: customDateSchema.or(z.string()),
+    endDate: customDateSchema.or(z.string()).optional(),
     location: z
       .object({
         mapId: z.string(),
@@ -209,7 +155,7 @@ export function CalendarEventDialog({
 
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent["party"] | undefined = undefined;
-
+  
     if (selectedParty) {
       partyToSave = {
         type: selectedParty.type,
@@ -225,6 +171,14 @@ export function CalendarEventDialog({
         description: "No calendar selected to add the event to.",
       });
       return;
+    }
+
+    if (typeof data.startDate == 'string') {
+      data.startDate = dateToCustomDate(data.startDate);
+    }
+    
+    if (typeof data.endDate == 'string') {
+      data.endDate = dateToCustomDate(data.endDate);
     }
 
     const eventToSave: NewCalendarEvent = {

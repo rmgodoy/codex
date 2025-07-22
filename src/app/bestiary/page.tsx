@@ -11,8 +11,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 type SortByType = 'name' | 'TR' | 'level';
 
-export default function BestiaryPage() {
-  const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(null);
+interface BestiaryPageProps {
+  selectedId?: string;
+}
+
+export default function BestiaryPage({ selectedId }: BestiaryPageProps) {
+  const [selectedCreatureId, setSelectedCreatureId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<CreatureWithDeeds> | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
@@ -34,7 +38,13 @@ export default function BestiaryPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedCreatureId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,

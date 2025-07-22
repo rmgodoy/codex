@@ -11,8 +11,12 @@ import ItemEditorPanel from '@/components/item-editor-panel';
 
 type SortByType = 'name' | 'type' | 'price' | 'quality';
 
-export default function ItemsPage() {
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+interface ItemsPageProps {
+  selectedId?: string;
+}
+
+export default function ItemsPage({ selectedId }: ItemsPageProps) {
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [templateData, setTemplateData] = useState<Partial<Item> | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
@@ -31,7 +35,13 @@ export default function ItemsPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedItemId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,

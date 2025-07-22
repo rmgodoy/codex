@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Encounter, Creature, MonsterEncounterGroup, PlayerEncounterEntry, EncounterTable, CreatureTemplate } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ROLES, type Role } from "@/lib/roles";
+import { useWorld } from "./world-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -252,6 +253,7 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
   const [loading, setLoading] = useState(!isCreatingNew && !!encounterId);
   const [encounterData, setEncounterData] = useState<Encounter | null>(null);
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
   
   const [viewModeDetails, setViewModeDetails] = useState<{ monsters: Map<string, Creature>, table?: EncounterTable }>({ monsters: new Map() });
   const [allCreatures, setAllCreatures] = useState<Creature[]>([]);
@@ -537,7 +539,9 @@ export default function EncounterEditorPanel({ encounterId, isCreatingNew, onEnc
                                         return (
                                           <li key={g.monsterId} className="flex items-center gap-4 p-2 bg-card-foreground/5 rounded-md">
                                               <Bot className="h-5 w-5 text-accent" />
-                                              <span className="font-semibold flex-1">{monster?.name || 'Unknown Monster'}</span>
+                                              <a href={`#/${worldSlug}/bestiary/${g.monsterId}`} className="font-semibold flex-1 hover:underline">
+                                                {monster?.name || 'Unknown Monster'}
+                                              </a>
                                               <span className="text-sm text-muted-foreground">x {g.quantity}</span>
                                               {monster && <span className="text-sm text-muted-foreground">Lvl {monster.level} {monster.role}</span>}
                                           </li>

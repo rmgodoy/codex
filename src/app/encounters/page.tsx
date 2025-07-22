@@ -15,9 +15,13 @@ import { useIsMobile } from '@/hooks/use-mobile';
 type EncounterViewMode = 'preparation' | 'live';
 type SortByType = 'name' | 'TR';
 
-export default function EncountersPage() {
+interface EncountersPageProps {
+  selectedId?: string;
+}
+
+export default function EncountersPage({ selectedId }: EncountersPageProps) {
   const [mode, setMode] = useState<EncounterViewMode>('preparation');
-  const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null);
+  const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(selectedId || null);
   const [liveEncounter, setLiveEncounter] = useState<Encounter | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
@@ -35,7 +39,13 @@ export default function EncountersPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedEncounterId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,

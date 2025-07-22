@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -10,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Dungeon, NewDungeon, Room as RoomType, DungeonRoom, DungeonConnection, DungeonSize, DungeonHostilityLevel } from "@/lib/types";
 import { getAllRooms, addDungeon, getDungeonById, updateDungeon, deleteDungeon, addTags } from "@/lib/idb";
 import { DUNGEON_HOSTILITY, DUNGEON_SIZE, HOSTILITY_LEVELS, SIZE_LEVELS } from "@/lib/dungeon-data";
+import { useWorld } from "./world-provider";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -135,6 +135,7 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
   const [allRooms, setAllRooms] = useState<RoomType[]>([]);
   const roomMap = useMemo(() => new Map(allRooms.map(r => [r.id, r])), [allRooms]);
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
 
   const form = useForm<DungeonFormData>({ resolver: zodResolver(dungeonSchema), defaultValues });
   const { control, watch, setValue, getValues } = form;
@@ -245,7 +246,13 @@ export default function DungeonEditorPanel({ dungeonId, isCreatingNew, onSaveSuc
                     <div>
                         <h3 className="text-lg font-semibold text-foreground mb-2">Rooms ({dungeonData.rooms.length})</h3>
                         <ul className="list-disc pl-5 space-y-1">
-                            {dungeonData.rooms.map(dr => <li key={dr.instanceId} className="text-accent">{roomMap.get(dr.roomId)?.name || 'Unknown Room'}</li>)}
+                            {dungeonData.rooms.map(dr => (
+                                <li key={dr.instanceId}>
+                                    <a href={`#/${worldSlug}/rooms/${dr.roomId}`} className="text-accent hover:underline">
+                                        {roomMap.get(dr.roomId)?.name || 'Unknown Room'}
+                                    </a>
+                                </li>
+                            ))}
                         </ul>
                     </div>
                     {dungeonData.tags && dungeonData.tags.length > 0 && (

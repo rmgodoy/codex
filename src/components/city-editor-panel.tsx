@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -8,6 +9,7 @@ import { z } from "zod";
 import { getCityById, addCity, updateCity, deleteCity, addTags, getAllNpcs, getAllMaps, getMapById, updateMap } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
 import type { City, NewCity, Npc, Map as WorldMap, Hex } from "@/lib/types";
+import { useWorld } from "./world-provider";
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,6 +69,7 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
   const [allNpcs, setAllNpcs] = useState<Npc[]>([]);
   const [allMaps, setAllMaps] = useState<WorldMap[]>([]);
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
   
   const npcMap = useMemo(() => new Map(allNpcs.map(n => [n.id, n.name])), [allNpcs]);
   const mapMap = useMemo(() => new Map(allMaps.map(m => [m.id, m.name])), [allMaps]);
@@ -283,7 +286,13 @@ export default function CityEditorPanel({ cityId, isCreatingNew, onSaveSuccess, 
                             <h3 className="text-lg font-semibold text-foreground mb-2">Notable NPCs</h3>
                             {cityData.npcIds && cityData.npcIds.length > 0 ? (
                                 <div className="flex flex-wrap gap-2">
-                                    {cityData.npcIds.map(id => <Badge key={id} variant="secondary">{npcMap.get(id) || 'Unknown NPC'}</Badge>)}
+                                    {cityData.npcIds.map(id => (
+                                        <a key={id} href={`#/${worldSlug}/npcs/${id}`}>
+                                            <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+                                                {npcMap.get(id) || 'Unknown NPC'}
+                                            </Badge>
+                                        </a>
+                                    ))}
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground">No NPCs linked.</p>

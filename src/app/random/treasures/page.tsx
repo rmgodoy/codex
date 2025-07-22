@@ -11,8 +11,12 @@ import TreasureEditorPanel from '@/components/treasure-editor-panel';
 
 type SortByType = 'name' | 'value';
 
-export default function TreasuresPage() {
-  const [selectedTreasureId, setSelectedTreasureId] = useState<string | null>(null);
+interface TreasuresPageProps {
+  selectedId?: string;
+}
+
+export default function TreasuresPage({ selectedId }: TreasuresPageProps) {
+  const [selectedTreasureId, setSelectedTreasureId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [dataVersion, setDataVersion] = useState(0);
 
@@ -29,7 +33,13 @@ export default function TreasuresPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (selectedId) {
+        setSelectedTreasureId(selectedId);
+        if (isMobile) {
+            setMobileView('editor');
+        }
+    }
+  }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,
