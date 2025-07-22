@@ -22,6 +22,7 @@ import { LocationPickerDialog } from "./location-picker-dialog";
 import { ScrollArea } from "./ui/scroll-area";
 import { CustomDatePickerDialog } from "./custom-date-picker-dialog";
 import { customDateToDate, dateToCustomDate, getYearOne } from "./maps/custom-date-converter";
+import moment from "moment";
 
 const customDateSchema = z.object({
   year: z.number(),
@@ -251,7 +252,12 @@ export function CalendarEventDialog({
                 <FormField
                   name="startDate"
                   control={form.control}
-                  render={({ field }) => (
+                  render={({ field }) => {
+                    if (!field.value) return <></>;
+                    if (typeof field.value == 'string') {
+                      field.value = dateToCustomDate(moment(field.value).utc().startOf('day').toDate());
+                    }
+                    return (
                     <FormItem className="flex flex-col">
                       <FormLabel>Start Date</FormLabel>
                       {calendarModel ? (
@@ -316,12 +322,17 @@ export function CalendarEventDialog({
                       )}
                       <FormMessage />
                     </FormItem>
-                  )}
+                  )}}
                 />
                 <FormField
                   name="endDate"
                   control={form.control}
-                  render={({ field }) => (
+                  render={({ field }) => {
+                    if (!field.value) return <></>;
+                    if (typeof field.value == 'string') {
+                      field.value = dateToCustomDate(moment(field.value).utc().startOf('day').toDate());
+                    }
+                    return (
                     <FormItem className="flex flex-col">
                       <FormLabel>End Date (Optional)</FormLabel>
                       {calendarModel ? (
@@ -396,7 +407,7 @@ export function CalendarEventDialog({
                       )}
                       <FormMessage />
                     </FormItem>
-                  )}
+                  )}}
                 />
               </div>
               <div>
