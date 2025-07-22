@@ -34,8 +34,8 @@ const eventSchema = z
     title: z.string().min(1, "Title is required."),
     description: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    startDate: customDateSchema,
-    endDate: customDateSchema.optional(),
+    startDate: customDateSchema.or(z.string()),
+    endDate: customDateSchema.or(z.string()).optional(),
     location: z
       .object({
         mapId: z.string(),
@@ -155,7 +155,7 @@ export function CalendarEventDialog({
 
   const onSubmit = async (data: EventFormData) => {
     let partyToSave: CalendarEvent["party"] | undefined = undefined;
-
+  
     if (selectedParty) {
       partyToSave = {
         type: selectedParty.type,
@@ -171,6 +171,14 @@ export function CalendarEventDialog({
         description: "No calendar selected to add the event to.",
       });
       return;
+    }
+
+    if (typeof data.startDate == 'string') {
+      data.startDate = dateToCustomDate(data.startDate);
+    }
+    
+    if (typeof data.endDate == 'string') {
+      data.endDate = dateToCustomDate(data.endDate);
     }
 
     const eventToSave: NewCalendarEvent = {
