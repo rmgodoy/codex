@@ -1,3 +1,4 @@
+
 import type { Role } from "./roles";
 import type { StateEffect } from "./states";
 
@@ -103,7 +104,7 @@ export interface Creature {
   tags: string[];
 }
 
-export type NewCreature = Omit<Creature, "id">;
+export type NewCreature = Omit<Creature, "id"> & { id?: string };
 
 // Helper type for UI, with full deed objects
 export interface CreatureWithDeeds extends Omit<Creature, "deeds"> {

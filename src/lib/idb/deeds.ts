@@ -25,10 +25,10 @@ export const getDeedById = async (id: string): Promise<Deed | undefined> => {
     });
 };
 
-export const addDeed = async (deedData: DeedData): Promise<string> => {
+export const addDeed = async (deedData: DeedData & { id?: string }): Promise<string> => {
     const db = await getDb();
     const store = db.transaction(DEEDS_STORE_NAME, 'readwrite').objectStore(DEEDS_STORE_NAME);
-    const id = generateId();
+    const id = deedData.id || generateId();
     const deedWithId = { ...deedData, id };
     const request = store.add(deedWithId);
     return new Promise((resolve, reject) => {
