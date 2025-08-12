@@ -1,8 +1,20 @@
 
 "use client";
 
-import type { DeedData, NewCreature, Role, Deed, DeedTier, DeedActionType, DeedType, DeedVersus, CreatureTemplate } from './types';
+import type { DeedData, NewCreature, Role, Deed, DeedTier, DeedActionType, DeedType, DeedVersus, CreatureTemplate, CreatureAbility } from './types';
 import { addCreature, addDeed, getDeedById, getCreatureById } from '@/lib/idb';
+
+type OverlordFeatureV1 = { [key: string]: string };
+type OverlordFeatureV2 = { title: string; content: string };
+
+type OverlordDeedV1 = string;
+type OverlordDeedV2 = {
+    title: string;
+    lines: {
+        title: string;
+        content: string;
+    }[];
+};
 
 interface OverlordCreature {
     monsterName: string;
@@ -17,89 +29,96 @@ interface OverlordCreature {
     grd: number;
     res: number;
     roll: string;
-    features: { [key: string]: string };
-    lightDeeds?: string;
-    heavyDeeds?: string;
-    mightyDeeds?: string;
-    tyrantDeeds?: string;
+    features: OverlordFeatureV1 | OverlordFeatureV2[];
+    lightDeeds?: OverlordDeedV1 | OverlordDeedV2[];
+    heavyDeeds?: OverlordDeedV1 | OverlordDeedV2[];
+    mightyDeeds?: OverlordDeedV1 | OverlordDeedV2[];
+    tyrantDeeds?: OverlordDeedV1 | OverlordDeedV2[];
     bundleId: string;
     statblockID: string;
 }
 
-const parseDeedBlock = (deedBlock: string | undefined, tier: DeedTier, creatureId: string, bundleId: string): { deedData: DeedData, deedId: string }[] => {
-    if (typeof deedBlock !== 'string' || !deedBlock.trim()) {
-        return [];
-    }
-
-    const deedStrings = deedBlock.trim().split(/\n\s*\n/);
+const parseDeedFromObject = (deedObj: OverlordDeedV2, tier: DeedTier, creatureId: string, bundleId: string): { deedData: DeedData; deedId: string } | null => {
+    const name = deedObj.title;
+    if (name.length > 100) return null;
     
-    return deedStrings.map(deedStr => {
-        const lines = deedStr.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    const deedId = `${bundleId}-${creatureId}-${name.replace(/\s+/g, '-')}`;
+
+    const typeLine = deedObj.lines.find(line => line.title.includes("ATTACK") || line.title.includes("SUPPORT"));
+    if (!typeLine) return null;
+    
+    const typeMatch = typeLine.title.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
+    if (!typeMatch) return null;
+
+    const deedType = typeMatch[1].toLowerCase() as DeedType;
+    const actionType = typeMatch[2].toLowerCase() as DeedActionType;
+    const versus = typeMatch[3].toLowerCase() as DeedVersus;
+
+    const effects: DeedData['effects'] = {};
+    let target = '';
+
+    for (const line of deedObj.lines) {
+        const titleLower = line.title.toLowerCase();
+        if (titleLower.includes('vs.')) continue;
+        
+        if (['target', 'range', 'area'].includes(titleLower)) {
+            target = `${target ? `${target} | ` : ''}${line.content}`;
+        } else if (['start', 'base', 'hit', 'spark', 'shadow', 'after', 'special'].includes(titleLower)) {
+            const effectKey = titleLower === 'special' ? 'hit' : titleLower as keyof DeedData['effects'];
+            effects[effectKey] = (effects[effectKey] ? `${effects[effectKey]}\n` : '') + line.content;
+        }
+    }
+    
+    return {
+        deedId,
+        deedData: { name, tier, actionType, deedType, versus, target, effects, tags: [] }
+    };
+}
+
+
+const parseDeedFromString = (deedStr: string, tier: DeedTier, creatureId: string, bundleId: string): { deedData: DeedData, deedId: string }[] => {
+    if (typeof deedStr !== 'string' || !deedStr.trim()) return [];
+    
+    const deedStrings = deedStr.trim().split(/\n\s*\n/);
+    
+    return deedStrings.map(deed => {
+        const lines = deed.trim().split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length < 2) return null;
 
         const name = lines[0];
         if (name.length > 50) return null;
-
-        const typeLineRaw = lines[1];
-        let deedType: DeedType;
-        let actionType: DeedActionType;
-        let versus: DeedVersus;
-        let target = '';
-        let incompatibleEffects = '';
-
-        const typeMatch = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
         
-        if (typeMatch) {
-            deedType = typeMatch[1].toLowerCase() as DeedType;
-            actionType = typeMatch[2].toLowerCase() as DeedActionType;
-            versus = typeMatch[3].toLowerCase() as DeedVersus;
-        } else {
-             console.warn('Failed to parse deed type line -> ', typeLineRaw);
-             return null;
-        }
+        const deedId = `${bundleId}-${creatureId}-${name.replace(/\s+/g, '-')}`;
+        
+        const typeLineRaw = lines[1];
+        const typeMatch = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
+        if (!typeMatch) return null;
+        
+        const deedType = typeMatch[1].toLowerCase() as DeedType;
+        const actionType = typeMatch[2].toLowerCase() as DeedActionType;
+        const versus = typeMatch[3].toLowerCase() as DeedVersus;
         
         let lineIndex = 2;
-        if (lines[lineIndex] && (
-            lines[lineIndex].toLowerCase().startsWith('target:') || 
-            lines[lineIndex].toLowerCase().startsWith('range:') || 
-            lines[lineIndex].toLowerCase().startsWith('area:'))) {
+        let target = '';
+        if (lines[lineIndex] && (lines[lineIndex].toLowerCase().startsWith('target:') || lines[lineIndex].toLowerCase().startsWith('range:') || lines[lineIndex].toLowerCase().startsWith('area:'))) {
             target = lines[lineIndex].split(':').slice(1).join(':').trim();
             lineIndex++;
         }
 
-        const effectLines = lines.slice(lineIndex);
         const effects: DeedData['effects'] = {};
-        
-        for (const line of effectLines) {
+        for (const line of lines.slice(lineIndex)) {
             const match = line.match(/^(Start|Base|Hit|Spark|Shadow|After):\s*(.*)$/i);
             if (match) {
                 const effectName = match[1].toLowerCase() as keyof DeedData['effects'];
-                const effectValue = match[2].trim();
-                effects[effectName] = (effects[effectName] ? `${effects[effectName]}\n` : '') + effectValue;
+                effects[effectName] = (effects[effectName] ? `${effects[effectName]}\n` : '') + match[2].trim();
+            } else if (effects.hit) {
+                effects.hit += `\n${line}`;
             } else {
-                incompatibleEffects += `${line}\n`;
+                effects.hit = line;
             }
         }
         
-        if (incompatibleEffects) {
-            effects.hit = (effects.hit || '') + `\n${name} also has the following effects:\n${incompatibleEffects}`;
-        }
-
-        const deedId = `${bundleId}-${creatureId}-${name.replace(/\s+/g, '-')}`;
-
-        return {
-            deedId,
-            deedData: {
-                name,
-                tier,
-                actionType,
-                deedType,
-                versus,
-                target,
-                effects,
-                tags: []
-            }
-        };
+        return { deedId, deedData: { name, tier, actionType, deedType, versus, target, effects, tags: [] } };
     }).filter((d): d is { deedData: DeedData; deedId: string } => d !== null);
 }
 
@@ -127,12 +146,23 @@ export async function importOverlordBundle(jsonString: string): Promise<{ creatu
             continue;
         }
         
-        const allParsedDeeds = [
-            ...parseDeedBlock(legacy.lightDeeds, 'light', legacy.statblockID, legacy.bundleId),
-            ...parseDeedBlock(legacy.heavyDeeds, 'heavy', legacy.statblockID, legacy.bundleId),
-            ...parseDeedBlock(legacy.mightyDeeds, 'mighty', legacy.statblockID, legacy.bundleId),
-            ...parseDeedBlock(legacy.tyrantDeeds, 'tyrant', legacy.statblockID, legacy.bundleId),
-        ];
+        let allParsedDeeds: { deedData: DeedData, deedId: string }[] = [];
+
+        const processDeeds = (deeds: OverlordDeedV1 | OverlordDeedV2[] | undefined, tier: DeedTier) => {
+            if (typeof deeds === 'string') {
+                allParsedDeeds.push(...parseDeedFromString(deeds, tier, legacy.statblockID, legacy.bundleId));
+            } else if (Array.isArray(deeds)) {
+                deeds.forEach(deedObj => {
+                    const parsed = parseDeedFromObject(deedObj, tier, legacy.statblockID, legacy.bundleId);
+                    if (parsed) allParsedDeeds.push(parsed);
+                });
+            }
+        };
+
+        processDeeds(legacy.lightDeeds, 'light');
+        processDeeds(legacy.heavyDeeds, 'heavy');
+        processDeeds(legacy.mightyDeeds, 'mighty');
+        processDeeds(legacy.tyrantDeeds, 'tyrant');
         
         const creatureDeedIds: string[] = [];
         for (const { deedId, deedData } of allParsedDeeds) {
@@ -142,6 +172,13 @@ export async function importOverlordBundle(jsonString: string): Promise<{ creatu
                 deedsAdded++;
             }
             creatureDeedIds.push(deedId);
+        }
+
+        let abilities: CreatureAbility[] = [];
+        if (Array.isArray(legacy.features)) {
+            abilities = legacy.features.map(f => ({ id: crypto.randomUUID(), name: f.title, description: f.content }));
+        } else if (typeof legacy.features === 'object') {
+            abilities = Object.entries(legacy.features || {}).map(([name, description]) => ({ id: crypto.randomUUID(), name, description }));
         }
 
         const creatureToSave: NewCreature = {
@@ -161,7 +198,7 @@ export async function importOverlordBundle(jsonString: string): Promise<{ creatu
                 rollBonus: parseInt((legacy.roll || '0').replace('+', ''), 10),
                 DMG: 'd6', // This needs to be calculated based on level/role, placeholder for now
             },
-            abilities: Object.entries(legacy.features || {}).map(([name, description]) => ({ id: crypto.randomUUID(), name, description })),
+            abilities,
             description: '',
             tags: [],
             deeds: creatureDeedIds,
@@ -173,3 +210,5 @@ export async function importOverlordBundle(jsonString: string): Promise<{ creatu
 
     return { creaturesAdded, deedsAdded };
 }
+
+    

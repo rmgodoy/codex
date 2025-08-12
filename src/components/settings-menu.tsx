@@ -163,7 +163,7 @@ function ImportNewWorldDialog() {
   );
 }
 
-function ImportOverlordBundleDialog() {
+function ImportOverlordLibraryDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -202,16 +202,16 @@ function ImportOverlordBundleDialog() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full">
-          <FilePlus2 className="mr-2" /> Import Overlord Bundle
+          <FilePlus2 className="mr-2" /> Import Overlord Library
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import Overlord Creature Bundle</DialogTitle>
+          <DialogTitle>Import Overlord Creature Library</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="bundle-file">Bundle File (.json)</Label>
+            <Label htmlFor="bundle-file">Library File (.json)</Label>
             <Input id="bundle-file" type="file" accept=".json" onChange={handleFileChange} />
           </div>
         </div>
@@ -219,7 +219,7 @@ function ImportOverlordBundleDialog() {
           <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
           <Button onClick={handleImport} disabled={!selectedFile || isImporting}>
             {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isImporting ? "Importing..." : "Import Bundle"}
+            {isImporting ? "Importing..." : "Import Library"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -286,7 +286,7 @@ export function SettingsMenu({
             {context === 'landing' && <ImportNewWorldDialog />}
             {context === 'world' && (
               <>
-                <ImportOverlordBundleDialog />
+                <ImportOverlordLibraryDialog />
                  <AlertDialog>
                   <AlertDialogTrigger asChild>
                       <Button variant="outline" className="w-full">
@@ -326,3 +326,5 @@ export function SettingsMenu({
     </>
   );
 }
+
+    
