@@ -196,7 +196,7 @@ export const getDb = (): Promise<IDBDatabase> => {
       const tagsStore = currentDb.objectStoreNames.contains(TAGS_STORE_NAME)
         ? request.transaction!.objectStore(TAGS_STORE_NAME)
         : currentDb.createObjectStore(TAGS_STORE_NAME, {
-            keyPath: ["name", "source"],
+            keyPath: "id",
           });
       if (!tagsStore.indexNames.contains("by_source")) {
         tagsStore.createIndex("by_source", "source", { unique: false });

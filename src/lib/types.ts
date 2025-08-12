@@ -73,6 +73,7 @@ export type TagSource =
   | "race";
 
 export interface Tag {
+  id: string;
   name: string;
   source: TagSource;
 }
