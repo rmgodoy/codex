@@ -419,7 +419,7 @@ export interface Npc {
   role: string;
   age: string;
   appearance: string;
-  race: string;
+  raceId?: string;
   factionIds?: string[];
   beliefIds?: string[];
   deeds?: string[];

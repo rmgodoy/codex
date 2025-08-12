@@ -26,6 +26,7 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
   const [tagFilter, setTagFilter] = useState('');
   const [factionFilter, setFactionFilter] = useState<string[]>([]);
   const [beliefFilter, setBeliefFilter] = useState<string[]>([]);
+  const [raceFilter, setRaceFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -48,6 +49,7 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
     tagFilter,
     factionFilter,
     beliefFilter,
+    raceFilter,
     sortBy,
     sortOrder,
   };
@@ -57,6 +59,7 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
     setTagFilter,
     setFactionFilter,
     setBeliefFilter,
+    setRaceFilter,
     setSortBy,
     setSortOrder,
   };
@@ -66,6 +69,7 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
     setTagFilter('');
     setFactionFilter([]);
     setBeliefFilter([]);
+    setRaceFilter([]);
     setSortBy('name');
     setSortOrder('asc');
   };
