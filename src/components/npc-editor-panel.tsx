@@ -397,6 +397,18 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     }
   };
 
+  const onFormError = (errors: any) => {
+    const errorMessages = Object.entries(errors).map(([fieldName, error]: [string, any]) => 
+        `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}: ${error.message}`
+    ).join('\n');
+    
+    toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: <pre className="whitespace-pre-wrap">{errorMessages}</pre>,
+    });
+  };
+
   const onSubmit = async (data: NpcFormData) => {
     try {
       const npcToSave: NewNpc | Npc = {
@@ -573,7 +585,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     <div className="w-full max-w-5xl mx-auto">
       <Card>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-6">
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
                   <div className="flex items-center gap-2">
