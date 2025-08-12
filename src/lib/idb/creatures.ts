@@ -52,7 +52,7 @@ export const getCreaturesByIds = async (ids: string[]): Promise<Creature[]> => {
 export const addCreature = async (creatureData: NewCreature): Promise<string> => {
     const db = await getDb();
     const store = db.transaction(CREATURES_STORE_NAME, 'readwrite').objectStore(CREATURES_STORE_NAME);
-    const id = generateId();
+    const id = creatureData.id || generateId();
     const creatureWithId = { ...creatureData, id };
     const request = store.add(creatureWithId);
     return new Promise((resolve, reject) => {

@@ -1,14 +1,13 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getNpcById, addNpc, updateNpc, deleteNpc, addTags, getAllFactions, getAllNpcs, getAllPantheonEntities } from "@/lib/idb";
+import { getNpcById, addNpc, updateNpc, deleteNpc, addTags, getAllFactions, getAllNpcs, getAllPantheonEntities, getAllRaces } from "@/lib/idb";
 import { useToast } from "@/hooks/use-toast";
-import type { Npc, NewNpc, Faction, NpcRelationship, PantheonEntity } from "@/lib/types";
+import type { Npc, NewNpc, Faction, NpcRelationship, PantheonEntity, Race } from "@/lib/types";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,9 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { useWorld } from "./world-provider";
 
 const npcRelationshipSchema = z.object({
   id: z.string(),
@@ -38,7 +39,7 @@ const npcRelationshipSchema = z.object({
 
 const npcSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  race: z.string().optional(),
+  raceId: z.string().optional(),
   age: z.string().optional(),
   role: z.string().optional(),
   personality: z.string().optional(),
@@ -291,7 +292,7 @@ interface NpcEditorPanelProps {
 
 const defaultValues: NpcFormData = {
   name: "",
-  race: "",
+  raceId: undefined,
   age: "",
   role: "",
   personality: "",
@@ -312,11 +313,26 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
   const [allNpcs, setAllNpcs] = useState<Npc[]>([]);
   const [allFactions, setAllFactions] = useState<Faction[]>([]);
   const [allEntities, setAllEntities] = useState<PantheonEntity[]>([]);
+  const [allRaces, setAllRaces] = useState<Race[]>([]);
   const isMobile = useIsMobile();
+  const { worldSlug } = useWorld();
   
   const factionMap = useMemo(() => new Map(allFactions.map(f => [f.id, f.name])), [allFactions]);
   const entityMap = useMemo(() => new Map(allEntities.map(e => [e.id, e.name])), [allEntities]);
   const npcMap = useMemo(() => new Map(allNpcs.map(n => [n.id, n.name])), [allNpcs]);
+  const raceMap = useMemo(() => new Map(allRaces.map(r => [r.id, r.name])), [allRaces]);
+
+  const onFormError = (errors: any) => {
+    const errorMessages = Object.entries(errors).map(([fieldName, error]: [string, any]) => 
+        `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}: ${error.message}`
+    ).join('\n');
+    
+    toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: <pre className="whitespace-pre-wrap">{errorMessages}</pre>,
+    });
+  };
 
   const form = useForm<NpcFormData>({
     resolver: zodResolver(npcSchema),
@@ -332,11 +348,13 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     Promise.all([
       getAllNpcs(),
       getAllFactions(),
-      getAllPantheonEntities()
-    ]).then(([npcs, factions, entities]) => {
+      getAllPantheonEntities(),
+      getAllRaces()
+    ]).then(([npcs, factions, entities, races]) => {
       setAllNpcs(npcs);
       setAllFactions(factions);
       setAllEntities(entities);
+      setAllRaces(races);
     });
   }, [dataVersion]);
 
@@ -395,6 +413,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     try {
       const npcToSave: NewNpc | Npc = {
         ...data,
+        raceId: data.raceId === 'none' ? undefined : data.raceId,
         tags: data.tags || [],
         factionIds: data.factionIds || [],
         beliefIds: data.beliefIds || [],
@@ -417,6 +436,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
       }
       setIsEditing(false);
     } catch (error) {
+      console.error("Save failed:", error);
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
   };
@@ -451,6 +471,8 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
   }
 
   if (!isEditing && npcData) {
+    const raceName = npcData.raceId ? raceMap.get(npcData.raceId) : null;
+
     return (
         <div className="w-full max-w-5xl mx-auto">
             <Card>
@@ -465,7 +487,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                             <div>
                                 <CardTitle className="text-3xl font-bold">{npcData.name}</CardTitle>
                                 <CardDescription className="flex flex-wrap gap-x-4">
-                                    {npcData.race && <span>{npcData.race}</span>}
+                                    {raceName && <span><a href={`#/${worldSlug}/races/${npcData.raceId}`} className="hover:underline">{raceName}</a></span>}
                                     {npcData.age && <span>{npcData.age}</span>}
                                     {npcData.role && <span>{npcData.role}</span>}
                                 </CardDescription>
@@ -564,7 +586,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     <div className="w-full max-w-5xl mx-auto">
       <Card>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-6">
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
                   <div className="flex items-center gap-2">
@@ -585,11 +607,23 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <FormField name="name" control={form.control} render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField name="race" control={form.control} render={({ field }) => (<FormItem><FormLabel>Race</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField name="age" control={form.control} render={({ field }) => (<FormItem><FormLabel>Age</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="raceId" control={form.control} render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Race</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || 'none'}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select a race..." /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  {allRaces.map(race => <SelectItem key={race.id} value={race.id}>{race.name}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField name="age" control={form.control} render={({ field }) => (<FormItem><FormLabel>Age</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField name="role" control={form.control} render={({ field }) => (<FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="role" control={form.control} render={({ field }) => (<FormItem><FormLabel>Role</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField
                         control={form.control}
                         name="factionIds"
@@ -649,10 +683,10 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                         </FormItem>
                     )}
                 />
-                <FormField name="appearance" control={form.control} render={({ field }) => (<FormItem><FormLabel>Appearance</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
-                <FormField name="personality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Personality</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
-                <FormField name="motivation" control={form.control} render={({ field }) => (<FormItem><FormLabel>Motivation</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>)} />
-                <FormField name="backstory" control={form.control} render={({ field }) => (<FormItem><FormLabel>Backstory</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl></FormItem>)} />
+                <FormField name="appearance" control={form.control} render={({ field }) => (<FormItem><FormLabel>Appearance</FormLabel><FormControl><Textarea {...field} rows={2} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                <FormField name="personality" control={form.control} render={({ field }) => (<FormItem><FormLabel>Personality</FormLabel><FormControl><Textarea {...field} rows={3} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                <FormField name="motivation" control={form.control} render={({ field }) => (<FormItem><FormLabel>Motivation</FormLabel><FormControl><Textarea {...field} rows={3} value={field.value ?? ''} /></FormControl></FormItem>)} />
+                <FormField name="backstory" control={form.control} render={({ field }) => (<FormItem><FormLabel>Backstory</FormLabel><FormControl><Textarea {...field} rows={5} value={field.value ?? ''} /></FormControl></FormItem>)} />
                 
                 <Separator />
                 

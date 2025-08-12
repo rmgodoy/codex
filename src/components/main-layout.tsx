@@ -17,6 +17,7 @@ import {
   Map as MapIcon,
   Gem,
   Landmark,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -153,6 +154,7 @@ export default function MainLayout({
       else if (pageKeyLower.startsWith("calendar")) pageName = "Calendar";
       else if (pageKeyLower.startsWith("maps")) pageName = "Maps";
       else if (pageKeyLower.startsWith("pantheon")) pageName = "Pantheon";
+      else if (pageKeyLower.startsWith("races")) pageName = "Races";
       else if (pageKeyLower.startsWith("bestiary")) pageName = "Bestiary";
       else if (pageKeyLower.startsWith("deeds")) pageName = "Deeds";
       else if (pageKeyLower.startsWith("encounters")) pageName = "Encounters";
@@ -214,6 +216,11 @@ export default function MainLayout({
     {
       href: `#/${worldSlug}/pantheon`,
       label: "Pantheon",
+      group: "Compendium",
+    },
+    {
+      href: `#/${worldSlug}/races`,
+      label: "Races",
       group: "Compendium",
     },
     {

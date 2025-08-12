@@ -1,3 +1,4 @@
+
 import type { Role } from "./roles";
 import type { StateEffect } from "./states";
 
@@ -68,9 +69,11 @@ export type TagSource =
   | "faction"
   | "calendar"
   | "pantheon"
-  | "city";
+  | "city"
+  | "race";
 
 export interface Tag {
+  id: string;
   name: string;
   source: TagSource;
 }
@@ -103,7 +106,7 @@ export interface Creature {
   tags: string[];
 }
 
-export type NewCreature = Omit<Creature, "id">;
+export type NewCreature = Omit<Creature, "id"> & { id?: string };
 
 // Helper type for UI, with full deed objects
 export interface CreatureWithDeeds extends Omit<Creature, "deeds"> {
@@ -417,7 +420,7 @@ export interface Npc {
   role: string;
   age: string;
   appearance: string;
-  race: string;
+  raceId?: string;
   factionIds?: string[];
   beliefIds?: string[];
   deeds?: string[];
@@ -449,6 +452,25 @@ export interface PantheonEntity {
 }
 
 export type NewPantheonEntity = Omit<PantheonEntity, "id">;
+
+// Race/Lineage Types
+export interface RaceTrait {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface Race {
+  id: string;
+  name: string;
+  appearance: string;
+  location: string;
+  description: string;
+  traits: RaceTrait[];
+  tags?: string[];
+}
+
+export type NewRace = Omit<Race, "id">;
 
 // Hex Grid Types (before Calendar)
 export interface Hex {

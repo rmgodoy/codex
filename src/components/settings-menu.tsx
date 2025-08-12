@@ -43,6 +43,7 @@ import { setWorldDbName, importData, listWorlds } from "@/lib/idb";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { WorldMetadata } from "@/lib/types";
+import { importOverlordBundle } from "@/lib/overlord-importer";
 
 interface SettingsMenuProps {
   onExport?: () => void;
@@ -162,6 +163,69 @@ function ImportNewWorldDialog() {
   );
 }
 
+function ImportOverlordLibraryDialog() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedFile(event.target.files?.[0] || null);
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) return;
+    setIsImporting(true);
+    try {
+      const content = await selectedFile.text();
+      const { creaturesAdded, deedsAdded } = await importOverlordBundle(content);
+      toast({
+        title: "Import Complete",
+        description: `${creaturesAdded} creatures and ${deedsAdded} new deeds were added.`,
+      });
+      // Optionally, trigger a data refresh in the app
+      window.dispatchEvent(new CustomEvent('data-changed'));
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error.message || "An error occurred during import.",
+      });
+    } finally {
+      setIsImporting(false);
+      setSelectedFile(null);
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full">
+          <FilePlus2 className="mr-2" /> Import Overlord Library
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Overlord Creature Library</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="bundle-file">Library File (.json)</Label>
+            <Input id="bundle-file" type="file" accept=".json" onChange={handleFileChange} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+          <Button onClick={handleImport} disabled={!selectedFile || isImporting}>
+            {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isImporting ? "Importing..." : "Import Library"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function SettingsMenu({
   onExport,
@@ -220,32 +284,35 @@ export function SettingsMenu({
           </DialogHeader>
           <div className="space-y-4">
             {context === 'landing' && <ImportNewWorldDialog />}
-            {context === 'world' && onImport && (
-               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                        <Upload className="mr-2" /> Import & Overwrite
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Import Data?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will overwrite all existing data in the current world
-                        with data from the selected JSON file. This action cannot be
-                        undone.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        Proceed
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-                </AlertDialog>
+            {context === 'world' && (
+              <>
+                <ImportOverlordLibraryDialog />
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                          <Upload className="mr-2" /> Import & Overwrite World
+                      </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>Import Data?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          This will overwrite all existing data in the current world
+                          with data from the selected JSON file. This action cannot be
+                          undone.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                          onClick={() => fileInputRef.current?.click()}
+                      >
+                          Proceed
+                      </AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+                  </AlertDialog>
+              </>
             )}
             {context === 'world' && onExport && (
                  <Button variant="outline" className="w-full" onClick={onExport}>
@@ -259,3 +326,5 @@ export function SettingsMenu({
     </>
   );
 }
+
+    

@@ -3,8 +3,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAllRooms } from '@/lib/idb';
-import type { Room } from '@/lib/types';
+import { getAllRaces } from '@/lib/idb';
+import type { Race } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,10 +18,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 
 type SortByType = 'name';
 
-interface RoomListPanelProps {
-  onSelectItem: (id: string | null) => void;
-  onNewItem: () => void;
-  selectedItemId: string | null;
+interface RaceListPanelProps {
+  onSelectRace: (id: string | null) => void;
+  onNewRace: () => void;
+  selectedRaceId: string | null;
   dataVersion: number;
   filters: {
     searchTerm: string;
@@ -38,67 +38,65 @@ interface RoomListPanelProps {
   onClearFilters: () => void;
 }
 
-export default function RoomListPanel({ 
-  onSelectItem, 
-  onNewItem, 
-  selectedItemId, 
+export default function RaceListPanel({ 
+  onSelectRace, 
+  onNewRace, 
+  selectedRaceId, 
   dataVersion,
   filters,
   setFilters,
   onClearFilters,
-}: RoomListPanelProps) {
-  const [items, setItems] = useState<Room[]>([]);
+}: RaceListPanelProps) {
+  const [races, setRaces] = useState<Race[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchRaces = async () => {
       setIsLoading(true);
       try {
-        setItems(await getAllRooms());
+        setRaces(await getAllRaces());
       } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Could not fetch rooms from database." });
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch races from database." });
       } finally {
         setIsLoading(false);
       }
     };
-    fetchItems();
+    fetchRaces();
   }, [dataVersion, toast]);
 
-  const filteredAndSortedItems = useMemo(() => {
-    let filtered = items.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
-        
-        let matchesTags = true;
-        const tags = filters.tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
-        if (tags.length > 0) {
-          matchesTags = item.tags ? tags.every(tag => item.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
-        }
+  const filteredAndSortedRaces = useMemo(() => {
+    let filtered = races.filter(race => {
+      const matchesSearch = race.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
+      
+      let matchesTags = true;
+      const tags = filters.tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+      if (tags.length > 0) {
+        matchesTags = race.tags ? tags.every(tag => race.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
+      }
 
-        return matchesSearch && matchesTags;
+      return matchesSearch && matchesTags;
     });
 
-    const sorted = filtered.sort((a, b) => {
-        return a.name.localeCompare(b.name);
-    });
+    const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));
 
     if (filters.sortOrder === 'desc') {
-        sorted.reverse();
+      sorted.reverse();
     }
 
     return sorted;
-  }, [items, filters]);
+  }, [races, filters]);
 
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 space-y-4">
-        <Button onClick={onNewItem} className="w-full">
-          <PlusCircle /> New Room
+        <Button onClick={onNewRace} className="w-full">
+          <PlusCircle /> New Race
         </Button>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search rooms..."
+            placeholder="Search races..."
             value={filters.searchTerm}
             onChange={(e) => setFilters.setSearchTerm(e.target.value)}
             className="pl-9"
@@ -118,8 +116,8 @@ export default function RoomListPanel({
                 <TagInput
                     value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
                     onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-                    placeholder="Tags (e.g. dungeon, trap)"
-                    tagSource="room"
+                    placeholder="Tags..."
+                    tagSource="race"
                 />
             </CollapsibleContent>
         </Collapsible>
@@ -145,22 +143,22 @@ export default function RoomListPanel({
       <ScrollArea className="flex-1">
         <div className="p-4">
           {isLoading ? (
-            <p className="text-muted-foreground text-center">Loading rooms...</p>
-          ) : filteredAndSortedItems.length > 0 ? (
+            <p className="text-muted-foreground text-center">Loading races...</p>
+          ) : filteredAndSortedRaces.length > 0 ? (
             <ul className="space-y-1">
-              {filteredAndSortedItems.map(item => (
-                <li key={item.id}>
+              {filteredAndSortedRaces.map(race => (
+                <li key={race.id}>
                   <button
-                    onClick={() => onSelectItem(item.id)}
-                    className={`w-full text-left p-2 rounded-md transition-colors ${selectedItemId === item.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
+                    onClick={() => onSelectRace(race.id)}
+                    className={`w-full text-left p-2 rounded-md transition-colors ${selectedRaceId === race.id ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'}`}
                   >
-                    {item.name}
+                    {race.name}
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground text-center">No rooms found.</p>
+            <p className="text-muted-foreground text-center">No races found.</p>
           )}
         </div>
       </ScrollArea>

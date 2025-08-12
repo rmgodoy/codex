@@ -1,32 +1,26 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
-import NpcListPanel from '@/components/npc-list-panel';
-import NpcEditorPanel from '@/components/npc-editor-panel';
 import MainLayout from '@/components/main-layout';
-import type { Npc } from '@/lib/types';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import RaceListPanel from '@/components/race-list-panel';
+import RaceEditorPanel from '@/components/race-editor-panel';
 
-type SortByType = 'name' | 'race';
+type SortByType = 'name';
 
-interface NpcsPageProps {
+interface RacesPageProps {
   selectedId?: string;
 }
 
-export default function NpcsPage({ selectedId }: NpcsPageProps) {
-  const [selectedNpcId, setSelectedNpcId] = useState<string | null>(selectedId || null);
+export default function RacesPage({ selectedId }: RacesPageProps) {
+  const [selectedRaceId, setSelectedRaceId] = useState<string | null>(selectedId || null);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
-  const [templateData, setTemplateData] = useState<Partial<Npc> | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [tagFilter, setTagFilter] = useState('');
-  const [factionFilter, setFactionFilter] = useState<string[]>([]);
-  const [beliefFilter, setBeliefFilter] = useState<string[]>([]);
-  const [raceFilter, setRaceFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -37,19 +31,16 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
   useEffect(() => {
     setIsClient(true);
     if (selectedId) {
-        setSelectedNpcId(selectedId);
-        if (isMobile) {
-            setMobileView('editor');
-        }
+      setSelectedRaceId(selectedId);
+      if (isMobile) {
+        setMobileView('editor');
+      }
     }
   }, [selectedId, isMobile]);
 
   const filters = {
     searchTerm,
     tagFilter,
-    factionFilter,
-    beliefFilter,
-    raceFilter,
     sortBy,
     sortOrder,
   };
@@ -57,9 +48,6 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
   const setFilters = {
     setSearchTerm,
     setTagFilter,
-    setFactionFilter,
-    setBeliefFilter,
-    setRaceFilter,
     setSortBy,
     setSortOrder,
   };
@@ -67,42 +55,23 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
   const clearFilters = () => {
     setSearchTerm('');
     setTagFilter('');
-    setFactionFilter([]);
-    setBeliefFilter([]);
-    setRaceFilter([]);
     setSortBy('name');
     setSortOrder('asc');
   };
 
   const refreshList = () => setDataVersion(v => v + 1);
 
-  const handleSelectNpc = (id: string | null) => {
-    setSelectedNpcId(id);
+  const handleSelectRace = (id: string | null) => {
+    setSelectedRaceId(id);
     setIsCreatingNew(false);
-    setTemplateData(null);
     if (isMobile) {
       setMobileView('editor');
     }
   };
 
-  const handleNewNpc = () => {
-    setSelectedNpcId(null);
+  const handleNewRace = () => {
+    setSelectedRaceId(null);
     setIsCreatingNew(true);
-    setTemplateData(null);
-    if (isMobile) {
-      setMobileView('editor');
-    }
-  };
-
-  const handleUseAsTemplate = (npcData: Npc) => {
-    const template = { ...npcData };
-    const baseName = (npcData.name || 'NPC').replace(/^(Copy of\s*)+/, '');
-    template.name = `Copy of ${baseName}`;
-    delete (template as Partial<Npc>).id;
-
-    setSelectedNpcId(null);
-    setIsCreatingNew(true);
-    setTemplateData(template);
     if (isMobile) {
       setMobileView('editor');
     }
@@ -110,9 +79,8 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
 
   const onSaveSuccess = (id: string) => {
     refreshList();
-    setSelectedNpcId(id);
+    setSelectedRaceId(id);
     setIsCreatingNew(false);
-    setTemplateData(null);
     if (isMobile) {
       setMobileView('editor');
     }
@@ -120,9 +88,8 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
 
   const onDeleteSuccess = () => {
     refreshList();
-    setSelectedNpcId(null);
+    setSelectedRaceId(null);
     setIsCreatingNew(false);
-    setTemplateData(null);
     if (isMobile) {
       setMobileView('list');
     }
@@ -130,15 +97,14 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
 
   const handleBack = () => {
     setMobileView('list');
-    setSelectedNpcId(null);
+    setSelectedRaceId(null);
     setIsCreatingNew(false);
-    setTemplateData(null);
   };
 
   const onEditCancel = () => {
     if (isCreatingNew) {
       setIsCreatingNew(false);
-      setSelectedNpcId(null);
+      setSelectedRaceId(null);
       if (isMobile) {
         setMobileView('list');
       }
@@ -154,29 +120,29 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
       <MainLayout showSidebarTrigger={false}>
         <div className="h-full w-full">
           {mobileView === 'list' ? (
-            <NpcListPanel
-              onSelectNpc={handleSelectNpc}
-              onNewNpc={handleNewNpc}
-              selectedNpcId={selectedNpcId}
+            <RaceListPanel
+              onSelectRace={handleSelectRace}
+              onNewRace={handleNewRace}
+              selectedRaceId={selectedRaceId}
               dataVersion={dataVersion}
               filters={filters}
               setFilters={setFilters}
               onClearFilters={clearFilters}
             />
           ) : (
-            <div className="h-full w-full overflow-y-auto p-4 sm:p-6">
-                <NpcEditorPanel
-                  key={selectedNpcId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                  npcId={selectedNpcId}
+            <div className="h-full w-full overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <RaceEditorPanel
+                  key={selectedRaceId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                  raceId={selectedRaceId}
                   isCreatingNew={isCreatingNew}
-                  template={templateData}
                   onSaveSuccess={onSaveSuccess}
                   onDeleteSuccess={onDeleteSuccess}
-                  onUseAsTemplate={handleUseAsTemplate}
                   onEditCancel={onEditCancel}
                   onBack={handleBack}
                   dataVersion={dataVersion}
                 />
+              </div>
             </div>
           )}
         </div>
@@ -189,10 +155,10 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
       <MainLayout>
         <div className="flex w-full h-full overflow-hidden">
           <Sidebar style={{ "--sidebar-width": "380px" } as React.CSSProperties}>
-            <NpcListPanel
-              onSelectNpc={handleSelectNpc}
-              onNewNpc={handleNewNpc}
-              selectedNpcId={selectedNpcId}
+            <RaceListPanel
+              onSelectRace={handleSelectRace}
+              onNewRace={handleNewRace}
+              selectedRaceId={selectedRaceId}
               dataVersion={dataVersion}
               filters={filters}
               setFilters={setFilters}
@@ -201,14 +167,12 @@ export default function NpcsPage({ selectedId }: NpcsPageProps) {
           </Sidebar>
           <SidebarInset className="flex-1 overflow-y-auto">
             <div className="bg-background/50 p-4 sm:p-6 md:p-8 w-full">
-              <NpcEditorPanel
-                key={selectedNpcId ?? (isCreatingNew ? 'new' : 'placeholder')}
-                npcId={selectedNpcId}
+              <RaceEditorPanel
+                key={selectedRaceId ?? (isCreatingNew ? 'new' : 'placeholder')}
+                raceId={selectedRaceId}
                 isCreatingNew={isCreatingNew}
-                template={templateData}
                 onSaveSuccess={onSaveSuccess}
                 onDeleteSuccess={onDeleteSuccess}
-                onUseAsTemplate={handleUseAsTemplate}
                 onEditCancel={onEditCancel}
                 dataVersion={dataVersion}
               />

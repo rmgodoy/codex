@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,10 +11,11 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { TagInput } from '@/components/ui/tag-input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 type SortByType = 'name' | 'type' | 'price' | 'quality';
 
@@ -127,39 +129,46 @@ export default function ItemListPanel({
             className="pl-9"
           />
         </div>
-        <div className="space-y-2">
+        <Collapsible>
             <div className="flex justify-between items-center">
-              <Label>Filter</Label>
-              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="-ml-2">
+                        <Filter className="h-4 w-4 mr-2"/>
+                        Filters
+                    </Button>
+                </CollapsibleTrigger>
+                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
             </div>
-             <Select value={filters.typeFilter} onValueChange={setFilters.setTypeFilter}>
-                <SelectTrigger><SelectValue placeholder="Filter by type" /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {ITEM_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <Select value={filters.qualityFilter} onValueChange={setFilters.setQualityFilter}>
-                <SelectTrigger><SelectValue placeholder="Filter by quality" /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Qualities</SelectItem>
-                    {ITEM_QUALITIES.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <Select value={filters.magicTierFilter} onValueChange={(value) => setFilters.setMagicTierFilter(value as ItemMagicTier | 'all')}>
-                <SelectTrigger><SelectValue placeholder="Filter by Tier" /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Tiers</SelectItem>
-                    {ITEM_MAGIC_TIERS.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <TagInput
-              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
-              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-              placeholder="Tags (e.g. consumable)"
-              tagSource="item"
-            />
-        </div>
+            <CollapsibleContent className="space-y-2 pt-2">
+                <Select value={filters.typeFilter} onValueChange={setFilters.setTypeFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by type" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {ITEM_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={filters.qualityFilter} onValueChange={setFilters.setQualityFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by quality" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Qualities</SelectItem>
+                        {ITEM_QUALITIES.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={filters.magicTierFilter} onValueChange={(value) => setFilters.setMagicTierFilter(value as ItemMagicTier | 'all')}>
+                    <SelectTrigger><SelectValue placeholder="Filter by Tier" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Tiers</SelectItem>
+                        {ITEM_MAGIC_TIERS.map(q => <SelectItem key={q} value={q} className="capitalize">{q}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <TagInput
+                value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+                onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+                placeholder="Tags (e.g. consumable)"
+                tagSource="item"
+                />
+            </CollapsibleContent>
+        </Collapsible>
          <div>
             <Label>Sort by</Label>
             <div className="flex items-center gap-2">

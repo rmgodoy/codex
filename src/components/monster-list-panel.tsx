@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Search, ArrowUp, ArrowDown, Download, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Download, Loader2, Filter } from 'lucide-react';
 import { TagInput } from '@/components/ui/tag-input';
 import {
   Dialog,
@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import CreatureExportCard from './creature-export-card';
 import * as htmlToImage from 'html-to-image';
 import JSZip from 'jszip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 
 type SortByType = 'name' | 'TR' | 'level';
@@ -372,44 +373,48 @@ export default function CreatureListPanel({
             />
           </div>
 
-          <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Filter</Label>
-                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
-              </div>
-              <Select value={filters.templateFilter} onValueChange={setFilters.setTemplateFilter}>
-                  <SelectTrigger>
-                      <SelectValue placeholder="Filter by template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">All Templates</SelectItem>
-                      {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-              </Select>
-              <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
-                  <SelectTrigger>
-                      <SelectValue placeholder="Filter by role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                  </SelectContent>
-              </Select>
-              <div className="flex gap-2">
-                  <Input placeholder="Min Lvl" type="number" value={filters.minLevel} onChange={e => setFilters.setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                  <Input placeholder="Max Lvl" type="number" value={filters.maxLevel} onChange={e => setFilters.setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-              </div>
-              <div className="flex gap-2">
-                  <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-                  <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
-              </div>
-              <TagInput
-                value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
-                onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-                placeholder="Tags (e.g. undead, goblin)"
-                tagSource="creature"
-              />
-          </div>
+           <Collapsible>
+                <div className="flex justify-between items-center">
+                    <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="-ml-2">
+                            <Filter className="h-4 w-4 mr-2"/>
+                            Filters
+                        </Button>
+                    </CollapsibleTrigger>
+                    <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+                </div>
+                <CollapsibleContent className="space-y-2 pt-2">
+                    <Select value={filters.templateFilter} onValueChange={setFilters.setTemplateFilter}>
+                        <SelectTrigger><SelectValue placeholder="Filter by template" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Templates</SelectItem>
+                            {TEMPLATES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={filters.roleFilter} onValueChange={setFilters.setRoleFilter}>
+                        <SelectTrigger><SelectValue placeholder="Filter by role" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Roles</SelectItem>
+                            {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                        <Input placeholder="Min Lvl" type="number" value={filters.minLevel} onChange={e => setFilters.setMinLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                        <Input placeholder="Max Lvl" type="number" value={filters.maxLevel} onChange={e => setFilters.setMaxLevel(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                    </div>
+                    <div className="flex gap-2">
+                        <Input placeholder="Min TR" type="number" value={filters.minTR} onChange={e => setFilters.setMinTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                        <Input placeholder="Max TR" type="number" value={filters.maxTR} onChange={e => setFilters.setMaxTR(e.target.value)} className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"/>
+                    </div>
+                    <TagInput
+                        value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+                        onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+                        placeholder="Tags (e.g. undead, goblin)"
+                        tagSource="creature"
+                    />
+                </CollapsibleContent>
+            </Collapsible>
+
 
           <div>
               <Label>Sort by</Label>

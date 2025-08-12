@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import DeedListPanel from '@/components/deed-list-panel';
 import DeedEditorPanel from '@/components/deed-editor-panel';
 import MainLayout from '@/components/main-layout';
-import type { Deed } from '@/lib/types';
+import type { Deed, DeedActionType, DeedType, DeedVersus } from '@/lib/types';
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -23,6 +23,9 @@ export default function DeedsPage({ selectedId }: DeedsPageProps) {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
+  const [deedTypeFilter, setDeedTypeFilter] = useState('all');
+  const [actionTypeFilter, setActionTypeFilter] = useState('all');
+  const [versusFilter, setVersusFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -44,6 +47,9 @@ export default function DeedsPage({ selectedId }: DeedsPageProps) {
   const filters = {
     searchTerm,
     tierFilter,
+    deedTypeFilter,
+    actionTypeFilter,
+    versusFilter,
     tagFilter,
     sortBy,
     sortOrder
@@ -52,6 +58,9 @@ export default function DeedsPage({ selectedId }: DeedsPageProps) {
   const setFilters = {
     setSearchTerm,
     setTierFilter,
+    setDeedTypeFilter,
+    setActionTypeFilter,
+    setVersusFilter,
     setTagFilter,
     setSortBy,
     setSortOrder
@@ -81,6 +90,9 @@ export default function DeedsPage({ selectedId }: DeedsPageProps) {
   const clearFilters = () => {
     setSearchTerm('');
     setTierFilter('all');
+    setDeedTypeFilter('all');
+    setActionTypeFilter('all');
+    setVersusFilter('all');
     setTagFilter('');
     setSortBy('name');
     setSortOrder('asc');

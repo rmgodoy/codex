@@ -4,15 +4,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getAllDeeds } from '@/lib/idb';
 import type { Deed } from '@/lib/types';
+import { DEED_ACTION_TYPES, DEED_TYPES, DEED_VERSUS } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { TagInput } from '@/components/ui/tag-input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
@@ -22,6 +24,9 @@ interface DeedListPanelProps {
   filters: {
     searchTerm: string;
     tierFilter: string;
+    deedTypeFilter: string;
+    actionTypeFilter: string;
+    versusFilter: string;
     tagFilter: string;
     sortBy: 'name' | 'tier';
     sortOrder: 'asc' | 'desc';
@@ -29,6 +34,9 @@ interface DeedListPanelProps {
   setFilters: {
     setSearchTerm: (value: string) => void;
     setTierFilter: (value: string) => void;
+    setDeedTypeFilter: (value: string) => void;
+    setActionTypeFilter: (value: string) => void;
+    setVersusFilter: (value: string) => void;
     setTagFilter: (value: string) => void;
     setSortBy: (value: 'name' | 'tier') => void;
     setSortOrder: (value: 'asc' | 'desc' | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => void;
@@ -69,6 +77,9 @@ export default function DeedListPanel({
     let filtered = deeds.filter(deed => {
         const matchesSearch = deed.name.toLowerCase().includes(filters.searchTerm.toLowerCase());
         const matchesTier = filters.tierFilter === 'all' || deed.tier === filters.tierFilter;
+        const matchesDeedType = filters.deedTypeFilter === 'all' || deed.deedType === filters.deedTypeFilter;
+        const matchesActionType = filters.actionTypeFilter === 'all' || deed.actionType === filters.actionTypeFilter;
+        const matchesVersus = filters.versusFilter === 'all' || deed.versus === filters.versusFilter;
         
         let matchesTags = true;
         const tags = filters.tagFilter.toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
@@ -76,7 +87,7 @@ export default function DeedListPanel({
           matchesTags = deed.tags ? tags.every(tag => deed.tags!.some(dt => dt.toLowerCase().includes(tag))) : false;
         }
 
-        return matchesSearch && matchesTier && matchesTags;
+        return matchesSearch && matchesTier && matchesDeedType && matchesActionType && matchesVersus && matchesTags;
     });
 
     const tierOrder: Record<string, number> = { light: 1, heavy: 2, mighty: 3, tyrant: 4, special: 5 };
@@ -112,31 +123,59 @@ export default function DeedListPanel({
             className="pl-9"
           />
         </div>
-        <div className="space-y-2">
+        <Collapsible>
             <div className="flex justify-between items-center">
-              <Label>Filter</Label>
-              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="-ml-2">
+                        <Filter className="h-4 w-4 mr-2"/>
+                        Filters
+                    </Button>
+                </CollapsibleTrigger>
+                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
             </div>
-            <Select value={filters.tierFilter} onValueChange={setFilters.setTierFilter}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by tier" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Tiers</SelectItem>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="heavy">Heavy</SelectItem>
-                    <SelectItem value="mighty">Mighty</SelectItem>
-                    <SelectItem value="tyrant">Tyrant</SelectItem>
-                    <SelectItem value="special">Special</SelectItem>
-                </SelectContent>
-            </Select>
-            <TagInput
-              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
-              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-              placeholder="Tags (e.g. fire, control)"
-              tagSource="deed"
-            />
-        </div>
+            <CollapsibleContent className="space-y-2 pt-2">
+                <Select value={filters.tierFilter} onValueChange={setFilters.setTierFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Filter by tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Tiers</SelectItem>
+                        <SelectItem value="light">Light</SelectItem>
+                        <SelectItem value="heavy">Heavy</SelectItem>
+                        <SelectItem value="mighty">Mighty</SelectItem>
+                        <SelectItem value="tyrant">Tyrant</SelectItem>
+                        <SelectItem value="special">Special</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select value={filters.deedTypeFilter} onValueChange={setFilters.setDeedTypeFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by deed type" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Deed Types</SelectItem>
+                        {DEED_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <Select value={filters.actionTypeFilter} onValueChange={setFilters.setActionTypeFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by action type" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Action Types</SelectItem>
+                        {DEED_ACTION_TYPES.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                 <Select value={filters.versusFilter} onValueChange={setFilters.setVersusFilter}>
+                    <SelectTrigger><SelectValue placeholder="Filter by versus" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Versus Types</SelectItem>
+                        {DEED_VERSUS.map(type => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <TagInput
+                value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+                onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+                placeholder="Tags (e.g. fire, control)"
+                tagSource="deed"
+                />
+            </CollapsibleContent>
+        </Collapsible>
          <div>
             <Label>Sort by</Label>
             <div className="flex items-center gap-2">

@@ -1,9 +1,8 @@
 
-
 "use client";
 
 import type { Tag, TagSource } from '@/lib/types';
-import { getDb, TAGS_STORE_NAME, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, PANTHEON_STORE_NAME, CITIES_STORE_NAME } from './db';
+import { getDb, TAGS_STORE_NAME, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, PANTHEON_STORE_NAME, CITIES_STORE_NAME, RACES_STORE_NAME, generateId } from './db';
 
 // Tag Functions
 export const getTagsBySource = async (source: TagSource): Promise<Tag[]> => {
@@ -27,14 +26,13 @@ export const getAllTags = async (): Promise<Tag[]> => {
     });
 };
 
-export const addTag = async (tag: Tag): Promise<void> => {
+export const addTag = async (tag: Omit<Tag, 'id'>): Promise<void> => {
     const db = await getDb();
     const store = db.transaction(TAGS_STORE_NAME, 'readwrite').objectStore(TAGS_STORE_NAME);
-    const request = store.add(tag);
+    const request = store.put({ ...tag, id: `${tag.source}-${tag.name}` });
      return new Promise<void>((resolve, reject) => {
         request.onsuccess = () => resolve();
         request.onerror = () => {
-            // Ignore "ConstraintError" which means the tag already exists.
             if (request.error?.name !== 'ConstraintError') {
                 reject(request.error);
             } else {
@@ -76,6 +74,7 @@ export const getTopTagsBySource = async (source: TagSource, limit: number): Prom
         case 'npc': storeName = NPCS_STORE_NAME; break;
         case 'pantheon': storeName = PANTHEON_STORE_NAME; break;
         case 'city': storeName = CITIES_STORE_NAME; break;
+        case 'race': storeName = RACES_STORE_NAME; break;
         default: return [];
     }
 
