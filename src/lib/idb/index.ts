@@ -20,3 +20,4 @@ export * from './import-export';
 export * from './exportHelpers';
 export * from './maps';
 export * from './cities';
+export * from './races';

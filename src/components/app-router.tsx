@@ -22,6 +22,7 @@ import CommonersPage from '@/app/random/commoners/page';
 import EncounterTablesPage from '@/app/random/encounter-tables/page';
 import TreasuresPage from '@/app/random/treasures/page';
 import CitiesPage from '@/app/cities/page';
+import RacesPage from '@/app/races/page';
 import type { CustomDate } from '@/lib/types';
 
 const routes: { [key: string]: React.ComponentType<any> } = {
@@ -33,6 +34,7 @@ const routes: { [key: string]: React.ComponentType<any> } = {
   'npcs': NpcsPage,
   'factions': FactionsPage,
   'pantheon': PantheonPage,
+  'races': RacesPage,
   'rooms': RoomsPage,
   'dungeons': DungeonsPage,
   'encounters': EncountersPage,

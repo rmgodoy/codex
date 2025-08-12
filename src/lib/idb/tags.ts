@@ -1,9 +1,8 @@
 
-
 "use client";
 
 import type { Tag, TagSource } from '@/lib/types';
-import { getDb, TAGS_STORE_NAME, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, PANTHEON_STORE_NAME, CITIES_STORE_NAME } from './db';
+import { getDb, TAGS_STORE_NAME, CREATURES_STORE_NAME, DEEDS_STORE_NAME, ENCOUNTERS_STORE_NAME, ENCOUNTER_TABLES_STORE_NAME, TREASURES_STORE_NAME, ALCHEMY_ITEMS_STORE_NAME, ROOMS_STORE_NAME, ITEMS_STORE_NAME, FACTIONS_STORE_NAME, NPCS_STORE_NAME, PANTHEON_STORE_NAME, CITIES_STORE_NAME, RACES_STORE_NAME } from './db';
 
 // Tag Functions
 export const getTagsBySource = async (source: TagSource): Promise<Tag[]> => {
@@ -76,6 +75,7 @@ export const getTopTagsBySource = async (source: TagSource, limit: number): Prom
         case 'npc': storeName = NPCS_STORE_NAME; break;
         case 'pantheon': storeName = PANTHEON_STORE_NAME; break;
         case 'city': storeName = CITIES_STORE_NAME; break;
+        case 'race': storeName = RACES_STORE_NAME; break;
         default: return [];
     }
 

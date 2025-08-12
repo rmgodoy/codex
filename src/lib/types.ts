@@ -69,7 +69,8 @@ export type TagSource =
   | "faction"
   | "calendar"
   | "pantheon"
-  | "city";
+  | "city"
+  | "race";
 
 export interface Tag {
   name: string;
@@ -450,6 +451,25 @@ export interface PantheonEntity {
 }
 
 export type NewPantheonEntity = Omit<PantheonEntity, "id">;
+
+// Race/Lineage Types
+export interface RaceTrait {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface Race {
+  id: string;
+  name: string;
+  appearance: string;
+  location: string;
+  description: string;
+  traits: RaceTrait[];
+  tags?: string[];
+}
+
+export type NewRace = Omit<Race, "id">;
 
 // Hex Grid Types (before Calendar)
 export interface Hex {
