@@ -107,10 +107,14 @@ const parseDeedFromString = (deedStr: string, tier: DeedTier, creatureId: string
 
         const effects: DeedData['effects'] = {};
         for (const line of lines.slice(lineIndex)) {
-            const match = line.match(/^(Start|Base|Hit|Spark|Shadow|After):\s*(.*)$/i);
+            const match = line.match(/^(Start|Base|Hit|Spark|Shadow|After|Effect):\s*(.*)$/i);
             if (match) {
-                const effectName = match[1].toLowerCase() as keyof DeedData['effects'];
-                effects[effectName] = (effects[effectName] ? `${effects[effectName]}\n` : '') + match[2].trim();
+                let effectName = match[1].toLowerCase() as keyof DeedData['effects'] | 'effect';
+                if (effectName === 'effect') {
+                  effectName = 'base';
+                }
+                const effectValue = match[2].trim();
+                effects[effectName] = (effects[effectName] ? `${effects[effectName]}\n` : '') + effectValue;
             } else if (effects.hit) {
                 effects.hit += `\n${line}`;
             } else {
