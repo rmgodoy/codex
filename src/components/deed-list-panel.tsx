@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -9,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { TagInput } from '@/components/ui/tag-input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface DeedListPanelProps {
   onSelectDeed: (id: string | null) => void;
@@ -112,31 +114,38 @@ export default function DeedListPanel({
             className="pl-9"
           />
         </div>
-        <div className="space-y-2">
+        <Collapsible>
             <div className="flex justify-between items-center">
-              <Label>Filter</Label>
-              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="-ml-2">
+                        <Filter className="h-4 w-4 mr-2"/>
+                        Filters
+                    </Button>
+                </CollapsibleTrigger>
+                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
             </div>
-            <Select value={filters.tierFilter} onValueChange={setFilters.setTierFilter}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by tier" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Tiers</SelectItem>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="heavy">Heavy</SelectItem>
-                    <SelectItem value="mighty">Mighty</SelectItem>
-                    <SelectItem value="tyrant">Tyrant</SelectItem>
-                    <SelectItem value="special">Special</SelectItem>
-                </SelectContent>
-            </Select>
-            <TagInput
-              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
-              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-              placeholder="Tags (e.g. fire, control)"
-              tagSource="deed"
-            />
-        </div>
+            <CollapsibleContent className="space-y-2 pt-2">
+                <Select value={filters.tierFilter} onValueChange={setFilters.setTierFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Filter by tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Tiers</SelectItem>
+                        <SelectItem value="light">Light</SelectItem>
+                        <SelectItem value="heavy">Heavy</SelectItem>
+                        <SelectItem value="mighty">Mighty</SelectItem>
+                        <SelectItem value="tyrant">Tyrant</SelectItem>
+                        <SelectItem value="special">Special</SelectItem>
+                    </SelectContent>
+                </Select>
+                <TagInput
+                value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+                onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+                placeholder="Tags (e.g. fire, control)"
+                tagSource="deed"
+                />
+            </CollapsibleContent>
+        </Collapsible>
          <div>
             <Label>Sort by</Label>
             <div className="flex items-center gap-2">
