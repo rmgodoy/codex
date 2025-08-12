@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -9,13 +10,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Search, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
+import { PlusCircle, Search, ArrowUp, ArrowDown, ChevronsUpDown, Filter } from 'lucide-react';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { TagInput } from '@/components/ui/tag-input';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 
 type SortByType = 'name' | 'race';
 
@@ -134,76 +136,83 @@ export default function NpcListPanel({
             className="pl-9"
           />
         </div>
-        <div className="space-y-2">
+        <Collapsible>
             <div className="flex justify-between items-center">
-              <Label>Filter</Label>
-              <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="-ml-2">
+                        <Filter className="h-4 w-4 mr-2"/>
+                        Filters
+                    </Button>
+                </CollapsibleTrigger>
+                <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-xs h-auto p-1">Clear</Button>
             </div>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                        {filters.factionFilter.length > 0
-                        ? `${filters.factionFilter.length} faction(s) selected`
-                        : 'Filter by Faction'}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                  <ScrollArea className="h-48">
-                    {factions.map(faction => (
-                        <div key={faction.id} className="flex items-center space-x-2 p-2 hover:bg-accent">
-                            <Checkbox 
-                                id={`filter-faction-${faction.id}`} 
-                                checked={filters.factionFilter.includes(faction.id)}
-                                onCheckedChange={(checked) => {
-                                    const newFilter = checked
-                                        ? [...filters.factionFilter, faction.id]
-                                        : filters.factionFilter.filter(id => id !== faction.id);
-                                    setFilters.setFactionFilter(newFilter);
-                                }}
-                            />
-                            <Label htmlFor={`filter-faction-${faction.id}`} className="font-normal flex-1">{faction.name}</Label>
-                        </div>
-                    ))}
-                  </ScrollArea>
-                </PopoverContent>
-            </Popover>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                        {filters.raceFilter.length > 0
-                        ? `${filters.raceFilter.length} race(s) selected`
-                        : 'Filter by Race'}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                  <ScrollArea className="h-48">
-                    {races.map(race => (
-                        <div key={race.id} className="flex items-center space-x-2 p-2 hover:bg-accent">
-                            <Checkbox 
-                                id={`filter-race-${race.id}`} 
-                                checked={filters.raceFilter.includes(race.id)}
-                                onCheckedChange={(checked) => {
-                                    const newFilter = checked
-                                        ? [...filters.raceFilter, race.id]
-                                        : filters.raceFilter.filter(id => id !== race.id);
-                                    setFilters.setRaceFilter(newFilter);
-                                }}
-                            />
-                            <Label htmlFor={`filter-race-${race.id}`} className="font-normal flex-1">{race.name}</Label>
-                        </div>
-                    ))}
-                  </ScrollArea>
-                </PopoverContent>
-            </Popover>
-            <TagInput
-              value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
-              onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
-              placeholder="Tags..."
-              tagSource="npc"
-            />
-        </div>
+            <CollapsibleContent className="space-y-2 pt-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                            {filters.factionFilter.length > 0
+                            ? `${filters.factionFilter.length} faction(s) selected`
+                            : 'Filter by Faction'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <ScrollArea className="h-48">
+                        {factions.map(faction => (
+                            <div key={faction.id} className="flex items-center space-x-2 p-2 hover:bg-accent">
+                                <Checkbox 
+                                    id={`filter-faction-${faction.id}`} 
+                                    checked={filters.factionFilter.includes(faction.id)}
+                                    onCheckedChange={(checked) => {
+                                        const newFilter = checked
+                                            ? [...filters.factionFilter, faction.id]
+                                            : filters.factionFilter.filter(id => id !== faction.id);
+                                        setFilters.setFactionFilter(newFilter);
+                                    }}
+                                />
+                                <Label htmlFor={`filter-faction-${faction.id}`} className="font-normal flex-1">{faction.name}</Label>
+                            </div>
+                        ))}
+                      </ScrollArea>
+                    </PopoverContent>
+                </Popover>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                            {filters.raceFilter.length > 0
+                            ? `${filters.raceFilter.length} race(s) selected`
+                            : 'Filter by Race'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <ScrollArea className="h-48">
+                        {races.map(race => (
+                            <div key={race.id} className="flex items-center space-x-2 p-2 hover:bg-accent">
+                                <Checkbox 
+                                    id={`filter-race-${race.id}`} 
+                                    checked={filters.raceFilter.includes(race.id)}
+                                    onCheckedChange={(checked) => {
+                                        const newFilter = checked
+                                            ? [...filters.raceFilter, race.id]
+                                            : filters.raceFilter.filter(id => id !== race.id);
+                                        setFilters.setRaceFilter(newFilter);
+                                    }}
+                                />
+                                <Label htmlFor={`filter-race-${race.id}`} className="font-normal flex-1">{race.name}</Label>
+                            </div>
+                        ))}
+                      </ScrollArea>
+                    </PopoverContent>
+                </Popover>
+                <TagInput
+                  value={filters.tagFilter ? filters.tagFilter.split(',').map(t => t.trim()).filter(Boolean) : []}
+                  onChange={(tags) => setFilters.setTagFilter(tags.join(','))}
+                  placeholder="Tags..."
+                  tagSource="npc"
+                />
+            </CollapsibleContent>
+        </Collapsible>
          <div>
             <Label>Sort by</Label>
             <div className="flex items-center gap-2">
