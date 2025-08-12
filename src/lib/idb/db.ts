@@ -5,7 +5,7 @@ import type { WorldMetadata } from "../types";
 
 export const DB_PREFIX = "TresspasserDB_";
 export let DB_NAME = `${DB_PREFIX}Default`;
-export const DB_VERSION = 5; // Incremented version to ensure onupgradeneeded runs
+export const DB_VERSION = 6; // Incremented version to ensure onupgradeneeded runs
 
 // Metadata DB for tracking all worlds
 const METADATA_DB_NAME = "TresspasserWorldsMetadata";
