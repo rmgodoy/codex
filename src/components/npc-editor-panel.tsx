@@ -322,6 +322,18 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
   const npcMap = useMemo(() => new Map(allNpcs.map(n => [n.id, n.name])), [allNpcs]);
   const raceMap = useMemo(() => new Map(allRaces.map(r => [r.id, r.name])), [allRaces]);
 
+  const onFormError = (errors: any) => {
+    const errorMessages = Object.entries(errors).map(([fieldName, error]: [string, any]) => 
+        `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}: ${error.message}`
+    ).join('\n');
+    
+    toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: <pre className="whitespace-pre-wrap">{errorMessages}</pre>,
+    });
+  };
+
   const form = useForm<NpcFormData>({
     resolver: zodResolver(npcSchema),
     defaultValues: template ? {...defaultValues, ...template} : defaultValues,
@@ -397,18 +409,6 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     }
   };
 
-  const onFormError = (errors: any) => {
-    const errorMessages = Object.entries(errors).map(([fieldName, error]: [string, any]) => 
-        `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}: ${error.message}`
-    ).join('\n');
-    
-    toast({
-        variant: 'destructive',
-        title: 'Validation Error',
-        description: <pre className="whitespace-pre-wrap">{errorMessages}</pre>,
-    });
-  };
-
   const onSubmit = async (data: NpcFormData) => {
     try {
       const npcToSave: NewNpc | Npc = {
@@ -436,6 +436,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
       }
       setIsEditing(false);
     } catch (error) {
+      console.error("Save failed:", error);
       toast({ variant: "destructive", title: "Save Failed", description: `Could not save changes.` });
     }
   };
