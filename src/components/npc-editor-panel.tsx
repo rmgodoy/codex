@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -400,6 +401,7 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
     try {
       const npcToSave: NewNpc | Npc = {
         ...data,
+        raceId: data.raceId === 'none' ? undefined : data.raceId,
         tags: data.tags || [],
         factionIds: data.factionIds || [],
         beliefIds: data.beliefIds || [],
@@ -595,10 +597,10 @@ export default function NpcEditorPanel({ npcId, isCreatingNew, template, onSaveS
                     <FormField name="raceId" control={form.control} render={({ field }) => (
                       <FormItem>
                           <FormLabel>Race</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || 'none'}>
                               <FormControl><SelectTrigger><SelectValue placeholder="Select a race..." /></SelectTrigger></FormControl>
                               <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
+                                  <SelectItem value="none">None</SelectItem>
                                   {allRaces.map(race => <SelectItem key={race.id} value={race.id}>{race.name}</SelectItem>)}
                               </SelectContent>
                           </Select>
