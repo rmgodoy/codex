@@ -47,12 +47,12 @@ const parseDeedFromObject = (deedObj: OverlordDeedV2, tier: DeedTier, creatureId
     const typeLine = deedObj.lines.find(line => line.title.includes("ATTACK") || line.title.includes("SUPPORT"));
     if (!typeLine) return null;
     
-    const typeMatch = typeLine.title.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
+    const typeMatch = typeLine.title.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)(?:\s+VS\.?\s+(\w+|[0-9]+))?/);
     if (!typeMatch) return null;
 
     const deedType = typeMatch[1].toLowerCase() as DeedType;
     const actionType = typeMatch[2].toLowerCase() as DeedActionType;
-    const versus = typeMatch[3].toLowerCase() as DeedVersus;
+    const versus = (typeMatch[3] ? typeMatch[3].toLowerCase() : 'special') as DeedVersus;
 
     const effects: DeedData['effects'] = {};
     let target = '';
@@ -91,12 +91,12 @@ const parseDeedFromString = (deedStr: string, tier: DeedTier, creatureId: string
         const deedId = `${bundleId}-${creatureId}-${name.replace(/\s+/g, '-')}`;
         
         const typeLineRaw = lines[1];
-        const typeMatch = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)\s+VS\.?\s+(\w+|[0-9]+)/);
+        const typeMatch = typeLineRaw.toUpperCase().match(/(\w+)\s+(ATTACK|SUPPORT)(?:\s+VS\.?\s+(\w+|[0-9]+))?/);
         if (!typeMatch) return null;
         
         const deedType = typeMatch[1].toLowerCase() as DeedType;
         const actionType = typeMatch[2].toLowerCase() as DeedActionType;
-        const versus = typeMatch[3].toLowerCase() as DeedVersus;
+        const versus = (typeMatch[3] ? typeMatch[3].toLowerCase() : 'special') as DeedVersus;
         
         let lineIndex = 2;
         let target = '';
