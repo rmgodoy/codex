@@ -125,7 +125,15 @@ const parseDeedFromString = (deedStr: string, tier: DeedTier, creatureId: string
 export async function importOverlordBundle(jsonString: string): Promise<{ creaturesAdded: number; deedsAdded: number }> {
     let bundle: OverlordCreature[];
     try {
-      bundle = JSON.parse(jsonString);
+      const data = JSON.parse(jsonString);
+      if (data && Array.isArray(data.statblocks)) {
+        bundle = data.statblocks;
+      } else if (Array.isArray(data)) {
+        // For backwards compatibility with the old format
+        bundle = data;
+      } else {
+        throw new Error("Invalid JSON format: Expected a 'statblocks' array.");
+      }
     } catch (e) {
       throw new Error("Invalid JSON file.");
     }
@@ -210,5 +218,3 @@ export async function importOverlordBundle(jsonString: string): Promise<{ creatu
 
     return { creaturesAdded, deedsAdded };
 }
-
-    
