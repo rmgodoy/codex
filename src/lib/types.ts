@@ -70,7 +70,8 @@ export type TagSource =
   | "calendar"
   | "pantheon"
   | "city"
-  | "race";
+  | "race"
+  | "randomTable";
 
 export interface Tag {
   id: string;
@@ -592,3 +593,27 @@ export interface Map {
 }
 
 export type NewMap = Omit<Map, "id">;
+
+// Random Table Types
+export interface RandomTableColumnOption {
+  id: string;
+  range: string;
+  value: string;
+}
+
+export interface RandomTableColumn {
+  id: string;
+  name: string;
+  options: RandomTableColumnOption[];
+}
+
+export interface RandomTable {
+  id: string;
+  name: string;
+  description: string;
+  dieSize: number;
+  columns: RandomTableColumn[];
+  tags: string[];
+}
+
+export type NewRandomTable = Omit<RandomTable, "id">;

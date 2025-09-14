@@ -21,3 +21,4 @@ export * from './exportHelpers';
 export * from './maps';
 export * from './cities';
 export * from './races';
+export * from './randomTables';

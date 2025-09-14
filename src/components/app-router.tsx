@@ -21,6 +21,7 @@ import MapsPage from '@/app/maps/page';
 import CommonersPage from '@/app/random/commoners/page';
 import EncounterTablesPage from '@/app/random/encounter-tables/page';
 import TreasuresPage from '@/app/random/treasures/page';
+import RandomTablesPage from '@/app/random/tables/page';
 import CitiesPage from '@/app/cities/page';
 import RacesPage from '@/app/races/page';
 import type { CustomDate } from '@/lib/types';
@@ -44,6 +45,7 @@ const routes: { [key: string]: React.ComponentType<any> } = {
   'random/commoners': CommonersPage,
   'random/encounter-tables': EncounterTablesPage,
   'random/treasures': TreasuresPage,
+  'random/tables': RandomTablesPage,
   'cities': CitiesPage,
 };
 

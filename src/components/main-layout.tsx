@@ -18,6 +18,7 @@ import {
   Gem,
   Landmark,
   Globe,
+  Table,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,6 +145,8 @@ export default function MainLayout({
         pageName = "Treasures";
       else if (pageKeyLower.startsWith("random/commoners"))
         pageName = "Commoners";
+      else if (pageKeyLower.startsWith("random/tables"))
+        pageName = "Random Tables";
       else if (pageKeyLower.startsWith("alchemy")) pageName = "Alchemy";
       else if (pageKeyLower.startsWith("rooms")) pageName = "Rooms";
       else if (pageKeyLower.startsWith("dungeons")) pageName = "Dungeons";
@@ -243,6 +246,11 @@ export default function MainLayout({
       label: "Commoners",
       group: "Random",
     },
+    {
+      href: `#/${worldSlug}/random/tables`,
+      label: "Random Tables",
+      group: "Random",
+    },
     { href: `#/${worldSlug}/dungeons`, label: "Dungeons" },
     { href: `#/${worldSlug}/maps`, label: "Maps" },
   ].sort((a, b) => a.label.localeCompare(b.label));
@@ -269,7 +277,7 @@ export default function MainLayout({
       </DropdownMenu>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost">Random</Button>
+          <Button variant={hash.includes('/random/') ? 'secondary' : 'ghost'}>Random</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           {randomLinks.map((link) => (
@@ -341,7 +349,7 @@ export default function MainLayout({
               <a href={link.href} key={link.href}>
                 <Button
                   variant={
-                    hash.endsWith(link.href.split("/").pop()!)
+                    hash.includes(link.href.split("/").pop()!)
                       ? "secondary"
                       : "ghost"
                   }
