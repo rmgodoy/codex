@@ -22,6 +22,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import Papa from 'papaparse';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
 const randomTableColumnOptionSchema = z.object({
   id: z.string(),
@@ -308,13 +309,13 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   
   const handleRoll = () => {
     const table = getValues();
+    const roll = rollDie(table.dieSize);
     const result: string[] = [];
     table.columns.forEach(column => {
-        const roll = rollDie(table.dieSize);
         const option = column.options.find(opt => parseRange(opt.range, roll));
-        result.push(option ? `${column.name}: ${option.value}` : `${column.name}: (No result for roll ${roll})`);
+        result.push(option ? `${option.value}` : `(No result for roll ${roll})`);
     });
-    setRollResult(result);
+    setRollResult([`d${table.dieSize} Roll: ${roll}`, ...result]);
   };
   
   const handleImport = (data: Partial<RandomTableFormData>) => {
@@ -364,19 +365,30 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
           <CardContent>
             {rollResult && (
               <div className="mb-4 p-4 border rounded-md bg-muted/50">
-                <h3 className="font-semibold text-lg mb-2">Result:</h3>
-                <p className="text-foreground">{rollResult.join(' ')}</p>
+                <h3 className="font-semibold text-lg mb-2">{rollResult[0]}</h3>
+                <p className="text-foreground">{rollResult.slice(1).join(' ')}</p>
               </div>
             )}
             <div className="space-y-4">
-              {tableData.columns.map(col => (
-                <div key={col.id}>
-                  <h4 className="font-semibold">{col.name}</h4>
-                  <ul className="list-disc pl-5 text-sm">
-                    {col.options.map(opt => <li key={opt.id}>{opt.range}: {opt.value}</li>)}
-                  </ul>
-                </div>
-              ))}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px]">d{tableData.dieSize}</TableHead>
+                    {tableData.columns.map(col => <TableHead key={col.id}>{col.name}</TableHead>)}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: tableData.dieSize }, (_, i) => i + 1).map(roll => (
+                    <TableRow key={roll}>
+                      <TableCell className="font-medium">{roll}</TableCell>
+                      {tableData.columns.map(col => {
+                        const option = col.options.find(opt => parseRange(opt.range, roll));
+                        return <TableCell key={col.id}>{option ? option.value : '-'}</TableCell>
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
           <CardFooter>
