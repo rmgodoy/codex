@@ -14,12 +14,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Dices } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Dices, Upload } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "./ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import Papa from 'papaparse';
 
 const randomTableColumnOptionSchema = z.object({
   id: z.string(),
@@ -76,6 +78,143 @@ const parseRange = (range: string, roll: number): boolean => {
     return false;
 };
 
+function ImportDialog({ onImport }: { onImport: (data: Partial<RandomTableFormData>) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [importType, setImportType] = useState<'csv' | 'markdown' | null>(null);
+  const [markdownText, setMarkdownText] = useState('');
+  const { toast } = useToast();
+
+  const handleCsvImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        try {
+          const headers = results.meta.fields;
+          if (!headers || headers.length < 2) throw new Error("CSV must have at least two columns (range and one value column).");
+          
+          const rangeHeader = headers[0];
+          const columnHeaders = headers.slice(1);
+          
+          const columns: RandomTableColumn[] = columnHeaders.map(name => ({
+            id: crypto.randomUUID(),
+            name,
+            options: [],
+          }));
+
+          (results.data as any[]).forEach(row => {
+            const range = row[rangeHeader];
+            if (range) {
+              columnHeaders.forEach((header, index) => {
+                if (row[header]) {
+                  columns[index].options.push({
+                    id: crypto.randomUUID(),
+                    range: range.toString(),
+                    value: row[header].toString(),
+                  });
+                }
+              });
+            }
+          });
+
+          onImport({ columns });
+          setIsOpen(false);
+          setImportType(null);
+          toast({ title: "CSV Parsed Successfully" });
+        } catch (error: any) {
+          toast({ variant: "destructive", title: "CSV Import Error", description: error.message });
+        }
+      },
+      error: (error: any) => {
+        toast({ variant: "destructive", title: "CSV Parsing Error", description: error.message });
+      },
+    });
+  };
+
+  const handleMarkdownImport = () => {
+    try {
+      const lines = markdownText.trim().split('\n').map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'));
+      if (lines.length < 3) throw new Error("Markdown table must have a header, separator, and at least one data row.");
+
+      const headers = lines[0].slice(1, -1).split('|').map(h => h.trim());
+      const columnHeaders = headers.slice(1);
+      
+      const columns: RandomTableColumn[] = columnHeaders.map(name => ({
+        id: crypto.randomUUID(),
+        name,
+        options: [],
+      }));
+
+      for (let i = 2; i < lines.length; i++) {
+        const row = lines[i].slice(1, -1).split('|').map(c => c.trim());
+        const range = row[0];
+        if (range) {
+          for (let j = 1; j < row.length; j++) {
+            if (row[j] && j - 1 < columns.length) {
+              columns[j - 1].options.push({
+                id: crypto.randomUUID(),
+                range: range,
+                value: row[j],
+              });
+            }
+          }
+        }
+      }
+
+      onImport({ columns });
+      setIsOpen(false);
+      setImportType(null);
+      toast({ title: "Markdown Parsed Successfully" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Markdown Import Error", description: error.message });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" size="sm" variant="outline"><Upload className="h-4 w-4 mr-2" /> Import</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Table Data</DialogTitle>
+          <DialogDescription>Import from a CSV file or paste a Markdown table.</DialogDescription>
+        </DialogHeader>
+        {importType === null && (
+          <div className="flex gap-4 pt-4">
+            <Button className="w-full" onClick={() => setImportType('csv')}>Import CSV</Button>
+            <Button className="w-full" onClick={() => setImportType('markdown')}>Import Markdown</Button>
+          </div>
+        )}
+        {importType === 'csv' && (
+          <div className="pt-4">
+            <Input type="file" accept=".csv" onChange={handleCsvImport} />
+            <Button variant="link" onClick={() => setImportType(null)}>Back</Button>
+          </div>
+        )}
+        {importType === 'markdown' && (
+          <div className="pt-4 space-y-2">
+            <Textarea 
+              rows={10} 
+              value={markdownText}
+              onChange={(e) => setMarkdownText(e.target.value)}
+              placeholder="| Range | Column 1 | Column 2 |&#10;|---|---|---|&#10;| 1-5 | Value A | Value B |"
+            />
+            <div className="flex justify-between">
+                <Button variant="link" onClick={() => setImportType(null)}>Back</Button>
+                <Button onClick={handleMarkdownImport}>Parse Markdown</Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveSuccess, onDeleteSuccess, onEditCancel, onBack }: RandomTableEditorPanelProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(isCreatingNew);
@@ -89,7 +228,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
     defaultValues: defaultValues,
   });
   
-  const { control, watch, getValues, handleSubmit } = form;
+  const { control, watch, getValues, handleSubmit, reset } = form;
 
   const { fields: columnFields, append: appendColumn, remove: removeColumn } = useFieldArray({
     control,
@@ -177,6 +316,11 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
     });
     setRollResult(result);
   };
+  
+  const handleImport = (data: Partial<RandomTableFormData>) => {
+    const currentData = getValues();
+    reset({ ...currentData, ...data });
+  };
 
   const handleDelete = async () => {
     if (!tableId) return;
@@ -205,7 +349,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
           <CardHeader>
             <div className="flex flex-row items-start justify-between">
               <div className="flex items-center gap-2">
-                {isMobile && onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2 -mt-1"><ArrowLeft className="h-5 w-5" /></Button>}
+                {isMobile && onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2 -mt-1"><ArrowLeft className="h-4 w-4" /></Button>}
                 <div>
                   <CardTitle className="text-3xl font-bold">{tableData.name}</CardTitle>
                   <CardDescription>Roll a d{tableData.dieSize}</CardDescription>
@@ -268,7 +412,10 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Columns</h3>
-                  <Button type="button" size="sm" variant="outline" onClick={() => appendColumn({ id: crypto.randomUUID(), name: `Column ${columnFields.length + 1}`, options: [] })}><Plus className="h-4 w-4 mr-2" /> Add Column</Button>
+                  <div className="flex gap-2">
+                    <ImportDialog onImport={handleImport} />
+                    <Button type="button" size="sm" variant="outline" onClick={() => appendColumn({ id: crypto.randomUUID(), name: `Column ${columnFields.length + 1}`, options: [] })}><Plus className="h-4 w-4 mr-2" /> Add Column</Button>
+                  </div>
                 </div>
                 <div className="space-y-4">
                   {columnFields.map((column, colIndex) => (
