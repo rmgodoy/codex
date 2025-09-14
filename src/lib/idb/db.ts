@@ -5,7 +5,7 @@ import type { WorldMetadata } from "../types";
 
 export const DB_PREFIX = "TresspasserDB_";
 export let DB_NAME = `${DB_PREFIX}Default`;
-export const DB_VERSION = 6; // Incremented version to ensure onupgradeneeded runs
+export const DB_VERSION = 7; // Incremented version to ensure onupgradeneeded runs
 
 // Metadata DB for tracking all worlds
 const METADATA_DB_NAME = "TresspasserWorldsMetadata";
@@ -33,6 +33,7 @@ export const MAPS_STORE_NAME = "maps";
 export const CUSTOM_CALENDARS_STORE_NAME = "customCalendars";
 export const CITIES_STORE_NAME = "cities";
 export const RACES_STORE_NAME = "races";
+export const RANDOM_TABLES_STORE_NAME = "randomTables";
 
 export const ALL_STORE_NAMES = [
   CREATURES_STORE_NAME,
@@ -54,6 +55,7 @@ export const ALL_STORE_NAMES = [
   CUSTOM_CALENDARS_STORE_NAME,
   CITIES_STORE_NAME,
   RACES_STORE_NAME,
+  RANDOM_TABLES_STORE_NAME,
 ];
 
 let db: IDBDatabase | null = null;
