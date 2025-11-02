@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Dices, Upload } from "lucide-react";
+import { Trash2, Edit, Tag, X, ArrowLeft, Plus, Dices, Upload, ChevronsUpDown } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Badge } from "./ui/badge";
 import { TagInput } from "./ui/tag-input";
@@ -26,6 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { ScrollArea } from "./ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
 const randomTableColumnOptionSchema = z.object({
   id: z.string(),
@@ -111,6 +112,35 @@ const rollDiceString = (diceString: string): { finalRoll: number, rollString: st
     };
 };
 
+const getDiceRange = (diceString: string): { min: number, max: number } | null => {
+    if (!diceString || diceString.includes('|')) return null;
+
+    let min = 0;
+    let max = 0;
+
+    const parts = diceString.split('+');
+    for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed.includes('d')) {
+            const [numDiceStr, dieSizeStr] = trimmed.split('d');
+            const numDice = numDiceStr ? parseInt(numDiceStr, 10) : 1;
+            const dieSize = parseInt(dieSizeStr, 10);
+            if (!isNaN(numDice) && !isNaN(dieSize) && dieSize > 0) {
+                min += numDice;
+                max += numDice * dieSize;
+            } else {
+                return null; // Invalid dice format
+            }
+        } else if (!isNaN(parseInt(trimmed, 10))) {
+            const constant = parseInt(trimmed, 10);
+            min += constant;
+            max += constant;
+        } else {
+            return null; // Invalid format
+        }
+    }
+    return { min, max };
+}
 
 const parseRange = (range: string, roll: number): boolean => {
     if (range.includes('-')) {
@@ -305,7 +335,6 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
       try {
         const tableFromDb = await getRandomTableById(tableId);
         if (tableFromDb) {
-          // Backward compatibility for numeric dieSize
           if (typeof tableFromDb.dieSize === 'number') {
             tableFromDb.dieSize = String(tableFromDb.dieSize);
           }
@@ -373,7 +402,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
     });
 
     if (table.concatenateResults) {
-        const finalString = columnResults.map(r => r.value).join('');
+        const finalString = columnResults.map(r => r.value).join(' ');
         setRollResult([finalString]);
     } else {
         const resultStrings = columnResults.map(r => 
@@ -410,8 +439,14 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   }
 
   if (!isEditing && tableData) {
-    const numericDieSize = parseInt(tableData.dieSize.replace(/d/i, ''));
-    const hasRange = !isNaN(numericDieSize) && numericDieSize > 0;
+    const diceRange = getDiceRange(tableData.dieSize);
+    const hasRange = !!diceRange;
+    const allOptions = tableData.columns.flatMap(c => c.options);
+    const uniqueRanges = Array.from(new Set(allOptions.map(o => o.range))).sort((a, b) => {
+        const aNum = parseInt(a.split('-')[0]);
+        const bNum = parseInt(b.split('-')[0]);
+        return aNum - bNum;
+    });
 
     return (
       <div className="w-full max-w-5xl mx-auto">
@@ -464,7 +499,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {hasRange && Array.from({ length: numericDieSize }, (_, i) => i + 1).map(roll => (
+                  {hasRange && Array.from({ length: diceRange.max - diceRange.min + 1 }, (_, i) => i + diceRange.min).map(roll => (
                     <TableRow key={roll}>
                       <TableCell className="font-medium">{roll}</TableCell>
                       {tableData.columns.map(col => {
@@ -473,11 +508,11 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                       })}
                     </TableRow>
                   ))}
-                  {!hasRange && tableData.columns.flatMap(c => c.options).map((opt, i) => (
-                     <TableRow key={`${opt.id}-${i}`}>
-                        <TableCell>{opt.range}</TableCell>
+                  {!hasRange && uniqueRanges.map((range, i) => (
+                     <TableRow key={`${range}-${i}`}>
+                        <TableCell>{range}</TableCell>
                         {tableData.columns.map(col => {
-                            const matchingOption = col.options.find(o => o.range === opt.range);
+                            const matchingOption = col.options.find(o => o.range === range);
                             return <TableCell key={col.id}>{matchingOption?.value || '-'}</TableCell>
                         })}
                      </TableRow>
@@ -546,13 +581,23 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                 </div>
                 <div className="space-y-4">
                   {columnFields.map((column, colIndex) => (
-                    <div key={column.id} className="border p-4 rounded-md bg-muted/50 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <FormField name={`columns.${colIndex}.name`} control={control} render={({ field }) => (<FormItem className="flex-1 mr-4"><FormLabel>Column Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeColumn(colIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                      <OptionsArray control={control} colIndex={colIndex} />
-                    </div>
+                      <Collapsible key={column.id} defaultOpen={!getValues(`columns.${colIndex}.name`)} className="border p-4 rounded-md bg-muted/50">
+                        <div className="flex justify-between items-center">
+                          <CollapsibleTrigger asChild>
+                            <button type="button" className="flex items-center gap-3 text-left w-full">
+                              <ChevronsUpDown className="h-5 w-5 text-muted-foreground" />
+                              <span className="text-lg font-semibold text-foreground">
+                                  {getValues(`columns.${colIndex}.name`) || "New Column"}
+                              </span>
+                            </button>
+                          </CollapsibleTrigger>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeColumn(colIndex)} className="text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                        <CollapsibleContent className="mt-4 space-y-3">
+                           <FormField name={`columns.${colIndex}.name`} control={control} render={({ field }) => (<FormItem className="flex-1 mr-4"><FormLabel>Column Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                           <OptionsArray control={control} colIndex={colIndex} />
+                        </CollapsibleContent>
+                      </Collapsible>
                   ))}
                 </div>
               </div>
