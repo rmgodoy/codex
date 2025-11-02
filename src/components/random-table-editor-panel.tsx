@@ -99,8 +99,12 @@ const rollDiceString = (diceString: string): { finalRoll: number, rollString: st
                     rollPartsStrings.push(`${numDice}d${dieSize} (${rolls.join(', ')})`);
                 }
             } else if (!isNaN(parseInt(trimmedTerm))) {
-                partSum += parseInt(trimmedTerm);
-                rollPartsStrings.push(trimmedTerm);
+                const dieSize = parseInt(trimmedTerm);
+                if (dieSize > 0) {
+                    const roll = rollSingleDie(dieSize);
+                    partSum += roll;
+                    rollPartsStrings.push(`1d${dieSize} (${roll})`);
+                }
             }
         }
         finalConcatenatedString += partSum.toString();
@@ -115,15 +119,15 @@ const rollDiceString = (diceString: string): { finalRoll: number, rollString: st
 const getDiceRange = (diceString: string): { min: number, max: number } | null => {
     if (!diceString || diceString.includes('|')) return null;
 
-    let min = 0;
-    let max = 0;
-    
     // If it's just a number, treat it as 1-N
-    if (!isNaN(parseInt(diceString, 10)) && !diceString.includes('d')) {
+    if (!isNaN(parseInt(diceString, 10)) && !diceString.includes('d') && !diceString.includes('+')) {
         const sides = parseInt(diceString, 10);
         return { min: 1, max: sides };
     }
 
+    let min = 0;
+    let max = 0;
+    
     const parts = diceString.split('+');
     for (const part of parts) {
         const trimmed = part.trim();
@@ -304,7 +308,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   const [isEditing, setIsEditing] = useState(isCreatingNew);
   const [loading, setLoading] = useState(!isCreatingNew && !!tableId);
   const [tableData, setTableData] = useState<RandomTable | null>(null);
-  const [rollResult, setRollResult] = useState<string[] | null>(null);
+  const [rollResult, setRollResult] = useState<{result: string[], roll: string} | null>(null);
   const isMobile = useIsMobile();
 
   const form = useForm<RandomTableFormData>({
@@ -405,9 +409,12 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   const handleRoll = () => {
     const table = getValues();
     const columnResults: { name: string, roll: number, value: string }[] = [];
+    let fullRollString = '';
 
-    table.columns.forEach(column => {
-        const { finalRoll } = rollDiceString(table.dieSize);
+    table.columns.forEach((column, index) => {
+        const { finalRoll, rollString } = rollDiceString(table.dieSize);
+        if (index === 0) fullRollString = rollString;
+
         const option = column.options.find(opt => parseRange(opt.range, finalRoll));
         columnResults.push({
             name: column.name,
@@ -418,12 +425,12 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
 
     if (table.concatenateResults) {
         const finalString = columnResults.map(r => r.value).join(' ');
-        setRollResult([finalString]);
+        setRollResult({result: [finalString], roll: fullRollString});
     } else {
         const resultStrings = columnResults.map(r => 
             `**${r.name}** (Rolled ${r.roll}): ${r.value}`
         );
-        setRollResult(resultStrings);
+        setRollResult({result: resultStrings, roll: fullRollString});
     }
 };
 
@@ -485,11 +492,11 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
             {rollResult && (
               <div className="mb-4 p-4 border rounded-md bg-muted/50">
                 <h3 className="font-semibold text-lg mb-2">Roll Result</h3>
-                {rollResult.length === 1 ? (
-                    <p className="text-foreground">{rollResult[0]}</p>
+                {rollResult.result.length === 1 ? (
+                    <p className="text-foreground">{rollResult.result[0]}</p>
                 ) : (
                     <ul className="space-y-1">
-                        {rollResult.map((line, index) => {
+                        {rollResult.result.map((line, index) => {
                             const parts = line.split(/(\*\*.*?\*\*)/g);
                             return (
                                 <li key={index} className="text-foreground">
@@ -503,6 +510,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                         })}
                     </ul>
                 )}
+                <p className="text-xs text-muted-foreground mt-2">{rollResult.roll}</p>
               </div>
             )}
             <div className="space-y-4">
