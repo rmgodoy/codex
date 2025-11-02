@@ -355,14 +355,19 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   
   const handleRoll = () => {
     const table = getValues();
-    const { finalRoll, rollString } = rollDiceString(table.dieSize);
-    const result: string[] = [];
+    const results: string[] = [];
+    const rollDetails: string[] = [];
+
     table.columns.forEach(column => {
+        const { finalRoll, rollString } = rollDiceString(table.dieSize);
+        rollDetails.push(`${column.name}: ${finalRoll}`);
         const option = column.options.find(opt => parseRange(opt.range, finalRoll));
-        result.push(option ? `${option.value}` : `(No result for roll ${finalRoll})`);
+        results.push(option ? option.value : `(No result)`);
     });
-    setRollResult([rollString, ...result]);
-  };
+
+    const fullRollString = `Rolls: ${rollDetails.join(', ')}`;
+    setRollResult([fullRollString, ...results]);
+};
   
   const handleImport = (data: Partial<RandomTableFormData>) => {
     const currentData = getValues();
