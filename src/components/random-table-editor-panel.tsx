@@ -23,6 +23,9 @@ import { Separator } from "./ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import Papa from 'papaparse';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
+import { ScrollArea } from "./ui/scroll-area";
 
 const randomTableColumnOptionSchema = z.object({
   id: z.string(),
@@ -42,6 +45,7 @@ const randomTableSchema = z.object({
   dieSize: z.string().min(1, "Dice notation is required."),
   columns: z.array(randomTableColumnSchema).min(1, "At least one column is required"),
   tags: z.array(z.string()).optional(),
+  concatenateResults: z.boolean().default(false),
 });
 
 type RandomTableFormData = z.infer<typeof randomTableSchema>;
@@ -61,6 +65,7 @@ const defaultValues: RandomTableFormData = {
   dieSize: "20",
   columns: [],
   tags: [],
+  concatenateResults: false,
 };
 
 const rollSingleDie = (sides: number) => Math.floor(Math.random() * sides) + 1;
@@ -355,19 +360,29 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   
   const handleRoll = () => {
     const table = getValues();
-    const results: string[] = [];
-    const rollDetails: string[] = [];
+    const columnResults: { name: string, roll: number, value: string }[] = [];
 
     table.columns.forEach(column => {
-        const { finalRoll, rollString } = rollDiceString(table.dieSize);
-        rollDetails.push(`${column.name}: ${finalRoll}`);
+        const { finalRoll } = rollDiceString(table.dieSize);
         const option = column.options.find(opt => parseRange(opt.range, finalRoll));
-        results.push(option ? option.value : `(No result)`);
+        columnResults.push({
+            name: column.name,
+            roll: finalRoll,
+            value: option ? option.value : `(No result for ${finalRoll})`
+        });
     });
 
-    const fullRollString = `Rolls: ${rollDetails.join(', ')}`;
-    setRollResult([fullRollString, ...results]);
+    if (table.concatenateResults) {
+        const finalString = columnResults.map(r => r.value).join('');
+        setRollResult([finalString]);
+    } else {
+        const resultStrings = columnResults.map(r => 
+            `**${r.name}** (Rolled ${r.roll}): ${r.value}`
+        );
+        setRollResult(resultStrings);
+    }
 };
+
   
   const handleImport = (data: Partial<RandomTableFormData>) => {
     const currentData = getValues();
@@ -407,7 +422,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                 {isMobile && onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2 -mt-1"><ArrowLeft className="h-4 w-4" /></Button>}
                 <div>
                   <CardTitle className="text-3xl font-bold">{tableData.name}</CardTitle>
-                  <CardDescription>Roll: {tableData.dieSize}</CardDescription>
+                  <CardDescription>Roll: {tableData.dieSize} {tableData.concatenateResults && "(Concatenated)"}</CardDescription>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -419,8 +434,25 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
           <CardContent>
             {rollResult && (
               <div className="mb-4 p-4 border rounded-md bg-muted/50">
-                <h3 className="font-semibold text-lg mb-2">{rollResult[0]}</h3>
-                <p className="text-foreground">{rollResult.slice(1).join(' ')}</p>
+                <h3 className="font-semibold text-lg mb-2">Roll Result</h3>
+                {rollResult.length === 1 ? (
+                    <p className="text-foreground">{rollResult[0]}</p>
+                ) : (
+                    <ul className="space-y-1">
+                        {rollResult.map((line, index) => {
+                            const parts = line.split(/(\*\*.*?\*\*)/g);
+                            return (
+                                <li key={index} className="text-foreground">
+                                    {parts.map((part, i) => 
+                                        part.startsWith('**') && part.endsWith('**') 
+                                            ? <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong> 
+                                            : part
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
               </div>
             )}
             <div className="space-y-4">
@@ -482,6 +514,26 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                 <FormField name="dieSize" control={control} render={({ field }) => (<FormItem><FormLabel>Dice to Roll</FormLabel><FormControl><Input {...field} placeholder="e.g. 20, d100, 2d6+4, d6|d6" /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <FormField name="description" control={control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
+              <FormField
+                control={control}
+                name="concatenateResults"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                            <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel>
+                                Concatenate results into a single string
+                            </FormLabel>
+                        </div>
+                    </FormItem>
+                )}
+                />
+
               <FormField name="tags" control={control} render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel><FormControl><TagInput value={field.value || []} onChange={field.onChange} placeholder="Add tags..." tagSource="randomTable" /></FormControl><FormMessage /></FormItem>)} />
               <Separator />
               <div>

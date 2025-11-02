@@ -1,4 +1,5 @@
 
+
 import type { Role } from "./roles";
 import type { StateEffect } from "./states";
 
@@ -614,6 +615,7 @@ export interface RandomTable {
   dieSize: string;
   columns: RandomTableColumn[];
   tags: string[];
+  concatenateResults: boolean;
 }
 
 export type NewRandomTable = Omit<RandomTable, "id">;
