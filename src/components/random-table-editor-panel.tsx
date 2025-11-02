@@ -117,6 +117,12 @@ const getDiceRange = (diceString: string): { min: number, max: number } | null =
 
     let min = 0;
     let max = 0;
+    
+    // If it's just a number, treat it as 1-N
+    if (!isNaN(parseInt(diceString, 10)) && !diceString.includes('d')) {
+        const sides = parseInt(diceString, 10);
+        return { min: 1, max: sides };
+    }
 
     const parts = diceString.split('+');
     for (const part of parts) {
@@ -356,8 +362,12 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
     if (isCreatingNew) {
       onEditCancel();
     } else if (tableData) {
-      form.reset(tableData);
-      setIsEditing(false);
+        const dataToReset = { ...tableData };
+        if (typeof dataToReset.dieSize === 'number') {
+            dataToReset.dieSize = String(dataToReset.dieSize);
+        }
+        form.reset(dataToReset);
+        setIsEditing(false);
     }
   };
 
@@ -379,6 +389,11 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
         toast({ title: "Save Successful", description: `${data.name} has been updated.` });
       } else {
         return;
+      }
+      // After saving, we need to refetch and set the data for the view mode to be correct
+      const updatedTable = await getRandomTableById(savedId);
+      if (updatedTable) {
+        setTableData(updatedTable);
       }
       onSaveSuccess(savedId);
       setIsEditing(false);
