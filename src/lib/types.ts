@@ -611,7 +611,7 @@ export interface RandomTable {
   id: string;
   name: string;
   description: string;
-  dieSize: number;
+  dieSize: string;
   columns: RandomTableColumn[];
   tags: string[];
 }

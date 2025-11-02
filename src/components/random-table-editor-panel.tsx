@@ -39,7 +39,7 @@ const randomTableColumnSchema = z.object({
 const randomTableSchema = z.object({
   name: z.string().min(1, "Table name is required"),
   description: z.string().optional(),
-  dieSize: z.coerce.number().min(2, "Die size must be at least 2"),
+  dieSize: z.string().min(1, "Dice notation is required."),
   columns: z.array(randomTableColumnSchema).min(1, "At least one column is required"),
   tags: z.array(z.string()).optional(),
 });
@@ -58,12 +58,54 @@ interface RandomTableEditorPanelProps {
 const defaultValues: RandomTableFormData = {
   name: "",
   description: "",
-  dieSize: 20,
+  dieSize: "20",
   columns: [],
   tags: [],
 };
 
-const rollDie = (sides: number) => Math.floor(Math.random() * sides) + 1;
+const rollSingleDie = (sides: number) => Math.floor(Math.random() * sides) + 1;
+
+const rollDiceString = (diceString: string): { finalRoll: number, rollString: string } => {
+    if (!diceString) return { finalRoll: 0, rollString: "Invalid dice string" };
+
+    const concatenationParts = diceString.split('|');
+    let finalConcatenatedString = "";
+    let rollPartsStrings: string[] = [];
+
+    for (const part of concatenationParts) {
+        const additionParts = part.split('+');
+        let partSum = 0;
+        
+        for (const term of additionParts) {
+            const trimmedTerm = term.trim();
+            if (trimmedTerm.includes('d')) {
+                const [numDiceStr, dieSizeStr] = trimmedTerm.split('d');
+                const numDice = numDiceStr ? parseInt(numDiceStr) : 1;
+                const dieSize = parseInt(dieSizeStr);
+
+                if (!isNaN(numDice) && !isNaN(dieSize) && dieSize > 0) {
+                    let rolls = [];
+                    for (let i = 0; i < numDice; i++) {
+                        const roll = rollSingleDie(dieSize);
+                        rolls.push(roll);
+                        partSum += roll;
+                    }
+                    rollPartsStrings.push(`${numDice}d${dieSize} (${rolls.join(', ')})`);
+                }
+            } else if (!isNaN(parseInt(trimmedTerm))) {
+                partSum += parseInt(trimmedTerm);
+                rollPartsStrings.push(trimmedTerm);
+            }
+        }
+        finalConcatenatedString += partSum.toString();
+    }
+    
+    return { 
+        finalRoll: parseInt(finalConcatenatedString),
+        rollString: `Roll: ${diceString} -> [${rollPartsStrings.join(' + ')}]` 
+    };
+};
+
 
 const parseRange = (range: string, roll: number): boolean => {
     if (range.includes('-')) {
@@ -229,7 +271,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
     defaultValues: defaultValues,
   });
   
-  const { control, watch, getValues, handleSubmit, reset } = form;
+  const { control, getValues, handleSubmit, reset } = form;
 
   const { fields: columnFields, append: appendColumn, remove: removeColumn } = useFieldArray({
     control,
@@ -309,13 +351,13 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   
   const handleRoll = () => {
     const table = getValues();
-    const roll = rollDie(table.dieSize);
+    const { finalRoll, rollString } = rollDiceString(table.dieSize);
     const result: string[] = [];
     table.columns.forEach(column => {
-        const option = column.options.find(opt => parseRange(opt.range, roll));
-        result.push(option ? `${option.value}` : `(No result for roll ${roll})`);
+        const option = column.options.find(opt => parseRange(opt.range, finalRoll));
+        result.push(option ? `${option.value}` : `(No result for roll ${finalRoll})`);
     });
-    setRollResult([`d${table.dieSize} Roll: ${roll}`, ...result]);
+    setRollResult([rollString, ...result]);
   };
   
   const handleImport = (data: Partial<RandomTableFormData>) => {
@@ -344,6 +386,9 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
   }
 
   if (!isEditing && tableData) {
+    const numericDieSize = parseInt(tableData.dieSize.replace(/d/i, ''));
+    const hasRange = !isNaN(numericDieSize) && numericDieSize > 0;
+
     return (
       <div className="w-full max-w-5xl mx-auto">
         <Card>
@@ -353,7 +398,7 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                 {isMobile && onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2 -mt-1"><ArrowLeft className="h-4 w-4" /></Button>}
                 <div>
                   <CardTitle className="text-3xl font-bold">{tableData.name}</CardTitle>
-                  <CardDescription>Roll a d{tableData.dieSize}</CardDescription>
+                  <CardDescription>Roll: {tableData.dieSize}</CardDescription>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -373,12 +418,12 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">d{tableData.dieSize}</TableHead>
+                    <TableHead className="w-[100px]">{tableData.dieSize}</TableHead>
                     {tableData.columns.map(col => <TableHead key={col.id}>{col.name}</TableHead>)}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.from({ length: tableData.dieSize }, (_, i) => i + 1).map(roll => (
+                  {hasRange && Array.from({ length: numericDieSize }, (_, i) => i + 1).map(roll => (
                     <TableRow key={roll}>
                       <TableCell className="font-medium">{roll}</TableCell>
                       {tableData.columns.map(col => {
@@ -386,6 +431,15 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
                         return <TableCell key={col.id}>{option ? option.value : '-'}</TableCell>
                       })}
                     </TableRow>
+                  ))}
+                  {!hasRange && tableData.columns.flatMap(c => c.options).map((opt, i) => (
+                     <TableRow key={`${opt.id}-${i}`}>
+                        <TableCell>{opt.range}</TableCell>
+                        {tableData.columns.map(col => {
+                            const matchingOption = col.options.find(o => o.range === opt.range);
+                            return <TableCell key={col.id}>{matchingOption?.value || '-'}</TableCell>
+                        })}
+                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
@@ -407,16 +461,16 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
             <CardHeader>
               <div className="flex flex-row justify-between items-start">
                 <div className="flex items-center gap-2">
-                  {isMobile && onBack && <Button type="button" variant="ghost" size="icon" onClick={onEditCancel} className="shrink-0 -ml-2"><ArrowLeft className="h-5 w-5" /></Button>}
+                  {isMobile && onBack && <Button type="button" variant="ghost" size="icon" onClick={onEditCancel} className="shrink-0 -ml-2"><ArrowLeft className="h-4 w-4" /></Button>}
                   <CardTitle>{isCreatingNew ? "Create New Table" : `Editing: ${getValues("name") || "..."}`}</CardTitle>
                 </div>
-                {!isMobile && <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></Button>}
+                {!isMobile && <Button type="button" variant="ghost" size="icon" onClick={handleCancel} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></Button>}
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField name="name" control={control} render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Table Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="dieSize" control={control} render={({ field }) => (<FormItem><FormLabel>Die Size (d#)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField name="dieSize" control={control} render={({ field }) => (<FormItem><FormLabel>Dice to Roll</FormLabel><FormControl><Input {...field} placeholder="e.g. 20, d100, 2d6+4, d6|d6" /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <FormField name="description" control={control} render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>)} />
               <FormField name="tags" control={control} render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" />Tags</FormLabel><FormControl><TagInput value={field.value || []} onChange={field.onChange} placeholder="Add tags..." tagSource="randomTable" /></FormControl><FormMessage /></FormItem>)} />
