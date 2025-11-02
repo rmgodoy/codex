@@ -300,6 +300,10 @@ export default function RandomTableEditorPanel({ tableId, isCreatingNew, onSaveS
       try {
         const tableFromDb = await getRandomTableById(tableId);
         if (tableFromDb) {
+          // Backward compatibility for numeric dieSize
+          if (typeof tableFromDb.dieSize === 'number') {
+            tableFromDb.dieSize = String(tableFromDb.dieSize);
+          }
           form.reset(tableFromDb);
           setTableData(tableFromDb);
         } else {
